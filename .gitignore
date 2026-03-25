@@ -1,0 +1,15 @@
+# Lokální konfigurace s hesly
+/config.php
+
+# Jízdní řády (PDF/HTML) – neverzovat kvůli velikosti a autorským právům; na hosting je nahraj zvlášť
+/jr/
+
+# Logy z PHP / nástrojů (pokud vzniknou v kořeni projektu)
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+.DS_Store
