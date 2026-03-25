@@ -1,45 +1,84 @@
 <?php
-
 // INIT
-require_once dirname(__FILE__) . "/../../config.php";
-require_once dirname(__FILE__) . "/../fce.php";
-require_once dirname(__FILE__) . "/../variableCheck.php";
+require_once __DIR__ . "/../../config.php";
+require_once __DIR__ . "/../variableCheck.php"; // kvůli $lang
+require_once __DIR__ . "/../fce.php";
 
-if (isset($_GET['linka'])) {
-
-$conn = mysqli_connect($dbServer,$dbUzivatel,$dbHeslo,$dbDb);
-if (!$conn) {echo "Nejaky problem s DB: " . $conn;}
-MySQLi_query($conn, "SET NAMES 'UTF8'"); 
-$sql = "SELECT trasa, zastavky, funkce, mapa FROM texty WHERE linka='" . $_GET['linka'] . "'";                                    
-$result = MySQLi_query($conn, $sql);
-mysqli_close($conn);
-if (mysqli_num_rows($result) <= 0) {echo "Záložka bude teprve doplněna.";}
-else
-{
-$t = MySQLi_fetch_assoc($result);
-
-echo "<span class='font25'>" . $t['trasa'] . "</span><br>
-      <br><span class='font22 zelena'>" . mb_strtoupper($lang['funkce'],'UTF-8') . "</span><br>
-
-      <div style='text-align:left'>" . $t['funkce'] . "</div>
-      <div class='row'>    
-      <div class='col-md-6 dvasloupce'>
-
-          <br><span class='font22 zelena'>" . mb_strtoupper($lang['seznamzastavek'],'UTF-8') . "</span><br>
-
-      <div style='text-align:left'>" . $t['zastavky'] . "</div>
-      </div>
-      <div class='col-md-6 dvasloupce'>    
-
-          <br><span class='font22 zelena'>" . mb_strtoupper($lang['mapa'],'UTF-8') . "</span><br>
-
-      <iframe style='border:none' src='" . $t['mapa'] . "' width='500' height='333'></iframe>
-      </div>
-
-      </div>";
-  
-}} else {
-	echo "Na této záložce najdete základní informace o dané lince. Pokračujte výběrem linky v horním menu.";
+/* INTRO, když není linka zadaná */
+if (!isset($_GET['linka']) || trim((string)$_GET['linka']) === '') {
+    echo $lang['prehled_intro'];
+    return;
 }
 
- 
+// 1) Vstup: povolíme čísla (1–9999) a písmena A–Z (jedno nebo dvě? tady stačí jedno)
+//    Máš A–F a čísla (včetně 500, 600). Když to nesedí, ukážeme hlášku.
+$linkaRaw = isset($_GET['linka']) ? trim((string)$_GET['linka']) : '';
+
+// dovolíme A–Z (1 znak) nebo čísla 1–4 číslice
+if (!preg_match('/^(?:[A-Za-z]|[0-9]{1,4})$/', $linkaRaw)) {
+    echo "<p>{$lang['zalozkanedostupna']}</p>";
+    return;
+}
+
+// normalizace písmen na velká (A–Z)
+$linka = ctype_alpha($linkaRaw) ? strtoupper($linkaRaw) : $linkaRaw;
+
+// 2) DB připojení
+$conn = mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
+if (!$conn) {
+    echo "<p>Nejaký problém s DB.</p>";
+    return;
+}
+mysqli_set_charset($conn, "utf8");
+
+// 3) Prepared statement
+$sql = "SELECT trasa, zastavky, funkce, mapa FROM texty WHERE linka = ?";
+$stmt = mysqli_prepare($conn, $sql);
+if (!$stmt) {
+    mysqli_close($conn);
+    echo "<p>Dotaz nelze připravit.</p>";
+    return;
+}
+mysqli_stmt_bind_param($stmt, "s", $linka);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+
+if (!$result || mysqli_num_rows($result) === 0) {
+    echo "<p>{$lang['zalozkanedostupna']}</p>";
+    mysqli_stmt_close($stmt);
+    mysqli_close($conn);
+    return;
+}
+
+$t = mysqli_fetch_assoc($result);
+mysqli_stmt_close($stmt);
+mysqli_close($conn);
+
+// 4) Výstup
+$trasa = htmlspecialchars($t['trasa'] ?? '', ENT_QUOTES, 'UTF-8');
+$mapaSrc = htmlspecialchars($t['mapa'] ?? '', ENT_QUOTES, 'UTF-8');
+
+// Pozn.: 'funkce' a 'zastavky' u tebe typicky obsahují formátovaný HTML obsah z DB,
+// takže je necháme bez escaping (věříme vlastnímu obsahu). Kdybys chtěl sanitizovat,
+// řekni a přidáme whitelist tagů.
+$funkceHtml   = $t['funkce']   ?? '';
+$zastavkyHtml = $t['zastavky'] ?? '';
+
+echo "<span class='font25'>{$trasa}</span><br>
+      <br><span class='font22 zelena'>" . mb_strtoupper($lang['funkce'], 'UTF-8') . "</span><br>
+
+      <div style='text-align:left'>{$funkceHtml}</div>
+
+      <div class='row'>    
+        <div class='col-md-6 dvasloupce'>
+          <br><span class='font22 zelena'>" . mb_strtoupper($lang['seznamzastavek'], 'UTF-8') . "</span><br>
+          <div style='text-align:left'>{$zastavkyHtml}</div>
+        </div>
+
+        <div class='col-md-6 dvasloupce'>
+          <br><span class='font22 zelena'>" . mb_strtoupper($lang['mapa'], 'UTF-8') . "</span><br>
+          " . ($mapaSrc !== '' 
+                ? "<iframe style='border:none' src='{$mapaSrc}' width='500' height='333' loading='lazy' referrerpolicy='no-referrer-when-downgrade' title='Mapa linky {$linka}'></iframe>"
+                : "<div class='sedaBunka'>Mapový podklad není k dispozici.</div>") . "
+        </div>
+      </div>";

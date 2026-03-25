@@ -1,34 +1,17 @@
 <?php
-
-// Prvotni INIT
-if(!isset($_GET['ja']))
-{
-    $_GET['ja'] = $u;
-}
+// defaulty z configu: $l (jazyk) = "cz"
+if (!isset($_GET['ja'])) { $_GET['ja'] = $l; }
 
 $jazyky = [
-    "cz" => "cz"/*,
-    "sk" => "sk",
-    "en" => "en",
-    "de" => "de",
-    "ru" => "ru",
-    "pl" => "pl",
-    "fr" => "fr",
-    "fi" => "fi",
-    "sv" => "sv",
-    "pt" => "pt",
-    "es" => "es"*/
+  "cz" => "cz",
+  "en" => "en",
 ];
 
+// jazyk
+if (isset($_GET['ja']) && isset($jazyky[$_GET['ja']])) {
+  $l = $jazyky[$_GET['ja']];
+} else {
+  $_GET['ja'] = $l;
+}
 
-    // jazyk
-    if(isset($_GET['ja']) AND isset($jazyky[$_GET['ja']]))
-    {
-        $l = $jazyky[$_GET['ja']];
-    }
-    else
-    {
-        $_GET['ja'] = $l;
-    }
-
-    require_once dirname(__FILE__) . "/language/" . $l . ".php";       // skript s jazykovou mutaci
+require_once __DIR__ . "/language/" . $l . ".php";

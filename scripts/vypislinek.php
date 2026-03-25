@@ -1,253 +1,96 @@
 <?php
+// jistota, že máme jazyk a helpery
+if (!isset($lang) || !isset($l)) {
+    require_once __DIR__ . "/../config.php";
+    require_once __DIR__ . "/variableCheck.php";
+}
+require_once __DIR__ . "/fce.php";
 
-require_once dirname(__FILE__) . "/../config.php";      
-require_once dirname(__FILE__) . "/fce.php";       // skript s nekolika funkcemi
+/** Vykreslí jednu dlaždici linky. */
+function renderTile(string $label, string $class, string $l): string {
+    $href = url_with_params(['linka' => $label, 'ja' => $l]) . '#prehled';
+    $href = htmlspecialchars($href, ENT_QUOTES, 'UTF-8');
+    $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+    $classEsc = htmlspecialchars($class, ENT_QUOTES, 'UTF-8');
 
-echo "<div class='hlavninadpis'><span class='font22 zelena'>" . mb_strtoupper($lang['provoznilinky'],'UTF-8') . "</span></div>";
-echo "<div>";
-//1
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=1'>
-          <div class='barvaramecku historicke'>
-          <font class='textlinek'>1</font>
-          </div>
-          </a>";
-
-// tramvaje 1
-$i=2;
-while($i<=3)
-{
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$i."'>
-          <div class='barvaramecku tramvaje'>
-          <font class='textlinek'>".$i."</font>
-          </div>
-          </a>";
-$i++;          
+    return <<<HTML
+<a href="{$href}">
+  <div class="barvaramecku {$classEsc}">
+    <span class="textlinek">{$labelEsc}</span>
+  </div>
+</a>
+HTML;
 }
 
-//4
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=4'>
-          <div class='barvaramecku historicke'>
-          <font class='textlinek'>4</font>
-          </div>
-          </a>";
-
-//5
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=5'>
-          <div class='barvaramecku tramvaje'>
-          <font class='textlinek'>5</font>
-          </div>
-          </a>";
-
-//11
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=11'>
-          <div class='barvaramecku tramvaje'>
-          <font class='textlinek'>11</font>
-          </div>
-          </a>";
-          
-//autobusy denni
-$i=12;
-while($i<=30)
-{
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$i."'>
-          <div class='barvaramecku autobusy'>
-          <font class='textlinek'>".$i."</font>
-          </div>
-          </a>";
-$i++; 
+/** Pøidá rozsah do pole bez duplicit. */
+function addRange(array &$arr, int $from, int $to, string $class): void {
+    for ($i = $from; $i <= $to; $i++) $arr[(string)$i] = $class;
 }
 
-//autobusy pracovni
-$i=31;
-while($i<=35)
-{
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$i."'>
-          <div class='barvaramecku pracovni'>
-          <font class='textlinek'>".$i."</font>
-          </div>
-          </a>";
-$i++; 
+/* ================== PROVOZNÍ LINKY (vzestupnì) ================== */
+$operational = []; // label(string) => class
+
+// historické
+$operational['1'] = 'historicke';
+$operational['4'] = 'historicke';
+
+// tramvaje
+$operational['2']  = 'tramvaje';
+$operational['3']  = 'tramvaje';
+$operational['5']  = 'tramvaje';
+$operational['11'] = 'tramvaje';
+
+// autobusy denní 12–30 (obsahuje i 38–40)
+addRange($operational, 12, 30, 'autobusy');
+
+// pracovní 31–35 a 37
+addRange($operational, 31, 35, 'pracovni');
+$operational['37'] = 'pracovni';
+
+// školní 36
+$operational['36'] = 'skolni';
+
+//38-40
+addRange($operational, 38, 40, 'autobusy');
+//51–60
+addRange($operational, 51, 60, 'skolni');
+
+// noèní/ranní
+addRange($operational, 91, 94, 'nocni');
+addRange($operational, 97, 99, 'nocni');
+
+// nákupní
+$operational['500'] = 'nakupni';
+$operational['600'] = 'nakupni';
+
+// seøadit klíèe èíselnì
+uksort($operational, fn($a, $b) => intval($a) <=> intval($b));
+
+// výstup
+echo "<div class='hlavninadpis'><span class='font22 zelena'>"
+   . mb_strtoupper($lang['provoznilinky'], 'UTF-8')
+   . "</span></div><div>";
+
+foreach ($operational as $label => $class) {
+    echo renderTile($label, $class, $l);
 }
+echo "</div>";
 
-//36
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=36'>
-          <div class='barvaramecku skolni'>
-          <font class='textlinek'>36</font>
-          </div>
-          </a>";
-          
-//37
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=37'>
-          <div class='barvaramecku pracovni'>
-          <font class='textlinek'>37</font>
-          </div>
-          </a>";
-                    
-//38
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=38'>
-          <div class='barvaramecku autobusy'>
-          <font class='textlinek'>38</font>
-          </div>
-          </a>";
-          
-//39
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=39'>
-          <div class='barvaramecku autobusy'>
-          <font class='textlinek'>39</font>
-          </div>
-          </a>";           
-                 
-//autobusy skolni
-$i=51;
-while($i<=60)
-{
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$i."'>
-          <div class='barvaramecku skolni'>
-          <font class='textlinek'>".$i."</font>
-          </div>
-          </a>";
-$i++; 
-}
+/* ================== MIMO PROVOZ ================== */
+echo "<div class='hlavninadpis'><br><span class='font22 zelena'>"
+   . mb_strtoupper($lang['neprovoznilinky'], 'UTF-8')
+   . "</span></div>";
 
-//autobusy nocni a ranni
-//93
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=93'>
-          <div class='barvaramecku nocni'>
-          <font class='textlinek'>93</font>
-          </div>
-          </a>";
-          
-//94
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=94'>
-          <div class='barvaramecku nocni'>
-          <font class='textlinek'>94</font>
-          </div>
-          </a>";
-          
-$i=97;
-while($i<=99)
-{
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$i."'>
-          <div class='barvaramecku nocni'>
-          <font class='textlinek'>".$i."</font>
-          </div>
-          </a>";
-$i++;         
-}        
-          
-//500
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=500'>
-          <div class='barvaramecku nakupni'>
-          <font class='textlinek'>500</font>
-          </div>
-          </a>";
+// písmena A–F (poøád jako zvláštní skupina)
+$letters = range('A','F');
+echo '<div>';
+foreach ($letters as $L) echo renderTile($L, 'mimoprovoz', $l);
+echo '</div>';
 
-//600
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=600'>
-          <div class='barvaramecku nakupni'>
-          <font class='textlinek'>600</font>
-          </div>
-          </a>";
+// neprovozovaná èísla (vzestupnì)
+$nonOperationalNumbers = ['6','7','8','41','44','50','71','81','90','161','201','301'];
+usort($nonOperationalNumbers, fn($a,$b) => intval($a) <=> intval($b));
 
-echo "</div>";          
-          
-echo "<div class='hlavninadpis'><br><span class='font22 zelena'>" . mb_strtoupper($lang['neprovoznilinky'],'UTF-8') . "</span></div>";
-
-//A-F
-foreach(range('A','F') as $pismenko) 
-{ 
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$pismenko."'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>".$pismenko."</font>
-          </div>
-          </a>";
-} 
-
-         
-//6-8
-$i=6;
-while($i<=8)
-{
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$i."'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>".$i."</font>
-          </div>
-          </a>";
-$i++;          
-}         
-          
-//40
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=40'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>40</font>
-          </div>
-          </a>";                    
-          
-//41
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=41'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>41</font>
-          </div>
-          </a>";
-          
-//44
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=44'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>44</font>
-          </div>
-          </a>";            
-          
-//50
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=50'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>50</font>
-          </div>
-          </a>";          
-          
-//71
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=71'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>71</font>
-          </div>
-          </a>";
-          
-//81
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=81'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>81</font>
-          </div>
-          </a>";
-          
-//autobusy nocni puvodni
-$i=90;
-while($i<=92)
-{
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=".$i."'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>".$i."</font>
-          </div>
-          </a>";
-$i++;         
-}                                               
-  
-//161
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=161'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>161</font>
-          </div>
-          </a>"; 
-          
-//201
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=201'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>201</font>
-          </div>
-          </a>"; 
-          
-//301
-echo "    <a href='https://tomaskrupicka.cz/liberecke-linky/?linka=301'>
-          <div class='barvaramecku mimoprovoz'>
-          <font class='textlinek'>301</font>
-          </div>
-          </a>"; 
-                                                    
+echo '<div>';
+foreach ($nonOperationalNumbers as $n) echo renderTile($n, 'mimoprovoz', $l);
+echo '</div>';

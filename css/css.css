@@ -17,7 +17,7 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 .hlavicka p { font-size: 12px; color: #F9F8E6; margin: 0; padding: 12px 5px 8px 5px;}
 .hlavicka p a { color: white; }
 .hlavicka p a:hover { text-decoration: none; }
-.paticka p { color: #F9F8E6; background: #23475f; font-size: 11px; padding: 34px 20px 0 0; margin: 0 -20px; width: 100%; border-top: 2px solid rgb(70,68,28); vertical-align: middle; text-align: right; }
+.paticka p { color: #F9F8E6; background: #23475f; font-size: 11px; padding: 34px 20px 0 0; margin: 0 -20px; width: 100%; border-top: 2px solid rgb(70,68,28); vertical-align: middle; text-align: left; }
 .paticka p a { color: white; }
 .paticka p a:hover { text-decoration: none; }
 .hlavninadpis {width: 100%; float:left;}
@@ -25,12 +25,12 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 /* Style buttons */
 .btn {
   background-color: #00a186;
-  float: center;
   border: none;
   color: white;
   padding: 12px 30px;
   cursor: pointer;
   font-size: 18px;
+  display: inline-block;
 }
 
 /* Darker background on mouse-over */
@@ -67,8 +67,8 @@ div.gallery {
   margin: 5px;
   border: 1px solid #ccc;
   display: inline-block;
-  float: center;
   width: 20%;
+  vertical-align: top;
 }
 
 div.gallery:hover {
@@ -90,7 +90,7 @@ div.desc {
 #tri { width: 100%; overflow: hidden; margin: 0 0 18px 0; background: #f2f2f2; padding: 2px 0px 6px 0px; }
 
 /* tabs */
-#oblastzalozek { width: 100%; float: center; margin: auto; }
+#oblastzalozek { width: 100%; margin: auto; }
 ul.tabs { margin: 0 !important; padding:0; overflow: hidden; width: 100% }
 ul.tabs li { float:left; padding:0; margin:0; list-style-type:none; width: 20%; }
 ul.tabs a { padding: 20px 0; float:left; font-size:18px; width: 100%; display:block; text-decoration:none; height:25px; background-color: #23475f; border: none; color: white; margin-right:2px; position:relative; top:1px; outline:0; }
@@ -102,8 +102,8 @@ ul.tabs a.current { background: #f2f2f2 url("../images/stavy.png") no-repeat cen
 .tabulkaVHlavicce { width: 100%; margin: 8px 0; border-spacing: 0; }
 .tabulkaVHlavicce tr td a { color: rgb(70, 70, 70); }
 tr.radek td a { color: white; }
-.tabulkaVHlavicceModal { width: 100%; max-width: 600px; margin: 10px auto; float: center }
-.tabulkaVHlavicceModalMensi { width: 100%; max-width: 300px; margin: 10px auto; float: center }
+.tabulkaVHlavicceModal { width: 100%; max-width: 600px; margin: 10px auto; }
+.tabulkaVHlavicceModalMensi { width: 100%; max-width: 300px; margin: 10px auto; }
 #hlavni table, .tabulkaVHlavicceModal, .tabulkaVHlavicceModalMensi { border-collapse: collapse; border-spacing: 0; }
 #hlavni table tr:first-child, .tabulkaVHlavicce tr:first-child, .tabulkaVHlavicceModal tr:first-child, .tabulkaVHlavicceModalMensi tr:first-child { background: #00a186; }
 #hlavni table tr:nth-child(odd), .tabulkaVHlavicce tr:nth-child(odd), .tabulkaVHlavicceModal tr:nth-child(odd), .tabulkaVHlavicceModalMensi tr:nth-child(odd) { background: #e4f7f3; }
@@ -136,7 +136,7 @@ nav ul li { float: left; background: url("../images/stavy.png") no-repeat center
 nav ul li:hover {  background: #4b545f url("../images/stavy.png") no-repeat center -550px; }
 nav ul li:hover a { color: #fff; }
 nav ul li a { display: block; padding: 27px 30px; color: white; text-decoration: none; }
-nav ul ul { background: #2c3f52; border-radius: 0; padding: 0; position: absolute; top: 100%; }
+nav ul ul { background: #2c3f52; border-radius: 0; padding: 0; position: absolute; top: 100%; min-width: 140px; }
 nav ul ul li { float: none; border-bottom: 1px solid #2C3E50; position: relative; }
 nav ul ul.jazyk li a { padding: 15px 30px; color: #fff; }
 nav ul ul.teplota li a { padding: 15px 16px; color: #fff; }
@@ -145,7 +145,7 @@ nav ul ul { display: none; }
 nav ul li:hover > ul { display: block; }
 
 /* ctverecky */
-.celkove { margin: 10px auto 20px auto; float: center; overflow: hidden; }
+.celkove { margin: 10px auto 20px auto; overflow: hidden; text-align: center;}
 .textlinek { color: white; font-size: 20px; vertical-align: center; text-align: center; line-height: 50px}
 .barvaramecku {background: no-repeat top center; margin: 4px 4px 4px 4px; padding: 0 0 0 0; float: left; width: 50px; border-radius: 5px; height: 50px; }
 .autobusy { background-color: #007db3; }
@@ -190,7 +190,7 @@ td { text-align: center; }
   .container{ padding: 0 !important; }
 }
 
-@media (min-width: 769px) AND (max-width: 992px)
+@media (min-width: 769px) and (max-width: 992px)
 {
   body { margin: 0; }
   #oblastzalozek{ width: 100%; }
