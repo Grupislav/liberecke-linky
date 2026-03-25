@@ -1,12 +1,12 @@
 <?php
-// jistota, že máme jazyk a helpery
+// jistota, Å¾e mÃ¡me jazyk a helpery
 if (!isset($lang) || !isset($l)) {
     require_once __DIR__ . "/../config.php";
     require_once __DIR__ . "/variableCheck.php";
 }
 require_once __DIR__ . "/fce.php";
 
-/** Vykreslí jednu dlaždici linky. */
+/** VykreslÃ­ jednu dlaÅ¾dici linky. */
 function renderTile(string $label, string $class, string $l): string {
     $href = url_with_params(['linka' => $label, 'ja' => $l]) . '#prehled';
     $href = htmlspecialchars($href, ENT_QUOTES, 'UTF-8');
@@ -22,15 +22,17 @@ function renderTile(string $label, string $class, string $l): string {
 HTML;
 }
 
-/** Pøidá rozsah do pole bez duplicit. */
+/** PÅ™idÃ¡ rozsah do pole bez duplicit. */
 function addRange(array &$arr, int $from, int $to, string $class): void {
-    for ($i = $from; $i <= $to; $i++) $arr[(string)$i] = $class;
+    for ($i = $from; $i <= $to; $i++) {
+        $arr[(string)$i] = $class;
+    }
 }
 
-/* ================== PROVOZNÍ LINKY (vzestupnì) ================== */
+/* ================== PROVOZNÃ LINKY (vzestupnÄ›) ================== */
 $operational = []; // label(string) => class
 
-// historické
+// historickÃ©
 $operational['1'] = 'historicke';
 $operational['4'] = 'historicke';
 
@@ -40,33 +42,37 @@ $operational['3']  = 'tramvaje';
 $operational['5']  = 'tramvaje';
 $operational['11'] = 'tramvaje';
 
-// autobusy denní 12–30 (obsahuje i 38–40)
+// autobusy dennÃ­ 12â€“30 (obsahuje i 38â€“40 a 46)
 addRange($operational, 12, 30, 'autobusy');
 
-// pracovní 31–35 a 37
+// pracovnÃ­ 31â€“35 a 37
 addRange($operational, 31, 35, 'pracovni');
 $operational['37'] = 'pracovni';
 
-// školní 36
+// Å¡kolnÃ­ 36
 $operational['36'] = 'skolni';
 
-//38-40
+// 38â€“40
 addRange($operational, 38, 40, 'autobusy');
-//51–60
+
+// dennÃ­ linka 46
+$operational['46'] = 'autobusy';
+
+// 51â€“60
 addRange($operational, 51, 60, 'skolni');
 
-// noèní/ranní
+// noÄnÃ­ / rannÃ­
 addRange($operational, 91, 94, 'nocni');
 addRange($operational, 97, 99, 'nocni');
 
-// nákupní
+// nÃ¡kupnÃ­
 $operational['500'] = 'nakupni';
 $operational['600'] = 'nakupni';
 
-// seøadit klíèe èíselnì
+// seÅ™adit klÃ­Äe ÄÃ­selnÄ›
 uksort($operational, fn($a, $b) => intval($a) <=> intval($b));
 
-// výstup
+// vÃ½stup
 echo "<div class='hlavninadpis'><span class='font22 zelena'>"
    . mb_strtoupper($lang['provoznilinky'], 'UTF-8')
    . "</span></div><div>";
@@ -81,16 +87,20 @@ echo "<div class='hlavninadpis'><br><span class='font22 zelena'>"
    . mb_strtoupper($lang['neprovoznilinky'], 'UTF-8')
    . "</span></div>";
 
-// písmena A–F (poøád jako zvláštní skupina)
-$letters = range('A','F');
+// pÃ­smena Aâ€“F (poÅ™Ã¡d jako zvlÃ¡Å¡tnÃ­ skupina)
+$letters = range('A', 'F');
 echo '<div>';
-foreach ($letters as $L) echo renderTile($L, 'mimoprovoz', $l);
+foreach ($letters as $L) {
+    echo renderTile($L, 'mimoprovoz', $l);
+}
 echo '</div>';
 
-// neprovozovaná èísla (vzestupnì)
-$nonOperationalNumbers = ['6','7','8','41','44','50','71','81','90','161','201','301'];
-usort($nonOperationalNumbers, fn($a,$b) => intval($a) <=> intval($b));
+// neprovozovanÃ¡ ÄÃ­sla (vzestupnÄ›)
+$nonOperationalNumbers = ['6', '7', '8', '41', '44', '50', '71', '81', '90', '161', '201', '301'];
+usort($nonOperationalNumbers, fn($a, $b) => intval($a) <=> intval($b));
 
 echo '<div>';
-foreach ($nonOperationalNumbers as $n) echo renderTile($n, 'mimoprovoz', $l);
+foreach ($nonOperationalNumbers as $n) {
+    echo renderTile($n, 'mimoprovoz', $l);
+}
 echo '</div>';

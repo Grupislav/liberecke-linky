@@ -9,7 +9,7 @@ if (!isset($_GET['linka']) || trim((string)$_GET['linka']) === '') {
     return;
 }
 
-// 1) Vstup: povol A–Z (1 znak) nebo čísla (1–4 číslice)
+// 1) Vstup: písmeno A–Z (1 znak) nebo čísla (1–4 číslice)
 $linkaRaw = $_GET['linka'] ?? '';
 $linkaRaw = trim((string)$linkaRaw);
 
@@ -22,7 +22,7 @@ $linka = ctype_alpha($linkaRaw) ? strtoupper($linkaRaw) : $linkaRaw;
 // 2) DB
 $conn = mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
 if (!$conn) {
-    echo "<p>Nejaký problém s DB.</p>";
+    echo "<p>Nějaký problém s DB.</p>";
     return;
 }
 mysqli_set_charset($conn, "utf8");

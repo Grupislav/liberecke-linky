@@ -22,7 +22,7 @@ $linka = ctype_alpha($linkaRaw) ? strtoupper($linkaRaw) : $linkaRaw;
 // 2) DB připojení
 $conn = mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
 if (!$conn) {
-    echo "<p>Nejaký problém s DB.</p>";
+    echo "<p>Nějaký problém s DB.</p>";
     return;
 }
 mysqli_set_charset($conn, "utf8");

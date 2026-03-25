@@ -2,14 +2,14 @@
 
 body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, sans-serif; font-size: 16px; margin: 0; padding: 0; text-align: center; }
 
-/* hlavni a tabulky*/
+/* hlavní a tabulky */
 #hlavni { height: auto; background: white; padding: 0; margin: 30px auto; vertical-align: middle; text-align: center; }
 #nadpis { float: left; }
 #nadpis h1 { font-size: 16px; font-weight: normal; }
 #nadpis h1 span { font-size: 20px; font-weight: bold; font-style: italic; }
 #menu { float: right; }
 
-/* hlavicka a paticka */
+/* hlavička a patička */
 .roztahovak-modry { width: 100%; background: #23475f; height: 80px; }
 .roztahovak-vrsek { width: 100%; background: #f2f2f2; height: auto; }
 .hlavicka{ background: #23475f; padding: 0; margin: 0; width: 100%; vertical-align: middle; height: 80px; }
@@ -115,7 +115,7 @@ tr.radek td a { color: white; }
 table tr { background: white; }
 .sedaBunka { background: #f2f2f2; }
 .padding5 { padding: 0 5px; }
-/* radky */
+/* řádky */
 .radek { background: #00a186; color: white; }
 .radekVelky { background: #00a186; color: white; line-height: 24px; vertical-align: center; font-size: 14px; }
 .radekVetsi { background: #00a186; color: white; line-height: 28px; vertical-align: center; font-size: 12px; }
@@ -159,7 +159,7 @@ nav ul li:hover > ul { display: block; }
 
 .ramecekodkaz {background: no-repeat top center; background-color: #00a186; margin: 4px 4px 4px 4px; border-radius: 5px; height: 50px; }
 
-/* typo a ruzne*/
+/* typografie a různé */
 h3 { color: rgb(70, 70, 70); font-size: 20px; line-height: 50px; height: 50px; overflow: hidden; padding: 0 5px 0 5px; margin: 0 0 0 0; vertical-align: middle; }
 br { line-height: 1.5em; }
 a { color: rgb(70, 70, 70); }
@@ -180,7 +180,7 @@ td { text-align: center; }
 .font22 { font-size: 22px; }
 .font25 { font-size: 25px; }
 
-/* adaptivni zalezitosti */
+/* adaptivní záležitosti */
 @media (max-width: 768px) {
   #hlavni{ border: none; }
   #nadpis h1 { font-size: 14px; }

@@ -105,7 +105,7 @@ function keep_params(array $extra = []): string {
             <ul class="jazyk">
               <?php
               // nabídneme jen dostupné jazyky odlišné od aktuálního
-              $hreflangMap = ['cz' => 'cs', 'en' => 'en', 'de' => 'de', 'fr' => 'fr'];
+              $hreflangMap = ['cz' => 'cs', 'en' => 'en'];
               foreach ($jazyky as $code => $label) {
                   if ($code === $l) continue;
                   $href = keep_params(['ja' => $code]);
@@ -140,11 +140,10 @@ function keep_params(array $extra = []): string {
 
 <?php
 // ────────────────────────────────────────────────────────────────────────
-/** TABS – MENU + PANELY
- *  - Přehled se načte rovnou (server-side include)
- *  - Ostatní panely se načítají líně (AJAX) přes loadTab()
+// TABS – MENU + PANELY
+//   Přehled se načte rovnou (server-side include)
+//   Ostatní panely se načítají líně (AJAX) přes loadTab()
 // ────────────────────────────────────────────────────────────────────────
-*/
 ?>
 <div id="hlavni" class="container">
   <div id="oblastzalozek">

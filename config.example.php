@@ -14,7 +14,7 @@ $dbDb       = 'db_name';
  */
 $appBasePath = '/blog/liberecke-linky';
 
-// Výchozí jazyk: cz, en
+// Výchozí jazyk: cz | en
 $l = 'cz';
 
 /**

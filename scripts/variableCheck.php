@@ -1,5 +1,5 @@
 <?php
-// defaulty z configu: $l (jazyk) = "cz"
+// Výchozí jazyk z config.php ($l); parametr ?ja= v URL ho může přepsat.
 if (!isset($_GET['ja'])) { $_GET['ja'] = $l; }
 
 $jazyky = [

@@ -208,17 +208,6 @@ $(document).ready(function()
   $("ul.tabs").tabs("div.panely > div");
 });
 
-$(document).on("click", "a.modal", function (event){
-  event.preventDefault();
-  $.colorbox({
-    href: $(this).attr("href"),
-    iframe:true,
-    width: "100%",
-    height: "90%",
-    maxWidth: "1000px"
-  });
-});
-
 /*
  Highcharts JS v5.0.7 (2017-01-17)
 

@@ -10,7 +10,7 @@ if (!isset($_GET['linka']) || trim((string)$_GET['linka']) === '') {
     return;
 }
 
-// 1) Vstup: povolíme čísla (1–9999) a písmena A–Z (jedno nebo dvě? tady stačí jedno)
+// 1) Vstup: čísla (1–9999) nebo jedno písmeno A–Z
 //    Máš A–F a čísla (včetně 500, 600). Když to nesedí, ukážeme hlášku.
 $linkaRaw = isset($_GET['linka']) ? trim((string)$_GET['linka']) : '';
 
@@ -26,7 +26,7 @@ $linka = ctype_alpha($linkaRaw) ? strtoupper($linkaRaw) : $linkaRaw;
 // 2) DB připojení
 $conn = mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
 if (!$conn) {
-    echo "<p>Nejaký problém s DB.</p>";
+    echo "<p>Nějaký problém s DB.</p>";
     return;
 }
 mysqli_set_charset($conn, "utf8");
