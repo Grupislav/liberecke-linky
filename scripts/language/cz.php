@@ -28,6 +28,13 @@ $lang['videocakana']        = "Video linky čeká na své zpracování.";
 $lang['mistopiscekana']     = "Místopisný článek čeká na své zpracování.";
 $lang['fotogaleriecekana']  = "Fotogalerie čeká na své zpracování nebo nejsou známy fotografie této linky. Pokud nějaké máte, <a href='mailto:info@tomaskrupicka.cz'>kontaktujte mě prosím</a>.";
 
+// chyby DB / AJAX
+$lang['err_db']            = 'Došlo k chybě při připojení k databázi. Zkuste to prosím později.';
+$lang['err_db_prepare']   = 'Došlo k chybě při přípravě dotazu. Zkuste to prosím později.';
+$lang['err_ajax_tabload']  = 'Obsah záložky se nepodařilo načíst. Zkuste obnovit stránku.';
+$lang['mapa_nedostupna']   = 'Mapový podklad není k dispozici.';
+$lang['mapa_iframe_title'] = 'Mapa linky %s';
+
 // (volitelné) úvodní texty, když není vybraná linka
 $lang['prehled_intro']      = "Na této záložce najdete základní informace o dané lince. Pokračujte výběrem linky v horním menu.";
 $lang['historie_intro']     = "Na této záložce najdete historii vývoje dané linky. Pokračujte výběrem linky v horním menu.";

@@ -15,6 +15,19 @@ function keep_params(array $extra = []): string {
     foreach ($extra as $k => $v) $params[$k] = $v;
     return '?' . http_build_query($params);
 }
+
+$__host = $_SERVER['HTTP_HOST'] ?? 'tomaskrupicka.cz';
+$__req  = $_SERVER['REQUEST_URI'] ?? '';
+if ($__req !== '') {
+    $canonical = 'https://' . $__host . preg_replace('/\?.*/', '', $__req);
+} else {
+    $__b = isset($appBasePath) ? rtrim((string)$appBasePath, '/') : '';
+    $canonical = 'https://' . $__host . ($__b === '' ? '/' : $__b . '/');
+}
+
+$esc = static function ($s) {
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+};
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($l, ENT_QUOTES, 'UTF-8') ?>">
@@ -35,18 +48,9 @@ function keep_params(array $extra = []): string {
   <meta name="author" content="Tomáš Krupička (https://tomaskrupicka.cz)">
   <link rel="icon" href="<?= htmlspecialchars($faviconHref, ENT_QUOTES, 'UTF-8') ?>" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="canonical" href="<?= $esc($canonical) ?>">
   <!-- Schema.org -->
-  <script type="application/ld+json"><?php
-    $host = $_SERVER['HTTP_HOST'] ?? 'tomaskrupicka.cz';
-    $req  = $_SERVER['REQUEST_URI'] ?? '';
-    if ($req !== '') {
-      $canonical = 'https://' . $host . preg_replace('/\?.*/', '', $req);
-    } else {
-      $__b = isset($appBasePath) ? rtrim((string)$appBasePath, '/') : '';
-      $canonical = 'https://' . $host . ($__b === '' ? '/' : $__b . '/');
-    }
-      $esc = function($s) { return htmlspecialchars((string)$s, ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8'); };
-  ?>{"@context":"https://schema.org","@type":"WebPage","name":"<?= $esc($lang['titulekstranky'] ?? 'Liberecké linky') ?>","description":"<?= $esc($lang['popisstranky'] ?? '') ?>","url":"<?= $esc($canonical) ?>","inLanguage":"<?= $l === 'en' ? 'en' : 'cs' ?>"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"<?= $esc($lang['titulekstranky'] ?? 'Liberecké linky') ?>","description":"<?= $esc($lang['popisstranky'] ?? '') ?>","url":"<?= $esc($canonical) ?>","inLanguage":"<?= $l === 'en' ? 'en' : 'cs' ?>"}</script>
   <!-- CSS + ikony -->
   <link rel="stylesheet" href="css/css.css" type="text/css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -67,6 +71,7 @@ function keep_params(array $extra = []): string {
 
   <script>
    var loadingImage = '<p><img src="./images/loading.gif" alt="Loading…"></p>';
+   var TAB_LOAD_ERR = <?= json_encode($lang['err_ajax_tabload'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 
    function loadTab(tab) {
     const el = document.getElementById(tab);
@@ -76,12 +81,14 @@ function keep_params(array $extra = []): string {
     const url = "scripts/tabs/" + tab + ".php<?= keep_params(['ja' => $l]) ?>";
 
     if (window.jQuery && $.get) {
-      $.get(url, function (data) { el.innerHTML = data; });
+      $.get(url, function (data) { el.innerHTML = data; }).fail(function () {
+        el.innerHTML = '<p>' + TAB_LOAD_ERR + '</p>';
+      });
     } else {
       fetch(url, {credentials:'same-origin'})
         .then(r => r.text())
         .then(html => { el.innerHTML = html; })
-        .catch(() => { el.innerHTML = '<p>Chyba při načítání záložky.</p>'; });
+        .catch(() => { el.innerHTML = '<p>' + TAB_LOAD_ERR + '</p>'; });
     }
    }
   </script>
@@ -140,9 +147,7 @@ function keep_params(array $extra = []): string {
 
 <?php
 // ────────────────────────────────────────────────────────────────────────
-// TABS – MENU + PANELY
-//   Přehled se načte rovnou (server-side include)
-//   Ostatní panely se načítají líně (AJAX) přes loadTab()
+// TABS – MENU + PANELY (vše server-side kvůli SEO; loadTab zůstává jako záloha)
 // ────────────────────────────────────────────────────────────────────────
 ?>
 <div id="hlavni" class="container">
@@ -159,10 +164,18 @@ function keep_params(array $extra = []): string {
       <div id="prehled">
         <?php require __DIR__ . "/scripts/tabs/prehled.php"; ?>
       </div>
-      <div id="historie"></div>
-      <div id="pohledridice"></div>
-      <div id="mistopis"></div>
-      <div id="fotogalerie"></div>
+      <div id="historie">
+        <?php require __DIR__ . "/scripts/tabs/historie.php"; ?>
+      </div>
+      <div id="pohledridice">
+        <?php require __DIR__ . "/scripts/tabs/pohledridice.php"; ?>
+      </div>
+      <div id="mistopis">
+        <?php require __DIR__ . "/scripts/tabs/mistopis.php"; ?>
+      </div>
+      <div id="fotogalerie">
+        <?php require __DIR__ . "/scripts/tabs/fotogalerie.php"; ?>
+      </div>
     </div>
   </div>
 </div>
@@ -179,13 +192,12 @@ function keep_params(array $extra = []): string {
 </div>
 
 <!-- ─────────────────────────────────────────────────────────────────── -->
-<!-- JS: Přepínání tabs + lazy-load obsahu + udržení hashe na dlaždicích -->
+<!-- JS: Přepínání tabs + udržení hashe na dlaždicích -->
 <!-- ─────────────────────────────────────────────────────────────────── -->
 <script>
 (function () {
   const tabs = document.querySelectorAll('ul.tabs a');
   const panels = document.querySelectorAll('.panely > div');
-  const lazyTabs = new Set(['historie','pohledridice','mistopis','fotogalerie']);
 
   function showTab(id) {
     // schovej vše
@@ -198,11 +210,6 @@ function keep_params(array $extra = []): string {
 
     a.classList.add('current');
     panel.style.display = 'block';
-
-    // líné načtení obsahu
-    if (lazyTabs.has(id) && panel.innerHTML.trim() === '') {
-      if (typeof loadTab === 'function') loadTab(id);
-    }
   }
 
   tabs.forEach(a => {

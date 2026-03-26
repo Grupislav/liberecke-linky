@@ -22,85 +22,101 @@ function renderTile(string $label, string $class, string $l): string {
 HTML;
 }
 
-/** Přidá rozsah do pole bez duplicit. */
-function addRange(array &$arr, int $from, int $to, string $class): void {
-    for ($i = $from; $i <= $to; $i++) {
-        $arr[(string)$i] = $class;
-    }
+/** Seřadí provozní linky číselně (stejně jako dřív uksort intval). */
+function sortProvozniLinks(array &$rows): void {
+    usort($rows, static function (array $a, array $b): int {
+        return intval($a['linka']) <=> intval($b['linka']);
+    });
 }
 
-/* ================== PROVOZNÍ LINKY (vzestupně) ================== */
-$operational = []; // label(string) => class
+/** Rozdělí mimo provoz na písmena a čísla a seřadí (A–F, pak čísla vzestupně). */
+function sortMimoProvozLinks(array $rows): array {
+    $letters = [];
+    $numbers = [];
+    foreach ($rows as $row) {
+        $label = (string)($row['linka'] ?? '');
+        if ($label !== '' && ctype_alpha($label)) {
+            $letters[] = $row;
+        } else {
+            $numbers[] = $row;
+        }
+    }
+    usort($letters, static function (array $a, array $b): int {
+        return strcmp($a['linka'], $b['linka']);
+    });
+    usort($numbers, static function (array $a, array $b): int {
+        return intval($a['linka']) <=> intval($b['linka']);
+    });
+    return [$letters, $numbers];
+}
 
-// historické
-$operational['1'] = 'historicke';
-$operational['4'] = 'historicke';
+if (!isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
+    echo '<p>' . htmlspecialchars($lang['err_db'], ENT_QUOTES, 'UTF-8') . '</p>';
+    return;
+}
 
-// tramvaje
-$operational['2']  = 'tramvaje';
-$operational['3']  = 'tramvaje';
-$operational['5']  = 'tramvaje';
-$operational['11'] = 'tramvaje';
+$conn = mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
+if (!$conn) {
+    echo '<p>' . htmlspecialchars($lang['err_db'], ENT_QUOTES, 'UTF-8') . '</p>';
+    return;
+}
+mysqli_set_charset($conn, 'utf8');
 
-// autobusy denní 12–30 (obsahuje i 38–40 a 46)
-addRange($operational, 12, 30, 'autobusy');
+$sqlProv = "SELECT t.linka, tl.kod AS class
+    FROM texty t
+    INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id
+    WHERE tl.kod <> 'mimoprovoz'";
 
-// pracovní 31–35 a 37
-addRange($operational, 31, 35, 'pracovni');
-$operational['37'] = 'pracovni';
+$sqlMimo = "SELECT t.linka, tl.kod AS class
+    FROM texty t
+    INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id
+    WHERE tl.kod = 'mimoprovoz'";
 
-// školní 36
-$operational['36'] = 'skolni';
+$resProv = mysqli_query($conn, $sqlProv);
+$resMimo = mysqli_query($conn, $sqlMimo);
+if (!$resProv || !$resMimo) {
+    mysqli_close($conn);
+    echo '<p>' . htmlspecialchars($lang['err_db_prepare'], ENT_QUOTES, 'UTF-8') . '</p>';
+    return;
+}
 
-// 38–40
-addRange($operational, 38, 40, 'autobusy');
+$provozni = [];
+while ($row = mysqli_fetch_assoc($resProv)) {
+    $provozni[] = $row;
+}
+mysqli_free_result($resProv);
 
-// denní linka 46
-$operational['46'] = 'autobusy';
+$mimo = [];
+while ($row = mysqli_fetch_assoc($resMimo)) {
+    $mimo[] = $row;
+}
+mysqli_free_result($resMimo);
+mysqli_close($conn);
 
-// 51–60
-addRange($operational, 51, 60, 'skolni');
+sortProvozniLinks($provozni);
+[$mimoLetters, $mimoNumbers] = sortMimoProvozLinks($mimo);
 
-// noční / ranní
-addRange($operational, 91, 94, 'nocni');
-addRange($operational, 97, 99, 'nocni');
-
-// nákupní
-$operational['500'] = 'nakupni';
-$operational['600'] = 'nakupni';
-
-// seřadit klíče číselně
-uksort($operational, fn($a, $b) => intval($a) <=> intval($b));
-
-// výstup
 echo "<div class='hlavninadpis'><span class='font22 zelena'>"
    . mb_strtoupper($lang['provoznilinky'], 'UTF-8')
    . "</span></div><div>";
 
-foreach ($operational as $label => $class) {
-    echo renderTile($label, $class, $l);
+foreach ($provozni as $row) {
+    echo renderTile((string)$row['linka'], (string)$row['class'], $l);
 }
 echo "</div>";
 
-/* ================== MIMO PROVOZ ================== */
 echo "<div class='hlavninadpis'><br><span class='font22 zelena'>"
    . mb_strtoupper($lang['neprovoznilinky'], 'UTF-8')
    . "</span></div>";
 
-// písmena A–F (pořád jako zvláštní skupina)
-$letters = range('A', 'F');
 echo '<div>';
-foreach ($letters as $L) {
-    echo renderTile($L, 'mimoprovoz', $l);
+foreach ($mimoLetters as $row) {
+    echo renderTile((string)$row['linka'], (string)$row['class'], $l);
 }
 echo '</div>';
 
-// neprovozovaná čísla (vzestupně)
-$nonOperationalNumbers = ['6', '7', '8', '41', '44', '50', '71', '81', '90', '161', '201', '301'];
-usort($nonOperationalNumbers, fn($a, $b) => intval($a) <=> intval($b));
-
 echo '<div>';
-foreach ($nonOperationalNumbers as $n) {
-    echo renderTile($n, 'mimoprovoz', $l);
+foreach ($mimoNumbers as $row) {
+    echo renderTile((string)$row['linka'], (string)$row['class'], $l);
 }
 echo '</div>';

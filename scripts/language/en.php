@@ -28,6 +28,13 @@ $lang['videocakana']       = "The route video is yet to be added.";
 $lang['mistopiscekana']    = "The local geography article is yet to be added.";
 $lang['fotogaleriecekana'] = "The photo gallery is not available yet. If you have photos of this route, please <a href='mailto:info@tomaskrupicka.cz'>contact me</a>.";
 
+// DB / AJAX errors
+$lang['err_db']           = 'Could not connect to the database. Please try again later.';
+$lang['err_db_prepare']  = 'Could not prepare the query. Please try again later.';
+$lang['err_ajax_tabload'] = 'Could not load this tab. Try refreshing the page.';
+$lang['mapa_nedostupna']  = 'Map data is not available.';
+$lang['mapa_iframe_title'] = 'Map for route %s';
+
 // intros (no route selected)
 $lang['prehled_intro']      = "This tab shows the basic information about the selected route. Please choose a route in the top menu.";
 $lang['historie_intro']     = "This tab shows the historical development of the selected route. Please choose a route in the top menu.";

@@ -22,7 +22,7 @@ $linka = ctype_alpha($linkaRaw) ? strtoupper($linkaRaw) : $linkaRaw;
 // 2) DB připojení
 $conn = mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
 if (!$conn) {
-    echo "<p>Nějaký problém s DB.</p>";
+    echo '<p>' . htmlspecialchars($lang['err_db'], ENT_QUOTES, 'UTF-8') . '</p>';
     return;
 }
 mysqli_set_charset($conn, "utf8");
@@ -32,7 +32,7 @@ $sql  = "SELECT pohledridice FROM texty WHERE linka = ?";
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
     mysqli_close($conn);
-    echo "<p>Dotaz nelze připravit.</p>";
+    echo '<p>' . htmlspecialchars($lang['err_db_prepare'], ENT_QUOTES, 'UTF-8') . '</p>';
     return;
 }
 mysqli_stmt_bind_param($stmt, "s", $linka);

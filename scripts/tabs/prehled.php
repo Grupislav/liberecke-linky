@@ -26,7 +26,7 @@ $linka = ctype_alpha($linkaRaw) ? strtoupper($linkaRaw) : $linkaRaw;
 // 2) DB připojení
 $conn = mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
 if (!$conn) {
-    echo "<p>Nějaký problém s DB.</p>";
+    echo '<p>' . htmlspecialchars($lang['err_db'], ENT_QUOTES, 'UTF-8') . '</p>';
     return;
 }
 mysqli_set_charset($conn, "utf8");
@@ -36,7 +36,7 @@ $sql = "SELECT trasa, zastavky, funkce, mapa FROM texty WHERE linka = ?";
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
     mysqli_close($conn);
-    echo "<p>Dotaz nelze připravit.</p>";
+    echo '<p>' . htmlspecialchars($lang['err_db_prepare'], ENT_QUOTES, 'UTF-8') . '</p>';
     return;
 }
 mysqli_stmt_bind_param($stmt, "s", $linka);
@@ -77,8 +77,8 @@ echo "<span class='font25'>{$trasa}</span><br>
 
         <div class='col-md-6 dvasloupce'>
           <br><span class='font22 zelena'>" . mb_strtoupper($lang['mapa'], 'UTF-8') . "</span><br>
-          " . ($mapaSrc !== '' 
-                ? "<iframe style='border:none' src='{$mapaSrc}' width='500' height='333' loading='lazy' referrerpolicy='no-referrer-when-downgrade' title='Mapa linky {$linka}'></iframe>"
-                : "<div class='sedaBunka'>Mapový podklad není k dispozici.</div>") . "
+          " . ($mapaSrc !== ''
+                ? "<iframe style='border:none' src='{$mapaSrc}' width='500' height='333' loading='lazy' referrerpolicy='no-referrer-when-downgrade' title=\"" . htmlspecialchars(sprintf($lang['mapa_iframe_title'], $linka), ENT_QUOTES, 'UTF-8') . "\"></iframe>"
+                : '<div class="sedaBunka">' . htmlspecialchars($lang['mapa_nedostupna'], ENT_QUOTES, 'UTF-8') . '</div>') . "
         </div>
       </div>";
