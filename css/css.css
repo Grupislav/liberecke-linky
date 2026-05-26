@@ -102,16 +102,11 @@ ul.tabs a.current { background: #f2f2f2 url("../images/stavy.png") no-repeat cen
 .tabulkaVHlavicce { width: 100%; margin: 8px 0; border-spacing: 0; }
 .tabulkaVHlavicce tr td a { color: rgb(70, 70, 70); }
 tr.radek td a { color: white; }
-.tabulkaVHlavicceModal { width: 100%; max-width: 600px; margin: 10px auto; }
-.tabulkaVHlavicceModalMensi { width: 100%; max-width: 300px; margin: 10px auto; }
-#hlavni table, .tabulkaVHlavicceModal, .tabulkaVHlavicceModalMensi { border-collapse: collapse; border-spacing: 0; }
-#hlavni table tr:first-child, .tabulkaVHlavicce tr:first-child, .tabulkaVHlavicceModal tr:first-child, .tabulkaVHlavicceModalMensi tr:first-child { background: #00a186; }
-#hlavni table tr:nth-child(odd), .tabulkaVHlavicce tr:nth-child(odd), .tabulkaVHlavicceModal tr:nth-child(odd), .tabulkaVHlavicceModalMensi tr:nth-child(odd) { background: #e4f7f3; }
+#hlavni table { border-collapse: collapse; border-spacing: 0; }
+#hlavni table tr:first-child, .tabulkaVHlavicce tr:first-child { background: #00a186; }
+#hlavni table tr:nth-child(odd), .tabulkaVHlavicce tr:nth-child(odd) { background: #e4f7f3; }
 .zelenyRadek td { background: #00a186 !important; font-size: 18px; height: 36px;}
-.zelenyRadekStredovy td { background: #00a186 !important; font-size: 18px; height: 35px;}
 .modryRadek td { background: #34495e !important; }
-.tabulkaDnes { width: 100%; margin: 25px 0; border-spacing: 0; }
-.radekDnes{ line-height: 26px; vertical-align: center; font-size: 18px; background: #F2F2F2; }
 table tr { background: white; }
 .sedaBunka { background: #f2f2f2; }
 .padding5 { padding: 0 5px; }
@@ -168,8 +163,6 @@ a:hover { text-decoration: none; }
 table tr td { height: 23px; line-height: 23px; vertical-align: center; padding: 4px 0 2px 0; font-size: 17px;}
 hr { height: 1px; width: 100%; border: none; background: #00a186; }
 td { text-align: center; }
-.mesicVDobe { width: 19%; float: left; margin: 5px 1% 5px 0; }
-.rokVDobe { width: 23.9%; min-width: 150px; float: left; margin: 5px 5px; }
 .bilyOdkaz{ color: white !important; }
 .mensi { font-size: 11px; }
 .stred { margin: auto; float: center; text-align: center }
@@ -194,7 +187,6 @@ td { text-align: center; }
 {
   body { margin: 0; }
   #oblastzalozek{ width: 100%; }
-  .aktualnemensi { margin: 5px 0 0 0; }
   #nadpis h1 { font-size: 16px; }
 }
 
