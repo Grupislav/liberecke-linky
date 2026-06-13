@@ -23,8 +23,9 @@
   var SVG_NS = "http://www.w3.org/2000/svg";
   var W = 500, H = 333, PAD = 14;
 
+  var VER = (window.MAPA && window.MAPA.v) ? ("?v=" + window.MAPA.v) : "";
   function getJSON(name, fallback) {
-    return fetch(BASE + "/mapa-assets/data/" + name, { credentials: "same-origin" })
+    return fetch(BASE + "/mapa-assets/data/" + name + VER, { credentials: "same-origin" })
       .then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
       .catch(function () { return fallback; });
   }
@@ -119,6 +120,7 @@
     }
 
     Array.prototype.forEach.call(stopLists, function (el) {
+      if (el.querySelector(".ls-list")) return;   // provozní linka už vykreslená serverem
       var short = el.getAttribute("data-linka");
       if (routeByShort[short]) {
         // aktuální linka: seznam z GTFS

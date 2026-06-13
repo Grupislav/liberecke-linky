@@ -92,6 +92,11 @@ $zobrazTxt  = htmlspecialchars($lang['mapa_zobraz_v_siti'] ?? 'Zobrazit v mapě 
 $funkceHtml   = $t['funkce']   ?? '';
 $zastavkyHtml = $t['zastavky'] ?? '';
 
+// Provozní (GTFS) linku vykreslíme rovnou z GTFS na serveru (bez probliknutí
+// DB→GTFS); linka mimo provoz/historická → obsah z DB (ten pak linkuje JS).
+$stopsHtml = gtfs_stop_list_html($linka, $appBase, $l);
+if ($stopsHtml === '') $stopsHtml = $zastavkyHtml;
+
 echo "<span class='font25'>{$trasa}</span><br>
       <br><span class='font22 zelena'>" . mb_strtoupper($lang['funkce'], 'UTF-8') . "</span><br>
 
@@ -100,7 +105,7 @@ echo "<span class='font25'>{$trasa}</span><br>
       <div class='row'>    
         <div class='col-md-6 dvasloupce'>
           <br><span class='font22 zelena'>" . mb_strtoupper($lang['seznamzastavek'], 'UTF-8') . "</span><br>
-          <div class='line-stops' data-linka='{$linkaEsc}' style='text-align:left'>{$zastavkyHtml}</div>
+          <div class='line-stops' data-linka='{$linkaEsc}' style='text-align:left'>{$stopsHtml}</div>
         </div>
 
         <div class='col-md-6 dvasloupce'>

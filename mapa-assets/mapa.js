@@ -67,8 +67,9 @@
   var elMeta = document.getElementById("ms-meta");
 
   // ── načtení dat ──────────────────────────────────────────────────
+  var VER = (window.MAPA && window.MAPA.v) ? ("?v=" + window.MAPA.v) : "";
   function getJSON(name) {
-    return fetch(DATA + name, { credentials: "same-origin" }).then(function (r) {
+    return fetch(DATA + name + VER, { credentials: "same-origin" }).then(function (r) {
       if (!r.ok) throw new Error(name + " " + r.status);
       return r.json();
     });

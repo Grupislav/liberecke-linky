@@ -140,12 +140,12 @@ if ($hasHistoric) {
     "inLanguage" => $l === 'en' ? 'en' : 'cs',
   ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
 
-  <link rel="stylesheet" href="<?= $esc($asset('css/css.css')) ?>" type="text/css">
+  <link rel="stylesheet" href="<?= $esc($asset('css/css.css')) . av('css/css.css') ?>" type="text/css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <!-- Leaflet (mapová knihovna, BSD) + dlaždice OSM (atribuce v mapě) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="<?= $esc($asset('mapa-assets/mapa.css')) ?>" type="text/css">
+  <link rel="stylesheet" href="<?= $esc($asset('mapa-assets/mapa.css')) . av('mapa-assets/mapa.css') ?>" type="text/css">
 </head>
 <body class="mapa-body">
 
@@ -240,15 +240,16 @@ if ($hasHistoric) {
 <script>
   window.MAPA = {
     base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>,
+    v:    <?= json_encode(@filemtime(__DIR__ . '/mapa-assets/data/meta.json') ?: 0) ?>,
     ja:   <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>,
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tileCats: <?= json_encode($tileCats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tilePriority: <?= json_encode($tilePriority, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
-    legacyStops: <?= json_encode($legacyStops, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
+    legacyStops: <?= json_encode((object)$legacyStops, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
     aliases: <?= json_encode($lineAliases, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     lang: <?= json_encode($jsLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
   };
 </script>
-<script src="<?= $esc($asset('mapa-assets/mapa.js')) ?>" defer></script>
+<script src="<?= $esc($asset('mapa-assets/mapa.js')) . av('mapa-assets/mapa.js') ?>" defer></script>
 </body>
 </html>

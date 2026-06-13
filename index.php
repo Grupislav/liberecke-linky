@@ -52,7 +52,7 @@ $esc = static function ($s) {
   <!-- Schema.org -->
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"<?= $esc($lang['titulekstranky'] ?? 'Liberecké linky') ?>","description":"<?= $esc($lang['popisstranky'] ?? '') ?>","url":"<?= $esc($canonical) ?>","inLanguage":"<?= $l === 'en' ? 'en' : 'cs' ?>"}</script>
   <!-- CSS + ikony -->
-  <link rel="stylesheet" href="css/css.css" type="text/css">
+  <link rel="stylesheet" href="css/css.css<?= av('css/css.css') ?>" type="text/css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
   <!-- jQuery z CDN (před tvůj bundle) -->
@@ -260,8 +260,8 @@ $esc = static function ($s) {
 </script>
 
 <!-- Náhled trasy linky v záložce Přehled (inline SVG z GTFS dat) -->
-<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(fetch_line_tile_colors_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?> };</script>
-<script src="mapa-assets/line-preview.js" defer></script>
+<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, v: <?= json_encode(@filemtime(__DIR__ . '/mapa-assets/data/meta.json') ?: 0) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(fetch_line_tile_colors_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?> };</script>
+<script src="mapa-assets/line-preview.js<?= av('mapa-assets/line-preview.js') ?>" defer></script>
 
 </body>
 </html>

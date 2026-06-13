@@ -1,5 +1,44 @@
 <?php
 
+/**
+ * Seznam zastávek provozní (GTFS) linky jako HTML <ul class="ls-list"> s odkazy
+ * na mapu – aby se v přehledu vykreslil rovnou na serveru (bez probliknutí DB→GTFS).
+ * Vrátí '' pro linku, která v GTFS není (legacy → použije se obsah z DB).
+ */
+function gtfs_stop_list_html(string $linka, string $appBase, string $ja): string {
+    static $routes = null, $stops = null;
+    if ($routes === null) {
+        $rr = @file_get_contents(__DIR__ . '/../mapa-assets/data/routes.json');
+        $routes = $rr ? (json_decode($rr, true) ?: []) : [];
+        $ss = @file_get_contents(__DIR__ . '/../mapa-assets/data/stops.json');
+        $stops = [];
+        foreach ($ss ? (json_decode($ss, true) ?: []) : [] as $st) {
+            $stops[(string)$st['id']] = (string)$st['name'];
+        }
+    }
+    $route = null;
+    foreach ($routes as $rt) {
+        if ((string)($rt['short_name'] ?? '') === $linka) { $route = $rt; break; }
+    }
+    if (!$route) return '';
+    $base = $appBase === '' ? '' : $appBase;
+    $items = '';
+    foreach ($route['stops'] ?? [] as $sid) {
+        $name = $stops[(string)$sid] ?? null;
+        if ($name === null) continue;
+        $href = $base . '/mapa?zastavka=' . rawurlencode($name) . '&ja=' . rawurlencode($ja);
+        $items .= "<li><a class='ls-stop' href='" . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . "'>"
+                . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . "</a></li>";
+    }
+    return $items === '' ? '' : "<ul class='ls-list'>{$items}</ul>";
+}
+
+/** Verze assetu pro cache-busting: '?v=<mtime souboru v repu>' (kvůli 7denní cache JS/CSS v .htaccess). */
+function av(string $rel): string {
+    $mt = @filemtime(__DIR__ . '/../' . ltrim($rel, '/'));
+    return $mt ? '?v=' . $mt : '';
+}
+
 /** Vrátí URL aktuální stránky s přepsanými query parametry (ostatní zachová). */
 function url_with_params(array $override): string {
     $uri   = $_SERVER['REQUEST_URI'] ?? '/';
