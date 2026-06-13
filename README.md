@@ -41,6 +41,29 @@ GitHub Action [`.github/workflows/deploy-ftp.yml`](.github/workflows/deploy-ftp.
 
 Složka **`jr/`** (jízdní řády PDF/HTML) je v `.gitignore` a **nepatří do repozitáře**; na hosting ji musíš udržovat zvlášť (FTP, správce souborů), jinak odkazy na jízdní řády na webu nenajdou soubory.
 
+## Mapa sítě (`/mapa`)
+
+Interaktivní mapa linek a zastávek nad **otevřenými daty DPMLJ (GTFS)**, postavená staticky (Leaflet + předgenerovaný JSON, **bez databáze**).
+
+- Stránka **`mapa.php`** (čistá URL `…/mapa` přes rewrite v `.htaccess`), odkaz je v horním menu.
+- Klientská logika a styly: **`mapa-assets/mapa.js`**, **`mapa-assets/mapa.css`**.
+- Data: **`mapa-assets/data/`** – `stops.json`, `routes.json`, `shapes.json`, `meta.json` (tyto **se commitují** a deployují).
+- Mapový podklad: standardní **OSM dlaždice** (vhodné pro lehký provoz). Pro produkční/komerční nasazení přepiš blok `TILE` na začátku `mapa.js` na providera s API klíčem (MapTiler / Stadia / Carto / Mapy.cz).
+
+### Aktualizace dat z GTFS (cca měsíčně)
+
+Z kořene projektu:
+
+```bash
+curl -sL -o gtfs.zip http://www.dpmlj.cz/gtfs.zip
+unzip -o gtfs.zip -d gtfs
+python tools/build_data.py
+```
+
+Skript přepíše `mapa-assets/data/*.json`; změny zkontroluj a commitni. Složky **`gtfs/`** a **`gtfs.zip`** jsou v `.gitignore` (na produkci nepotřebné – deployují se jen hotové JSON).
+
+> **Licence dat:** stránka DPMLJ neuvádí explicitní licenci; v mapě je atribuce „Data: DPMLJ a.s.“. Pro veřejné publikování doporučeno podmínky použití u DPMLJ potvrdit. Podklad OSM vyžaduje atribuci „© OpenStreetMap“ (v mapě je).
+
 ---
 
 Projekt a blog: **Tomáš Krupička** · [tomaskrupicka.cz](https://tomaskrupicka.cz). V patičce stránky jsou uvedeni další spolupracovníci (Boveraclub, Liberecká podniková aj.).

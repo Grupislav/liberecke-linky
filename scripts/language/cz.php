@@ -4,8 +4,8 @@
 // meta + header
 $lang['titulekstranky'] = "Projekt Liberecké linky - přehled, historie, místopis linek MHD";
 $lang['popisstranky']   = "Projekt Liberecké linky - přehled, historie, místopis linek MHD";
-$lang['hlavninadpis']   = "Liberecké linky | <a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>SMYSL PROJEKTU</a>";
-$lang['paticka']        = "Spolupracovali: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historické záznamy)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videozáznamy, korektury)</a>, Tomáš Krupička st. (doplnění a korektura místopisných údajů) a další.";
+$lang['hlavninadpis']   = "Liberecké linky";
+$lang['paticka']        = "Spolupracovali: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historické záznamy)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videozáznamy, korektury)</a>, Tomáš Krupička st. (doplnění a korektura místopisných údajů) a další.<br><a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>Smysl projektu</a> · <a style='color:white' target='_blank' rel='noopener' href='https://github.com/Grupislav/Liberecke-linky'>Zdrojový kód (GitHub)</a>.";
 
 // tabs
 $lang['prehled']       = "Přehled";
@@ -34,6 +34,32 @@ $lang['err_db_prepare']   = 'Došlo k chybě při přípravě dotazu. Zkuste to 
 $lang['err_ajax_tabload']  = 'Obsah záložky se nepodařilo načíst. Zkuste obnovit stránku.';
 $lang['mapa_nedostupna']   = 'Mapový podklad není k dispozici.';
 $lang['mapa_iframe_title'] = 'Mapa linky %s';
+
+// stránka Mapa sítě (mapa.php / mapa.js)
+$lang['mapa_linky']          = 'Linky';
+$lang['mapa_titulek']        = 'Mapa linek MHD Liberec a Jablonec n. N. | Liberecké linky';
+$lang['mapa_popis']          = 'Interaktivní mapa linek a zastávek MHD v Liberci a Jablonci nad Nisou nad otevřenými daty (GTFS).';
+$lang['mapa_hledat']         = 'Hledat linku nebo zastávku…';
+$lang['mapa_tram']           = 'Tramvaje';
+$lang['mapa_bus']            = 'Autobusy';
+$lang['mapa_vse']            = 'Vše';
+$lang['mapa_nic']            = 'Nic';
+$lang['mapa_zastavka']       = 'Zastávka';
+$lang['mapa_zona']           = 'Zóna';
+$lang['mapa_bezbarierova']   = 'Bezbariérová';
+$lang['mapa_linky_zde']      = 'Linky v zastávce';
+$lang['mapa_zastavky_linky'] = 'Zastávky linky';
+$lang['mapa_zpet']           = 'Zpět';
+$lang['mapa_zobraz_linku']   = 'Zobrazit jen tuto linku';
+$lang['mapa_ano']            = 'ano';
+$lang['mapa_ne']             = 'ne';
+$lang['mapa_neznamo']        = 'neznámo';
+
+// integrace: nadpis, náhled v záložce, prolinky mapa↔detail
+$lang['mapa_sit']            = 'MAPA SÍTĚ';
+$lang['mapa_zobraz_v_siti']  = 'Zobrazit v mapě sítě';
+$lang['mapa_detail_linky']   = 'Detail a historie linky';
+$lang['mapa_nahled_alt']     = 'Náhled trasy linky %s';
 
 // (volitelné) úvodní texty, když není vybraná linka
 $lang['prehled_intro']      = "Na této záložce najdete základní informace o dané lince. Pokračujte výběrem linky v horním menu.";

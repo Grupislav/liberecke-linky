@@ -4,8 +4,15 @@
 # Jízdní řády (PDF/HTML) – neverzovat kvůli velikosti a autorským právům; na hosting je nahraj zvlášť
 /jr/
 
+# Surová GTFS data pro mapu – stahují se zvlášť; do repa patří jen vygenerované mapa-assets/data/*.json
+/gtfs/
+/gtfs.zip
+
 # Logy z PHP / nástrojů (pokud vzniknou v kořeni projektu)
 *.log
+
+# Lokální statický test-harness mapy (běh bez PHP, neverzovat)
+/dev/
 
 # IDE / OS
 .idea/

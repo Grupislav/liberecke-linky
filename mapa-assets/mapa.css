@@ -1,0 +1,152 @@
+/* ====================================================================
+   Mapa sítě MHD – layout a komponenty (doplněk k css/css.css)
+   ==================================================================== */
+
+.mapa-layout {
+  display: flex;
+  align-items: stretch;
+  height: calc(100vh - 220px);
+  min-height: 460px;
+  max-width: 1400px;
+  margin: 14px auto;
+  padding: 0 10px;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+#mapa {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .18);
+  background: #e9eef2;
+}
+
+/* ── boční panel ─────────────────────────────────────────────────── */
+#mapa-sidebar {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .18);
+  overflow: hidden;
+  font-size: 14px;
+}
+
+.ms-search { padding: 10px; border-bottom: 1px solid #e3e7eb; }
+.ms-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border: 1px solid #cfd6dd;
+  border-radius: 5px;
+  font-size: 14px;
+}
+.ms-search input:focus { outline: none; border-color: #0078c8; box-shadow: 0 0 0 2px rgba(0,120,200,.15); }
+
+.ms-toolbar { display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid #e3e7eb; }
+.ms-chip {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1px solid #cfd6dd;
+  background: #f5f7f9;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #33414d;
+}
+.ms-chip.is-on { background: #0078c8; border-color: #0078c8; color: #fff; }
+
+/* seznam linek */
+.ms-routes { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; }
+.ms-routes li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f2f4;
+  cursor: pointer;
+}
+.ms-routes li:hover { background: #f3f8fc; }
+.ms-routes li.is-hidden { display: none; }
+
+.ms-badge {
+  flex: 0 0 auto;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ms-line-name { color: #4a565f; font-size: 12.5px; line-height: 1.25; }
+
+/* detail (zastávka / linka) */
+#ms-detail { padding: 12px; overflow-y: auto; flex: 1 1 auto; }
+#ms-detail .ms-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: none; color: #0078c8; cursor: pointer;
+  font-size: 13px; padding: 0 0 8px;
+}
+#ms-detail h2 { font-size: 17px; margin: 2px 0 8px; color: #1f2a33; }
+#ms-detail .ms-sub { color: #6a767f; font-size: 12.5px; margin: 0 0 10px; }
+#ms-detail h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .03em; color: #8893a0; margin: 14px 0 6px; }
+
+/* prolink z detailu linky na její stránku s historií/místopisem */
+.ms-detaillink {
+  display: inline-block; margin: 0 0 12px;
+  color: #0078c8; font-size: 13px; text-decoration: none;
+}
+.ms-detaillink:hover { text-decoration: underline; }
+
+.ms-linechips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ms-linechips .ms-badge { cursor: pointer; }
+
+.ms-stoplist { list-style: none; margin: 0; padding: 0; }
+.ms-stoplist li {
+  position: relative;
+  padding: 5px 0 5px 20px;
+  color: #2b343c;
+  cursor: pointer;
+  border-left: 3px solid #ccc;
+  margin-left: 6px;
+}
+.ms-stoplist li:hover { color: #0078c8; }
+.ms-stoplist li::before {
+  content: ""; position: absolute; left: -7px; top: 11px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #fff; border: 3px solid #999;
+}
+
+.ms-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; padding: 8px 10px; border-top: 1px solid #e3e7eb;
+  font-size: 11.5px; color: #7a858e;
+}
+.ms-foot a { color: #0078c8; }
+
+/* stavová hláška uprostřed mapy */
+.ms-msg {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  text-align: center; color: #5a6670; font-size: 15px; padding: 20px; z-index: 500;
+}
+
+/* popisek linek u zastávky v Leaflet popupu */
+.leaflet-popup-content .ms-badge { margin: 1px 3px 1px 0; cursor: pointer; }
+.leaflet-popup-content b { display: block; margin-bottom: 4px; }
+
+/* menu „current“ stav (doplněk) */
+#menu nav ul li a.current { text-decoration: underline; }
+
+/* ── responsivita ────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .mapa-layout { flex-direction: column; height: auto; }
+  #mapa-sidebar { flex: none; max-height: 46vh; }
+  #mapa { height: 60vh; }
+}

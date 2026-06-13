@@ -56,7 +56,15 @@ mysqli_close($conn);
 
 // 4) Výstup
 $trasa = htmlspecialchars($t['trasa'] ?? '', ENT_QUOTES, 'UTF-8');
-$mapaSrc = htmlspecialchars($t['mapa'] ?? '', ENT_QUOTES, 'UTF-8');
+
+// Náhled trasy → proklik do interaktivní mapy sítě (/mapa?linka=X).
+// Samotný obrázek dokresluje mapa-assets/line-preview.js z GTFS dat;
+// bez JS zůstává funkční textový odkaz. Sloupec `mapa` v DB se už nepoužívá.
+$appBase    = isset($appBasePath) ? rtrim((string)$appBasePath, '/') : '';
+$mapaHref   = htmlspecialchars(($appBase === '' ? '' : $appBase) . '/mapa?linka=' . urlencode($linka) . '&ja=' . urlencode($l), ENT_QUOTES, 'UTF-8');
+$linkaEsc   = htmlspecialchars($linka, ENT_QUOTES, 'UTF-8');
+$nahledAlt  = htmlspecialchars(sprintf($lang['mapa_nahled_alt'] ?? 'Náhled trasy linky %s', $linka), ENT_QUOTES, 'UTF-8');
+$zobrazTxt  = htmlspecialchars($lang['mapa_zobraz_v_siti'] ?? 'Zobrazit v mapě sítě', ENT_QUOTES, 'UTF-8');
 
 // Pozn.: 'funkce' a 'zastavky' u tebe typicky obsahují formátovaný HTML obsah z DB,
 // takže je necháme bez escaping (věříme vlastnímu obsahu). Kdybys chtěl sanitizovat,
@@ -77,8 +85,8 @@ echo "<span class='font25'>{$trasa}</span><br>
 
         <div class='col-md-6 dvasloupce'>
           <br><span class='font22 zelena'>" . mb_strtoupper($lang['mapa'], 'UTF-8') . "</span><br>
-          " . ($mapaSrc !== ''
-                ? "<iframe style='border:none' src='{$mapaSrc}' width='500' height='333' loading='lazy' referrerpolicy='no-referrer-when-downgrade' title=\"" . htmlspecialchars(sprintf($lang['mapa_iframe_title'], $linka), ENT_QUOTES, 'UTF-8') . "\"></iframe>"
-                : '<div class="sedaBunka">' . htmlspecialchars($lang['mapa_nedostupna'], ENT_QUOTES, 'UTF-8') . '</div>') . "
+          <a class='line-map-preview' href='{$mapaHref}' data-linka='{$linkaEsc}' aria-label='{$nahledAlt}'>
+            <span class='lmp-label'>{$zobrazTxt} &rarr;</span>
+          </a>
         </div>
       </div>";

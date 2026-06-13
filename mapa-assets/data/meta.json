@@ -1,0 +1,12 @@
+{
+  "agency": "Dopravní podnik měst Liberce a Jablonce nad Nisou, a.s.",
+  "valid_from": "20260520",
+  "valid_to": "20260619",
+  "version": "20260518-1001",
+  "source": "http://www.dpmlj.cz/gtfs.zip",
+  "counts": {
+    "routes": 51,
+    "stops": 224,
+    "shapes_features": 51
+  }
+}
