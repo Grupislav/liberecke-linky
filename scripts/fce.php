@@ -143,7 +143,8 @@ function fetch_legacy_stop_lists_db($server, $user, $pass, $db): array {
     $res = mysqli_query(
         $conn,
         "SELECT t.linka, t.zastavky FROM texty t
-         INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id WHERE tl.kod = 'mimoprovoz'"
+         INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id
+         WHERE tl.kod IN ('mimoprovoz', 'historicke')"
     );
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {

@@ -44,17 +44,34 @@
     stopLists.length ? getJSON("routes.json", null) : Promise.resolve(null),
     getJSON("stops.json", null),
     getJSON("legacy-routes.json", []),
-    previews.length ? getJSON("legacy-shapes.json", {}) : Promise.resolve({})
+    previews.length ? getJSON("legacy-shapes.json", {}) : Promise.resolve({}),
+    stopLists.length ? getJSON("stops-history.json", {}) : Promise.resolve({})
   ]).then(function (res) {
-    var shapesGeo = res[0], routes = res[1], stops = res[2], legacy = res[3] || [], legacyShapes = res[4] || {};
+    var shapesGeo = res[0], routes = res[1], stops = res[2], legacy = res[3] || [],
+        legacyShapes = res[4] || {}, history = res[5] || {};
 
     var stopById = {}, stopByName = {};
     (stops || []).forEach(function (s) { stopById[s.id] = s; stopByName[norm(s.name)] = s; });
     var legacyByShort = {};
     legacy.forEach(function (lr) { if (lr && lr.short_name) legacyByShort[lr.short_name] = lr; });
 
+    // historie názvů – kvůli klikatelnosti starých/variantních/zaniklých názvů (bez „→"/kurzívy)
+    var renamed = {}, aliases = {};
+    Object.keys(history.renamed || {}).forEach(function (k) { renamed[norm(k)] = history.renamed[k]; });
+    Object.keys(history.aliases || {}).forEach(function (k) { aliases[norm(k)] = history.aliases[k]; });
+    (history.vanished || []).forEach(function (v) {
+      if (v && v.name && !stopByName[norm(v.name)]) stopByName[norm(v.name)] = { name: v.name };
+    });
+    function resolveTarget(raw) {
+      var clean = cleanStopName(raw), k = norm(clean);
+      if (stopByName[k]) return stopByName[k].name;
+      if (renamed[k] && stopByName[norm(renamed[k])]) return renamed[k];
+      if (aliases[k] && stopByName[norm(aliases[k])]) return aliases[k];
+      return null;
+    }
+
     if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes);
-    if (stopLists.length) renderStopLists(routes, stopById, stopByName);
+    if (stopLists.length) renderStopLists(routes, stopById, resolveTarget);
   });
 
   // ── náhledy trasy ──────────────────────────────────────────────────
@@ -103,16 +120,16 @@
   }
 
   // ── seznam zastávek ────────────────────────────────────────────────
-  function renderStopLists(routes, stopById, stopByName) {
+  function renderStopLists(routes, stopById, resolveTarget) {
     var routeByShort = {};
     (routes || []).forEach(function (r) { routeByShort[r.short_name] = r; });
 
-    // přehled: jen přímé párování na GTFS (historii zastávek tu neřešíme)
+    // klikací jsou názvy, které se podaří spárovat (i přes historii); zobrazí se tak, jak jsou v DB
     function renderList(items) {
       return "<ul class='ls-list'>" + items.map(function (raw) {
-        var clean = cleanStopName(raw);
-        if (stopByName[norm(clean)]) {
-          var href = BASE + "/mapa?zastavka=" + encodeURIComponent(clean) + (JA ? "&ja=" + encodeURIComponent(JA) : "");
+        var target = resolveTarget(raw);
+        if (target) {
+          var href = BASE + "/mapa?zastavka=" + encodeURIComponent(target) + (JA ? "&ja=" + encodeURIComponent(JA) : "");
           return "<li><a class='ls-stop' href=\"" + esc(href) + "\">" + esc(raw) + "</a></li>";
         }
         return "<li>" + esc(raw) + "</li>";
