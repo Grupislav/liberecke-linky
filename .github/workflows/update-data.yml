@@ -1,0 +1,79 @@
+# Automatická aktualizace mapových dat z GTFS.
+# Denně stáhne feed DPMLJ, přegeneruje mapa-assets/data/*.json a když se data
+# změní (nový feed), commitne je a nasadí na produkci přes FTP.
+# (Push robotem sám nespustí deploy-ftp.yml, proto deployuje tenhle workflow.)
+#
+# Secrets (stejné jako deploy-ftp.yml): FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_SERVER_DIR
+
+name: Update map data
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # denně 04:00 UTC
+  workflow_dispatch: {}    # lze spustit i ručně
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Stáhni a rozbal GTFS
+        run: |
+          curl -sL --fail -o gtfs.zip http://www.dpmlj.cz/gtfs.zip
+          unzip -o -q gtfs.zip -d gtfs
+
+      - name: Přegeneruj data
+        run: python tools/build_data.py
+
+      - name: Kontrola rozumnosti dat
+        run: |
+          python -c "import json,sys; c=json.load(open('mapa-assets/data/meta.json'))['counts']; (sys.exit('Podezřele málo dat: %s – přerušuji.' % c) if (c['routes']<20 or c['stops']<100) else print('OK:', c))"
+
+      - name: Změnila se data?
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain mapa-assets/data)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Feed beze změny – nic nedělám."
+          fi
+
+      - name: Commit a push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          VALID=$(python -c "import json;print(json.load(open('mapa-assets/data/meta.json'))['valid_to'])")
+          git add mapa-assets/data
+          git commit -m "Update map data from GTFS (valid to ${VALID})"
+          git push
+
+      - name: Deploy přes FTP
+        if: steps.diff.outputs.changed == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          exclude: |
+            **/.git*
+            **/.github/**
+            config.example.php
+            CLAUDE.md
+            tools/**

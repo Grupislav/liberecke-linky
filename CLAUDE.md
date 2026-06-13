@@ -29,6 +29,8 @@ python tools/build_data.py     # přepíše mapa-assets/data/*.json
 ```
 `gtfs/` a `gtfs.zip` jsou v `.gitignore` (do repa patří jen vygenerované JSON). Po regeneraci zkontroluj `git diff` a commitni JSON.
 
+**Automaticky:** `.github/workflows/update-data.yml` to dělá **denně** (cron) — stáhne feed, přegeneruje, a když se data změní, commitne (`github-actions[bot]`) a rovnou nasadí přes FTP (push robotem sám deploy-ftp.yml nespustí). Má pojistku (přeruší při podezřele málo datech). Ruční postup výše je tak jen záloha / když chceš přegenerovat hned (např. po editaci `legacy-routes.json`).
+
 Datový model: stanice = GTFS `location_type=1` (nástupiště se agregují k rodiči). Barvy linek se generují (GTFS je nemá): tramvaje pevně, busy z HSL palety. Geometrie zjednodušena Douglas-Peuckerem (~4 m).
 
 ## Konvence a úskalí
