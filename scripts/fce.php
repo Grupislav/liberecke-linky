@@ -31,6 +31,18 @@ function line_category_colors(): array {
 }
 
 /**
+ * Linky trvale mimo provoz, které nemají v GTFS vlastní data, ale jejich
+ * trasa zhruba odpovídá jiné (aktuální) lince. Klíč = neexistující linka,
+ * hodnota = linka v GTFS, jejíž trasa/náhled se použije. Rozšiřuj dle potřeby.
+ */
+function line_map_aliases(): array {
+    return [
+        '161' => '16',
+        '301' => '30',
+    ];
+}
+
+/**
  * Mapování linka (short_name) -> barva dlaždice z DB. Stejný dotaz, jaký
  * obarvuje dlaždice (vypislinek.php), jen vytažený do sdílené funkce.
  * Při nedostupné DB vrací [] – mapa pak spadne zpět na barvy z GTFS.

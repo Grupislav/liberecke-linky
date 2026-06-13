@@ -61,6 +61,16 @@ $lang['mapa_zobraz_v_siti']  = 'Show in network map';
 $lang['mapa_detail_linky']   = 'Route detail & history';
 $lang['mapa_nahled_alt']     = 'Route %s preview';
 
+// line-category legend on the map (labels for typy_linek categories)
+$lang['mapa_legenda']        = 'Line categories';
+$lang['mapa_kat_tramvaje']   = 'Trams';
+$lang['mapa_kat_autobusy']   = 'Buses';
+$lang['mapa_kat_nocni']      = 'Night';
+$lang['mapa_kat_pracovni']   = 'Workday';
+$lang['mapa_kat_skolni']     = 'School';
+$lang['mapa_kat_nakupni']    = 'Shopping';
+$lang['mapa_kat_historicke'] = 'Historical';
+
 // intros (no route selected)
 $lang['prehled_intro']      = "This tab shows the basic information about the selected route. Please choose a route in the top menu.";
 $lang['historie_intro']     = "This tab shows the historical development of the selected route. Please choose a route in the top menu.";

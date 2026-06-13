@@ -62,6 +62,31 @@ if (isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
         mysqli_close($conn);
     }
 }
+
+// aliasy linek trvale mimo provoz -> existující trasa (161->16, 301->30, …)
+$lineAliases = line_map_aliases();
+
+// Legenda kategorií = kategorie, jejichž barvu má aspoň jedna linka reálně
+// zobrazená na mapě (průnik DB ∩ routes.json). Bez dalšího dotazu.
+$legend = [];
+$catColors = line_category_colors();
+$mapShorts = [];
+$routesJsonRaw = @file_get_contents(__DIR__ . '/mapa-assets/data/routes.json');
+if ($routesJsonRaw) {
+    foreach (json_decode($routesJsonRaw, true) ?: [] as $rj) {
+        if (isset($rj['short_name'])) $mapShorts[(string)$rj['short_name']] = true;
+    }
+}
+$presentHex = [];
+foreach ($tileColors as $short => $hex) {
+    if (isset($mapShorts[$short])) $presentHex[$hex] = true;
+}
+foreach ($catColors as $kod => $hex) {
+    if ($kod === 'mimoprovoz') continue;
+    if (isset($presentHex[$hex])) {
+        $legend[] = ['color' => $hex, 'label' => $lang['mapa_kat_' . $kod] ?? $kod];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= $esc($l) ?>">
@@ -104,11 +129,11 @@ if (isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
 <?php // ── HLAVIČKA + MENU (Linky / Mapa / jazyk) ───────────────────────── ?>
 <div class="roztahovak-modry">
   <div class="hlavicka container">
-    <div id="nadpis"><h1><?= $esc($lang['hlavninadpis']) ?></h1></div>
+    <div id="nadpis"><h1><a class="nadpis-home" href="<?= $esc($asset('') . keep_params(['ja' => $l]) . '#prehled') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1></div>
     <div id="menu">
       <nav>
         <ul>
-          <li><a href="<?= $esc($asset('') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['mapa_linky'] ?? 'Linky') ?></a></li>
+          <li><a href="<?= $esc($asset('') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['prehled']) ?></a></li>
           <li><a class="current" href="<?= $esc($asset('mapa') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['mapa'] ?? 'Mapa') ?></a></li>
           <li class="lang-switch">
             <a href="#" aria-label="<?= $l === 'cz' ? 'Změnit jazyk' : 'Change language' ?>" hreflang="<?= $l === 'cz' ? 'cs' : $esc($l) ?>"><?= strtoupper($esc($l)) ?></a>
@@ -157,8 +182,18 @@ if (isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
   <div id="mapa" role="application" aria-label="Mapa"></div>
 </div>
 
+<?php // ── LEGENDA KATEGORIÍ LINEK (pod mapou, před patičkou) ─────────────── ?>
+<?php if (!empty($legend)): ?>
+<div class="mapa-legenda" aria-label="<?= $esc($lang['mapa_legenda'] ?? 'Kategorie linek') ?>">
+  <span class="ml-title"><?= $esc($lang['mapa_legenda'] ?? 'Kategorie linek') ?>:</span>
+  <?php foreach ($legend as $item): ?>
+  <span class="ml-item"><span class="ml-swatch" style="background:<?= $esc($item['color']) ?>"></span><?= $esc($item['label']) ?></span>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
 <?php // ── PATIČKA ───────────────────────────────────────────────────────── ?>
-<div class="roztahovak-modry">
+<div class="roztahovak-modry paticka-wrap">
   <div class="paticka container">
     <p><?= $lang['paticka'] ?></p>
   </div>
@@ -171,6 +206,7 @@ if (isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
     base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>,
     ja:   <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>,
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
+    aliases: <?= json_encode($lineAliases, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     lang: <?= json_encode($jsLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
   };
 </script>

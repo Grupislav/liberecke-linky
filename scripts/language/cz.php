@@ -61,6 +61,16 @@ $lang['mapa_zobraz_v_siti']  = 'Zobrazit v mapě sítě';
 $lang['mapa_detail_linky']   = 'Detail a historie linky';
 $lang['mapa_nahled_alt']     = 'Náhled trasy linky %s';
 
+// legenda kategorií linek na mapě (popisky ke kategoriím v typy_linek)
+$lang['mapa_legenda']        = 'Kategorie linek';
+$lang['mapa_kat_tramvaje']   = 'Tramvaje';
+$lang['mapa_kat_autobusy']   = 'Autobusy';
+$lang['mapa_kat_nocni']      = 'Noční';
+$lang['mapa_kat_pracovni']   = 'Pracovní';
+$lang['mapa_kat_skolni']     = 'Školní';
+$lang['mapa_kat_nakupni']    = 'Nákupní';
+$lang['mapa_kat_historicke'] = 'Historické';
+
 // (volitelné) úvodní texty, když není vybraná linka
 $lang['prehled_intro']      = "Na této záložce najdete základní informace o dané lince. Pokračujte výběrem linky v horním menu.";
 $lang['historie_intro']     = "Na této záložce najdete historii vývoje dané linky. Pokračujte výběrem linky v horním menu.";

@@ -80,7 +80,7 @@ echo "<span class='font25'>{$trasa}</span><br>
       <div class='row'>    
         <div class='col-md-6 dvasloupce'>
           <br><span class='font22 zelena'>" . mb_strtoupper($lang['seznamzastavek'], 'UTF-8') . "</span><br>
-          <div style='text-align:left'>{$zastavkyHtml}</div>
+          <div class='line-stops' data-linka='{$linkaEsc}' style='text-align:left'>{$zastavkyHtml}</div>
         </div>
 
         <div class='col-md-6 dvasloupce'>

@@ -17,14 +17,19 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 .hlavicka p { font-size: 12px; color: #F9F8E6; margin: 0; padding: 12px 5px 8px 5px;}
 .hlavicka p a { color: white; }
 .hlavicka p a:hover { text-decoration: none; }
-.paticka p { color: #F9F8E6; background: #23475f; font-size: 11px; padding: 34px 20px 0 0; margin: 0 -20px; width: 100%; border-top: 2px solid rgb(70,68,28); vertical-align: middle; text-align: left; }
+.paticka-wrap { height: auto; }
+.paticka p { color: #F9F8E6; background: #23475f; font-size: 11px; padding: 18px 20px; margin: 0 -20px; width: 100%; border-top: 2px solid rgb(70,68,28); vertical-align: middle; text-align: center; line-height: 1.6; }
 .paticka p a { color: white; }
 .paticka p a:hover { text-decoration: none; }
 .hlavninadpis {width: 100%; float:left;}
 
-/* aktivní režim v horním menu (Linky / Mapa) – jasné přepínání */
+/* aktivní režim v horním menu (Přehled / Mapa) – jasné přepínání */
 #menu nav ul li a.current,
 #menu nav ul li:hover a.current { background: #00a186; color: #fff; }
+
+/* název webu v nadpisu je odkaz na přehled – vypadá jako text */
+.nadpis-home { color: #fff; text-decoration: none; }
+.nadpis-home:hover { text-decoration: underline; }
 
 /* náhled trasy linky v záložce Přehled (proklik na /mapa) */
 .line-map-preview {
@@ -40,6 +45,10 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 }
 .line-map-preview.is-ready .lmp-label { position: absolute; left: 10px; bottom: 10px; font-size: 12px; padding: 5px 9px; }
 .line-map-preview:hover .lmp-label { background: #23475f; }
+
+/* dynamicky generovaný seznam zastávek v záložce Přehled (z GTFS) */
+.line-stops .ls-list { margin: 0; padding-left: 1.5em; }
+.line-stops .ls-list li { padding: 2px 0; line-height: 1.4; }
 
 /* Style buttons */
 .btn {

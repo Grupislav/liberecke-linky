@@ -102,12 +102,12 @@ $esc = static function ($s) {
 ?>
 <div class="roztahovak-modry">
   <div class="hlavicka container">
-    <div id="nadpis"><h1><?= $esc($lang['hlavninadpis']) ?></h1></div>
+    <div id="nadpis"><h1><a class="nadpis-home" href="<?= htmlspecialchars(url_with_params(['linka' => null, 'ja' => $l]) . '#prehled', ENT_QUOTES, 'UTF-8') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1></div>
 
     <div id="menu">
       <nav>
         <ul>
-          <li><a class="current" href="<?= htmlspecialchars(keep_params(['ja' => $l]), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lang['mapa_linky'] ?? 'Linky', ENT_QUOTES, 'UTF-8') ?></a></li>
+          <li><a class="current" href="<?= htmlspecialchars(keep_params(['ja' => $l]), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lang['prehled'], ENT_QUOTES, 'UTF-8') ?></a></li>
           <li><a href="<?= htmlspecialchars(($__appBase === '' ? '' : $__appBase) . '/mapa' . keep_params(['ja' => $l]), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lang['mapa'] ?? 'Mapa', ENT_QUOTES, 'UTF-8') ?></a></li>
           <li class="lang-switch">
             <a href="#" aria-label="<?= $l === 'cz' ? 'Změnit jazyk' : 'Change language' ?>" hreflang="<?= $l === 'cz' ? 'cs' : $l ?>"><?= strtoupper($l) ?></a>
@@ -187,7 +187,7 @@ $esc = static function ($s) {
 // PATIČKA
 // ────────────────────────────────────────────────────────────────────────
 ?>
-<div class="roztahovak-modry">
+<div class="roztahovak-modry paticka-wrap">
   <div class="paticka container">
     <p><?= $lang['paticka'] ?></p>
   </div>
@@ -255,7 +255,7 @@ $esc = static function ($s) {
 </script>
 
 <!-- Náhled trasy linky v záložce Přehled (inline SVG z GTFS dat) -->
-<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?> };</script>
+<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?> };</script>
 <script src="mapa-assets/line-preview.js" defer></script>
 
 </body>

@@ -9,6 +9,7 @@
   var JA = (window.MAPA && window.MAPA.ja) || "";
   var T = (window.MAPA && window.MAPA.lang) || {};
   var TILE_COLORS = (window.MAPA && window.MAPA.tileColors) || {};
+  var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
   var DATA = BASE + "/mapa-assets/data/";
 
   // barva linky podle dlaždic (z DB); fallback na barvu z GTFS
@@ -32,8 +33,9 @@
   var LIBEREC = [50.7705, 15.058];
 
   // styly čar
-  var W_DIM = 2.2, W_BASE = 3, W_FOCUS = 5;
-  var OP_DIM = 0.22, OP_BASE = 0.85;
+  var W_DIM = 1.8, W_BASE = 3, W_FOCUS = 6;
+  var OP_DIM = 0.5, OP_BASE = 0.85;
+  var DIM_COLOR = "#c4ccd3";   // ostatní linky při zvýraznění/filtru – světle šedá
 
   // ── stav ─────────────────────────────────────────────────────────
   var map, baseLayer, routeLayer, stopLayer;
@@ -108,6 +110,7 @@
     var m = /[?&#]linka=([^&#]+)/.exec(window.location.href);
     if (!m) return;
     var label = decodeURIComponent(m[1]);
+    label = ALIASES[label] || label;                 // 161 → 16, 301 → 30, …
     var r = routeByShort[label] || routeByShort[label.toUpperCase()];
     if (r) focusRoute(r.id);
   }
@@ -199,11 +202,13 @@
       var visibleByType = filter === "all" || r.type === filter;
       var focused = focusedRouteId === r.id;
       var dim = focusedRouteId ? !focused : !visibleByType;
+      var style = {
+        color: dim ? DIM_COLOR : rcolor(r.short_name, r.color),
+        weight: focused ? W_FOCUS : (dim ? W_DIM : W_BASE),
+        opacity: focused ? 1 : (dim ? OP_DIM : OP_BASE)
+      };
       grp.eachLayer(function (ln) {
-        ln.setStyle({
-          weight: focused ? W_FOCUS : (dim ? W_DIM : W_BASE),
-          opacity: dim ? OP_DIM : OP_BASE
-        });
+        ln.setStyle(style);
         if (focused && ln.bringToFront) ln.bringToFront();
       });
     });
@@ -211,11 +216,12 @@
 
   // hover v seznamu → dočasné zvýraznění trasy (bez přiblížení); přiblíží až klik
   function hoverRoute(rid, on) {
+    var r = routeById[rid];
     var grp = routeLine[rid];
-    if (!grp) return;
+    if (!grp || !r) return;
     if (on) {
       grp.eachLayer(function (ln) {
-        ln.setStyle({ weight: W_FOCUS, opacity: OP_BASE });
+        ln.setStyle({ color: rcolor(r.short_name, r.color), weight: W_FOCUS, opacity: 1 });
         if (ln.bringToFront) ln.bringToFront();
       });
     } else {
