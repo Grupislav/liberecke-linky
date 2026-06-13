@@ -56,6 +56,7 @@ $jsLang = [
     'legacyTitle' => $lang['mapa_mimo_nadpis']     ?? 'Linka %s (trvale mimo provoz)',
     'historicTitle' => $lang['mapa_hist_nadpis']   ?? 'Historická linka %s',
     'formerStop'  => $lang['mapa_zanikla']         ?? 'zaniklá zastávka',
+    'dirLabel'    => $lang['mapa_smer']            ?? 'Směr %s',
 ];
 
 // Kategorie linek z DB (stejný dotaz jako dlaždice, sdílený přes fce.php).

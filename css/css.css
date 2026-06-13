@@ -58,6 +58,8 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 .line-stops .ls-stop { color: #34495e; text-decoration: none; }
 .line-stops .ls-stop:hover { color: #00a186; text-decoration: underline; }
 .line-stops .ls-stop-hist { font-style: italic; color: #7a858e; }
+.line-stops .ls-dir + .ls-dir { margin-top: 12px; }
+.line-stops .ls-dir-head { font-weight: 600; color: #5a6b78; margin: 0 0 2px; }
 
 /* Style buttons */
 .btn {

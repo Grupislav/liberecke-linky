@@ -5,7 +5,7 @@
  * na mapu – aby se v přehledu vykreslil rovnou na serveru (bez probliknutí DB→GTFS).
  * Vrátí '' pro linku, která v GTFS není (legacy → použije se obsah z DB).
  */
-function gtfs_stop_list_html(string $linka, string $appBase, string $ja): string {
+function gtfs_stop_list_html(string $linka, string $appBase, string $ja, string $dirTpl = 'Směr %s'): string {
     static $routes = null, $stops = null;
     if ($routes === null) {
         $rr = @file_get_contents(__DIR__ . '/../mapa-assets/data/routes.json');
@@ -22,15 +22,33 @@ function gtfs_stop_list_html(string $linka, string $appBase, string $ja): string
     }
     if (!$route) return '';
     $base = $appBase === '' ? '' : $appBase;
-    $items = '';
-    foreach ($route['stops'] ?? [] as $sid) {
-        $name = $stops[(string)$sid] ?? null;
-        if ($name === null) continue;
-        $href = $base . '/mapa?zastavka=' . rawurlencode($name) . '&ja=' . rawurlencode($ja);
-        $items .= "<li><a class='ls-stop' href='" . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . "'>"
-                . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . "</a></li>";
+
+    $stopsRef = $stops;
+    $renderUl = function (array $ids) use ($stopsRef, $base, $ja): string {
+        $items = '';
+        foreach ($ids as $sid) {
+            $name = $stopsRef[(string)$sid] ?? null;
+            if ($name === null) continue;
+            $href = $base . '/mapa?zastavka=' . rawurlencode($name) . '&ja=' . rawurlencode($ja);
+            $items .= "<li><a class='ls-stop' href='" . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . "'>"
+                    . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . "</a></li>";
+        }
+        return $items === '' ? '' : "<ul class='ls-list'>{$items}</ul>";
+    };
+
+    // linka s odlišnými směry (jednosměrné zastávky / závleky) → seznam po směrech
+    if (!empty($route['directions']) && count($route['directions']) >= 2) {
+        $out = '';
+        foreach ($route['directions'] as $d) {
+            $ul = $renderUl($d['stops'] ?? []);
+            if ($ul === '') continue;
+            $label = sprintf($dirTpl, (string)($d['headsign'] ?? ''));
+            $out .= "<div class='ls-dir'><div class='ls-dir-head'>"
+                  . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . "</div>{$ul}</div>";
+        }
+        return $out;
     }
-    return $items === '' ? '' : "<ul class='ls-list'>{$items}</ul>";
+    return $renderUl($route['stops'] ?? []);
 }
 
 /** Verze assetu pro cache-busting: '?v=<mtime souboru v repu>' (kvůli 7denní cache JS/CSS v .htaccess). */

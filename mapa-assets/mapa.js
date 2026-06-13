@@ -468,14 +468,27 @@
                        '<ul class="ms-stoplist">' + lh + "</ul>";
       }
     } else {
-      var stopsHtml = (r.stops || []).map(function (sid) {
-        var s = stopById[sid];
-        if (!s) return "";
-        return '<li data-stop="' + s.id + '" style="border-left-color:' + col + '">' +
-               esc(s.name) + "</li>";
-      }).join("");
-      stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + " (" + (r.stops || []).length + ")</h3>" +
-                     '<ul class="ms-stoplist">' + stopsHtml + "</ul>";
+      var renderUL = function (ids) {
+        var html = (ids || []).map(function (sid) {
+          var s = stopById[sid];
+          if (!s) return "";
+          return '<li data-stop="' + s.id + '" style="border-left-color:' + col + '">' +
+                 esc(s.name) + "</li>";
+        }).join("");
+        return '<ul class="ms-stoplist">' + html + "</ul>";
+      };
+      if (r.directions && r.directions.length >= 2) {
+        // linka s odlišnými směry (jednosměrné zastávky / závleky) → seznam po směrech
+        stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + "</h3>" +
+          r.directions.map(function (d) {
+            var label = (T.dirLabel || "Směr %s").replace("%s", d.headsign || "");
+            return '<div class="ms-dir"><h4 class="ms-dir-head">' + esc(label) +
+                   " (" + (d.stops || []).length + ")</h4>" + renderUL(d.stops) + "</div>";
+          }).join("");
+      } else {
+        stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + " (" + (r.stops || []).length + ")</h3>" +
+                       renderUL(r.stops);
+      }
     }
 
     var detailUrl = BASE + "/?linka=" + encodeURIComponent(r.short_name) +

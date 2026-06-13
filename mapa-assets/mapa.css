@@ -140,6 +140,13 @@
 .ms-stoplist li.ms-stop-noclick { cursor: default; }
 .ms-stoplist li.ms-stop-noclick:hover { color: #2b343c; }
 
+/* seznam zastávek po směrech (linky s jednosměrnými zastávkami / závleky) */
+.ms-dir + .ms-dir { margin-top: 14px; }
+.ms-dir-head {
+  margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #5a6b78;
+  text-transform: uppercase; letter-spacing: .02em;
+}
+
 /* zaniklé / přejmenované zastávky (historie) – kurzívou, jako linky mimo provoz */
 .ms-stoplist li.ms-stop-hist { font-style: italic; }
 .ms-routes li.ms-stop-hist .ms-line-name { font-style: italic; color: #7a858e; }

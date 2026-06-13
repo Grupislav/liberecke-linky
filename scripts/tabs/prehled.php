@@ -94,7 +94,7 @@ $zastavkyHtml = $t['zastavky'] ?? '';
 
 // Provozní (GTFS) linku vykreslíme rovnou z GTFS na serveru (bez probliknutí
 // DB→GTFS); linka mimo provoz/historická → obsah z DB (ten pak linkuje JS).
-$stopsHtml = gtfs_stop_list_html($linka, $appBase, $l);
+$stopsHtml = gtfs_stop_list_html($linka, $appBase, $l, $lang['mapa_smer'] ?? 'Směr %s');
 if ($stopsHtml === '') $stopsHtml = $zastavkyHtml;
 
 echo "<span class='font25'>{$trasa}</span><br>

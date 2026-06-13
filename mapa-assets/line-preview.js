@@ -20,6 +20,7 @@
   var JA = (window.MAPA && window.MAPA.ja) || "";
   var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
   var TILE_COLORS = (window.MAPA && window.MAPA.tileColors) || {};   // barvy linek dle dlaždic (shoda s velkou mapou)
+  var DIRLABEL = (window.MAPA && window.MAPA.dir) || "Směr %s";       // šablona popisku směru
   var SVG_NS = "http://www.w3.org/2000/svg";
   var W = 500, H = 333, PAD = 14;
 
@@ -140,11 +141,21 @@
       if (el.querySelector(".ls-list")) return;   // provozní linka už vykreslená serverem
       var short = el.getAttribute("data-linka");
       if (routeByShort[short]) {
-        // aktuální linka: seznam z GTFS
-        var names = (routeByShort[short].stops || []).map(function (sid) {
-          return stopById[sid] && stopById[sid].name;
-        }).filter(Boolean);
-        if (names.length) el.innerHTML = renderList(names);
+        // aktuální linka: seznam z GTFS (po směrech, liší-li se)
+        var r = routeByShort[short];
+        var namesOf = function (ids) {
+          return (ids || []).map(function (sid) { return stopById[sid] && stopById[sid].name; }).filter(Boolean);
+        };
+        if (r.directions && r.directions.length >= 2) {
+          el.innerHTML = r.directions.map(function (d) {
+            var label = DIRLABEL.replace("%s", d.headsign || "");
+            return "<div class='ls-dir'><div class='ls-dir-head'>" + esc(label) +
+                   "</div>" + renderList(namesOf(d.stops)) + "</div>";
+          }).join("");
+        } else {
+          var names = namesOf(r.stops);
+          if (names.length) el.innerHTML = renderList(names);
+        }
         return;
       }
       // linka mimo provoz: přestav seznam z DB obsahu (<li>), odkazy kde název v GTFS

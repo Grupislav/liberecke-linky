@@ -260,7 +260,7 @@ $esc = static function ($s) {
 </script>
 
 <!-- Náhled trasy linky v záložce Přehled (inline SVG z GTFS dat) -->
-<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, v: <?= json_encode(@filemtime(__DIR__ . '/mapa-assets/data/meta.json') ?: 0) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(fetch_line_tile_colors_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?> };</script>
+<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, v: <?= json_encode(@filemtime(__DIR__ . '/mapa-assets/data/meta.json') ?: 0) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(fetch_line_tile_colors_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, dir: <?= json_encode($lang['mapa_smer'] ?? 'Směr %s', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?> };</script>
 <script src="mapa-assets/line-preview.js<?= av('mapa-assets/line-preview.js') ?>" defer></script>
 
 </body>

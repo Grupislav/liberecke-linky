@@ -70,6 +70,7 @@ $lang['mapa_mimo_provoz_pozn'] = 'Route is approximate.';
 $lang['mapa_mimo_nadpis']      = 'Line %s (permanently out of service)';
 $lang['mapa_hist_nadpis']      = 'Historical line %s';
 $lang['mapa_zanikla']          = 'former stop';
+$lang['mapa_smer']             = 'To %s';
 
 // line-category legend on the map (labels for typy_linek categories)
 $lang['mapa_legenda']        = 'Line categories';

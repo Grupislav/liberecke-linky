@@ -64,6 +64,36 @@ def rnd(v):
     return round(float(v), COORD_DECIMALS)
 
 
+def merge_variant(spine, var):
+    """Sleje vzor trasy `var` do páteře `spine`: souvislý běh zastávek, které
+    páteř nemá, vloží těsně před následující společnou zastávku (kotvu) – a na
+    konci (cizí běh bez další kotvy) hned za poslední kotvu. Tím nechybí
+    jednosměrné zastávky ani závleky a zůstávají na svém místě v trase.
+    Zastávky už přítomné jen posunou kotvu (žádné duplikáty)."""
+    spine = spine[:]
+    anchor = -1      # index poslední ztotožněné zastávky v páteři
+    pending = []     # cizí zastávky čekající na vložení před další kotvu
+    for name in var:
+        idx = -1
+        for k in range(anchor + 1, len(spine)):   # nejprve hledej dál po trase
+            if spine[k] == name:
+                idx = k; break
+        if idx == -1:
+            for k in range(len(spine)):            # jinak kdekoliv (větve/okruhy)
+                if spine[k] == name:
+                    idx = k; break
+        if idx != -1:
+            if pending:
+                spine[idx:idx] = pending           # cizí běh těsně před kotvu
+                idx += len(pending); pending = []
+            anchor = idx
+        else:
+            pending.append(name)
+    if pending:
+        spine[anchor + 1:anchor + 1] = pending     # koncový cizí běh za kotvu
+    return spine
+
+
 # ---------------------------------------------------------------- colors
 TRAM_COLORS = {"2": "#e4002b", "3": "#0078c8", "5": "#009a44", "11": "#f2a900"}
 
@@ -283,22 +313,65 @@ def main():
         except ValueError:
             return (1, x)
 
-    # ---- representative ordered stop list per route ------------------
+    # ---- ordered stop list(s) per route ------------------------------
+    # Pro každý směr (direction_id) se vezme nejdelší spoj jako páteř a sleje
+    # se s ostatními (SCS), takže nechybí jednosměrné zastávky ani závleky
+    # (zastávky obsluhované jen v jednom směru / jen u části spojů). Okružní
+    # linky se zachovají včetně návratu (nejdelší spoj má celý průjezd).
+    # Když se oba směry liší množinou zastávek, vrátí se seznam po směrech;
+    # u symetrických linek jeden seznam (`stops`).
+    def stations_of_trip(tid):
+        out = []
+        for _, sid in seq_by_trip.get(tid, []):
+            stn = station_of(sid)
+            if not out or out[-1] != stn:   # jen po sobě jdoucí dedup
+                out.append(stn)
+        return out
+
+    def dir_superset(tlist):
+        pats = [(t, stations_of_trip(t["trip_id"])) for t in tlist]
+        pats = [p for p in pats if p[1]]
+        if not pats:
+            return None
+        pats.sort(key=lambda ts: len(ts[1]), reverse=True)   # páteř = nejdelší
+        merged = pats[0][1][:]
+        for _, s in pats[1:]:
+            merged = merge_variant(merged, s)
+        head = (pats[0][0].get("trip_headsign") or "").strip()
+        if not head and merged:
+            last = stations.get(merged[-1])
+            head = last["stop_name"] if last else ""
+        return merged, head
+
     route_stop_list = {}
+    route_dirs = {}
     for rid, rtrips in trips_by_route.items():
-        best = None
+        by_dir = collections.defaultdict(list)
         for t in rtrips:
-            seq = seq_by_trip.get(t["trip_id"], [])
-            if best is None or len(seq) > len(best[1]):
-                best = (t, seq)
-        ordered, seen = [], set()
-        if best:
-            for _, sid in best[1]:
-                stn = station_of(sid)
-                if stn not in seen:
-                    seen.add(stn)
-                    ordered.append(stn)
-        route_stop_list[rid] = ordered
+            by_dir[t.get("direction_id", "")].append(t)
+        ds = []
+        for d, tl in by_dir.items():
+            sup = dir_superset(tl)
+            if sup:
+                ds.append((len(tl), sup[0], sup[1]))   # (počet spojů, sled, headsign)
+        ds.sort(key=lambda x: x[0], reverse=True)
+        if not ds:
+            route_stop_list[rid] = []
+            continue
+        if len(ds) >= 2 and set(ds[0][1]) != set(ds[1][1]):
+            # asymetrické směry → dva seznamy + sjednocení pro highlight na mapě
+            route_dirs[rid] = [
+                {"headsign": ds[0][2], "stops": ds[0][1]},
+                {"headsign": ds[1][2], "stops": ds[1][1]},
+            ]
+            union, seen = ds[0][1][:], set(ds[0][1])
+            for s in ds[1][1]:
+                if s not in seen:
+                    seen.add(s); union.append(s)
+            route_stop_list[rid] = union
+        else:
+            # symetrické / jednosměrné (okružní) → jeden seznam (nejúplnější směr)
+            route_stop_list[rid] = max(ds, key=lambda x: len(x[1]))[1]
 
     # ---- shapes -------------------------------------------------------
     pts_by_shape = collections.defaultdict(list)
@@ -318,14 +391,17 @@ def main():
     routes_out = []
     for r in sorted(routes, key=lambda r: sn_key(r["route_short_name"])):
         rid = r["id"] if "id" in r else r["route_id"]
-        routes_out.append({
+        ro = {
             "id": rid,
             "short_name": r["route_short_name"],
             "long_name": r["route_long_name"],
             "type": "tram" if r["route_type"] == "0" else "bus",
             "color": color[rid],
             "stops": route_stop_list.get(rid, []),
-        })
+        }
+        if route_dirs.get(rid):
+            ro["directions"] = route_dirs[rid]
+        routes_out.append(ro)
     with open(os.path.join(OUT, "routes.json"), "w", encoding="utf-8") as fh:
         json.dump(routes_out, fh, ensure_ascii=False, separators=(",", ":"))
 

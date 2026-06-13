@@ -70,6 +70,7 @@ $lang['mapa_mimo_provoz_pozn'] = 'Trasa je přibližná.';
 $lang['mapa_mimo_nadpis']      = 'Linka %s (trvale mimo provoz)';
 $lang['mapa_hist_nadpis']      = 'Historická linka %s';
 $lang['mapa_zanikla']          = 'zaniklá zastávka';
+$lang['mapa_smer']             = 'Směr %s';
 
 // legenda kategorií linek na mapě (popisky ke kategoriím v typy_linek)
 $lang['mapa_legenda']        = 'Kategorie linek';
