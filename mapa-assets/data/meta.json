@@ -7,6 +7,7 @@
   "counts": {
     "routes": 51,
     "stops": 224,
-    "shapes_features": 51
+    "shapes_features": 51,
+    "trips": 3616
   }
 }

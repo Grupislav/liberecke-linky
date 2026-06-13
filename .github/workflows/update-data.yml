@@ -41,7 +41,7 @@ jobs:
 
       - name: Kontrola rozumnosti dat
         run: |
-          python -c "import json,sys; c=json.load(open('mapa-assets/data/meta.json'))['counts']; (sys.exit('Podezřele málo dat: %s – přerušuji.' % c) if (c['routes']<20 or c['stops']<100) else print('OK:', c))"
+          python -c "import json,sys; c=json.load(open('mapa-assets/data/meta.json'))['counts']; (sys.exit('Podezřele málo dat: %s – přerušuji.' % c) if (c['routes']<20 or c['stops']<100 or c.get('trips',0)<500) else print('OK:', c))"
 
       - name: Změnila se data?
         id: diff

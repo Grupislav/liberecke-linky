@@ -71,6 +71,9 @@ $lang['mapa_mimo_nadpis']      = 'Line %s (permanently out of service)';
 $lang['mapa_hist_nadpis']      = 'Historical line %s';
 $lang['mapa_zanikla']          = 'former stop';
 $lang['mapa_smer']             = 'To %s';
+$lang['mapa_vozidla']          = 'Vehicles';
+$lang['mapa_odjezdy']          = 'Departures (next hour)';
+$lang['mapa_odjezdy_zadne']    = 'No departures in the next hour.';
 
 // line-category legend on the map (labels for typy_linek categories)
 $lang['mapa_legenda']        = 'Line categories';

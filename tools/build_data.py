@@ -237,6 +237,65 @@ def build_legacy_shapes(trips, stop_times, shapes_raw, station_of, stations):
     return out
 
 
+# ---------------------------------------------------------------- timetable
+def parse_hms(s):
+    if not s:
+        return None
+    try:
+        h, m, sec = s.split(":")
+        return int(h) * 3600 + int(m) * 60 + int(sec)
+    except ValueError:
+        return None
+
+
+def build_timetable(trips, stop_times, route_by_id, station_of, stop_index, calendar):
+    """Kompaktní jízdní řád pro klienta (odjezdy v zastávce + poloha vozidel dle
+    JŘ – zobrazená přímo v zastávkách, bez mezilehlé interpolace).
+      services = service_id → týdenní bitmaska (po–ne) a rozsah platnosti.
+      trips    = linka, mód, cíl (headsign), service_id a sled zastávek
+                 [stopIdx, sekunda] (čas odjezdu; u poslední příjezd).
+    Časy můžou být ≥86400 (spoje po půlnoci) – klient to řeší přes službu
+    předešlého dne. Stanice = index do stops.json (kvůli velikosti)."""
+    services = {}
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    for c in calendar:
+        services[c["service_id"]] = {
+            "d": "".join("1" if c.get(d) == "1" else "0" for d in days),
+            "f": c.get("start_date", ""),
+            "t": c.get("end_date", ""),
+        }
+
+    rows = collections.defaultdict(list)
+    for st in stop_times:
+        t = parse_hms(st.get("departure_time") or st.get("arrival_time"))
+        if t is None:
+            continue
+        rows[st["trip_id"]].append((int(st["stop_sequence"]), st["stop_id"], t))
+
+    out_trips = []
+    for tr in trips:
+        seq = sorted(rows.get(tr["trip_id"], []))
+        u = []
+        for _, sid, t in seq:
+            idx = stop_index.get(station_of(sid))
+            if idx is None:
+                continue
+            if u and u[-1][0] == idx:      # stejná stanice po sobě – drž první čas
+                continue
+            u.append([idx, t])
+        if len(u) < 2:
+            continue
+        r = route_by_id.get(tr["route_id"], {})
+        out_trips.append({
+            "r": r.get("route_short_name", ""),
+            "m": "tram" if r.get("route_type") == "0" else "bus",
+            "h": (tr.get("trip_headsign") or "").strip(),
+            "s": tr["service_id"],
+            "u": u,
+        })
+    return {"services": services, "trips": out_trips}
+
+
 # ---------------------------------------------------------------- main
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -245,6 +304,10 @@ def main():
     stops = read("stops.txt")
     stop_times = read("stop_times.txt")
     shapes_raw = read("shapes.txt")
+    try:
+        calendar = read("calendar.txt")
+    except Exception:
+        calendar = []
     try:
         feed = read("feed_info.txt")[0]
     except Exception:
@@ -425,6 +488,12 @@ def main():
     with open(os.path.join(OUT, "stops.json"), "w", encoding="utf-8") as fh:
         json.dump(stops_out, fh, ensure_ascii=False, separators=(",", ":"))
 
+    # ---- timetable.json (odjezdy v zastávce + poloha vozidel dle JŘ) ---
+    stop_index = {s["id"]: i for i, s in enumerate(stops_out)}   # id stanice -> index ve stops.json
+    timetable = build_timetable(trips, stop_times, route_by_id, station_of, stop_index, calendar)
+    with open(os.path.join(OUT, "timetable.json"), "w", encoding="utf-8") as fh:
+        json.dump(timetable, fh, ensure_ascii=False, separators=(",", ":"))
+
     # ---- shapes.geojson (one MultiLineString feature per route) -------
     features = []
     raw_pts = simp_pts = 0
@@ -475,7 +544,7 @@ def main():
         "version": feed.get("feed_version", ""),
         "source": "http://www.dpmlj.cz/gtfs.zip",
         "counts": {"routes": len(routes_out), "stops": len(stops_out),
-                   "shapes_features": len(features)},
+                   "shapes_features": len(features), "trips": len(timetable["trips"])},
     }
     with open(os.path.join(OUT, "meta.json"), "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=2)
@@ -488,6 +557,9 @@ def main():
     print(f"  stops.json     {kb('stops.json'):>5} kB  ({len(stops_out)} stanic)")
     print(f"  shapes.json    {kb('shapes.json'):>5} kB  ({len(features)} tras, "
           f"body {raw_pts}->{simp_pts})")
+    tt = json.load(open(os.path.join(OUT, "timetable.json"), encoding="utf-8"))
+    print(f"  timetable.json {kb('timetable.json'):>5} kB  ({len(tt['trips'])} spojů, "
+          f"{len(tt['services'])} služeb)")
     print(f"  meta.json      platnost {meta['valid_from']}-{meta['valid_to']}")
 
 

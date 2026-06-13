@@ -57,6 +57,14 @@
   var query = "";
   var mode = "lines";            // lines | stops
 
+  // ── jízdní řád (odjezdy v zastávce + poloha vozidel dle JŘ) ──────
+  var TT = null;                 // timetable.json
+  var depByStop = null;          // index: stopIdx -> [{ti, sec}] (odjezdy)
+  var stopIndexById = {};        // id stanice -> index ve `stops` (= index v timetable)
+  var vehLayer = null;           // vrstva vozidel
+  var vehOn = true;              // přepínač zobrazení vozidel
+  var vehTimer = null;
+
   var elMap = document.getElementById("mapa");
   var elRoutes = document.getElementById("ms-routes");
   var elStops = document.getElementById("ms-stops");
@@ -101,7 +109,7 @@
   // ── inicializace ─────────────────────────────────────────────────
   function init(shapes, meta, legacy, legacyShapes, history) {
     routes.forEach(function (r) { routeById[r.id] = r; routeByShort[r.short_name] = r; });
-    stops.forEach(function (s) { stopById[s.id] = s; stopByName[norm(s.name)] = s; });
+    stops.forEach(function (s, i) { stopById[s.id] = s; stopByName[norm(s.name)] = s; stopIndexById[s.id] = i; });
     processHistory(history);
 
     map = L.map(elMap, { preferCanvas: true, zoomControl: true })
@@ -119,10 +127,214 @@
     buildStopList();
     bindUI();
     applyDeepLink();
+    loadTimetable();           // jízdní řád (vozidla + odjezdy) – až po vykreslení mapy
 
     if (meta && meta.valid_from && elMeta) {
       elMeta.textContent = fmtDate(meta.valid_from) + " – " + fmtDate(meta.valid_to);
     }
+  }
+
+  // ── jízdní řád: načtení a vozidla ────────────────────────────────
+  function loadTimetable() {
+    getJSON("timetable.json").then(function (tt) {
+      TT = tt;
+      buildDepIndex();
+      vehLayer = L.layerGroup();
+      if (vehOn) vehLayer.addTo(map);
+      addVehicleToggle();
+      refreshVehicles();
+      vehTimer = window.setInterval(tick, 20000);   // pravidelná aktualizace
+      // pokud je už otevřený detail zastávky (např. deep-link), doplň odjezdy
+      var wrap = document.getElementById("ms-dep-wrap");
+      if (wrap && focusedStopId != null && stopById[focusedStopId])
+        wrap.innerHTML = departuresHtml(stopById[focusedStopId]);
+    }).catch(function () { /* JŘ nedostupný – mapa funguje i bez vozidel */ });
+  }
+
+  // jeden „tik": přepočet vozidel + případně odjezdů v otevřeném detailu
+  function tick() {
+    refreshVehicles();
+    var wrap = document.getElementById("ms-dep-wrap");
+    if (wrap && focusedStopId != null) {
+      var s = stopById[focusedStopId];
+      if (s && !s.historical) wrap.innerHTML = departuresHtml(s);
+    }
+  }
+
+  // aktuální čas v Praze: sekundy od půlnoci, den v týdnu (po=0), YYYYMMDD
+  function pragueNow() {
+    var parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Prague", hourCycle: "h23", weekday: "short",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit"
+    }).formatToParts(new Date());
+    var o = {};
+    parts.forEach(function (p) { o[p.type] = p.value; });
+    var hh = parseInt(o.hour, 10) % 24;
+    var sec = hh * 3600 + parseInt(o.minute, 10) * 60 + parseInt(o.second, 10);
+    var wmap = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+    return { sec: sec, wd: wmap[o.weekday], ymd: o.year + o.month + o.day };
+  }
+
+  function prevDay(ymd, wd) {
+    var dt = new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8));
+    dt.setDate(dt.getDate() - 1);
+    var p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return { ymd: "" + dt.getFullYear() + p(dt.getMonth() + 1) + p(dt.getDate()), wd: (wd + 6) % 7 };
+  }
+
+  // service_id aktivní v daný den (bitmaska po–ne + rozsah platnosti)
+  function activeServices(ymd, wd) {
+    var set = {};
+    if (!TT) return set;
+    Object.keys(TT.services).forEach(function (id) {
+      var s = TT.services[id];
+      if (s.d.charAt(wd) === "1" && s.f <= ymd && ymd <= s.t) set[id] = true;
+    });
+    return set;
+  }
+
+  function buildDepIndex() {
+    depByStop = {};
+    if (!TT) return;
+    TT.trips.forEach(function (tr, ti) {
+      var u = tr.u;
+      for (var k = 0; k < u.length - 1; k++) {     // poslední zastávka = příjezd, ne odjezd
+        var idx = u[k][0];
+        (depByStop[idx] || (depByStop[idx] = [])).push({ ti: ti, sec: u[k][1] });
+      }
+    });
+  }
+
+  function vehiclePassesFilter(tr) {
+    if (filter === "legacy" || filter === "historicke") return false;  // legacy nemají JŘ
+    if (filter === "tram") return tr.m === "tram";
+    if (filter === "bus") return tr.m === "bus";
+    return true;
+  }
+
+  // azimut (0 = sever, po směru hodin) z bodu a do b – pro otočení šipky
+  function bearingDeg(a, b) {
+    var dLat = b[0] - a[0];
+    var dLon = (b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180);
+    return Math.atan2(dLon, dLat) * 180 / Math.PI;
+  }
+
+  function refreshVehicles() {
+    if (!vehLayer) return;
+    vehLayer.clearLayers();
+    if (!vehOn || !TT) return;
+    var now = pragueNow();
+    var today = activeServices(now.ymd, now.wd);
+    var pv = prevDay(now.ymd, now.wd);
+    var yest = activeServices(pv.ymd, pv.wd);
+    TT.trips.forEach(function (tr) {
+      if (!vehiclePassesFilter(tr)) return;
+      if (today[tr.s]) placeVehicle(tr, now.sec);
+      if (yest[tr.s]) placeVehicle(tr, now.sec + 86400);   // spoje po půlnoci (služba včerejška)
+    });
+  }
+
+  // umísti vozidlo do zastávky, kde podle JŘ právě je (bez mezilehlé polohy)
+  function placeVehicle(tr, t) {
+    var u = tr.u, n = u.length, first = u[0][1], last = u[n - 1][1];
+    if (t < first - 120 || t > last + 120) return;        // mimo „živé" okno
+    var i, terminus = false, nextIdx = -1;
+    if (t <= first) {                 // ≤2 min před odjezdem z výchozí
+      i = 0; nextIdx = u[1][0];
+    } else if (t >= last) {           // ≤2 min po příjezdu do konečné – bez šipky
+      i = n - 1; terminus = true;
+    } else {
+      i = 0;
+      while (i < n - 1 && u[i + 1][1] <= t) i++;           // poslední opuštěná zastávka
+      if (i < n - 1) nextIdx = u[i + 1][0]; else terminus = true;
+    }
+    var s = stops[u[i][0]];
+    if (!s) return;
+    var bearing = null;
+    if (!terminus && nextIdx >= 0) {
+      var ns = stops[nextIdx];
+      if (ns) bearing = bearingDeg([s.lat, s.lon], [ns.lat, ns.lon]);
+    }
+    var color = tr.m === "tram" ? "#cc2900" : "#007db3";
+    var icon = L.divIcon({
+      className: "ms-veh", html: vehicleSvg(color, bearing),
+      iconSize: [24, 24], iconAnchor: [12, 12]
+    });
+    var m = L.marker([s.lat, s.lon], { icon: icon, keyboard: false, riseOnHover: true });
+    m.bindTooltip(tr.r + " → " + tr.h, { direction: "top" });
+    var rr = routeByShort[tr.r];
+    if (rr) m.on("click", function () { focusRoute(rr.id); });
+    m.addTo(vehLayer);
+  }
+
+  function vehicleSvg(color, bearing) {
+    var rot = (bearing == null) ? "" : ' style="transform:rotate(' + bearing.toFixed(0) + 'deg)"';
+    var arrow = (bearing == null) ? "" : '<path d="M12 0 L16.5 8 L7.5 8 Z" fill="' + color + '"/>';
+    return '<div class="ms-veh-i"' + rot + '><svg viewBox="0 0 24 24" width="24" height="24">' +
+           arrow + '<circle cx="12" cy="12" r="6" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
+           "</svg></div>";
+  }
+
+  function addVehicleToggle() {
+    var Ctl = L.Control.extend({
+      options: { position: "topright" },
+      onAdd: function () {
+        var div = L.DomUtil.create("div", "leaflet-bar ms-veh-toggle");
+        div.innerHTML = '<label><input type="checkbox"' + (vehOn ? " checked" : "") + "> " +
+                        esc(T.vehicles || "Vozidla") + "</label>";
+        L.DomEvent.disableClickPropagation(div);
+        var cb = div.querySelector("input");
+        cb.addEventListener("change", function () {
+          vehOn = cb.checked;
+          if (vehOn) { if (!map.hasLayer(vehLayer)) vehLayer.addTo(map); refreshVehicles(); }
+          else { vehLayer.clearLayers(); if (map.hasLayer(vehLayer)) map.removeLayer(vehLayer); }
+        });
+        return div;
+      }
+    });
+    map.addControl(new Ctl());
+  }
+
+  // ── odjezdy ze zastávky v následující hodině ─────────────────────
+  function departuresFor(idx) {
+    if (!TT || !depByStop || depByStop[idx] == null) return [];
+    var now = pragueNow();
+    var today = activeServices(now.ymd, now.wd);
+    var pv = prevDay(now.ymd, now.wd);
+    var yest = activeServices(pv.ymd, pv.wd);
+    var H = 3600, res = [];
+    depByStop[idx].forEach(function (d) {
+      var tr = TT.trips[d.ti];
+      if (today[tr.s] && d.sec >= now.sec && d.sec <= now.sec + H) res.push({ sec: d.sec, tr: tr });
+      var ys = d.sec - 86400;   // spoj z včerejší služby pokračující po půlnoci
+      if (yest[tr.s] && ys >= now.sec && ys <= now.sec + H) res.push({ sec: ys, tr: tr });
+    });
+    res.sort(function (a, b) { return a.sec - b.sec; });
+    return res;
+  }
+
+  function fmtTime(sec) {
+    sec = ((sec % 86400) + 86400) % 86400;
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
+  }
+
+  function departuresHtml(s) {
+    if (!TT || !s) return "";
+    var idx = stopIndexById[s.id];
+    if (idx == null) return "";
+    var list = departuresFor(idx);
+    var head = "<h3>" + (T.departures || "Odjezdy (následující hodina)") + "</h3>";
+    if (!list.length)
+      return head + '<p class="ms-dep-empty">' + (T.noDepartures || "V následující hodině tu nic nejede.") + "</p>";
+    var rows = list.map(function (d) {
+      var color = d.tr.m === "tram" ? "#cc2900" : "#007db3";
+      return '<li class="ms-dep"><span class="ms-dep-time">' + fmtTime(d.sec) + "</span>" +
+             '<span class="ms-badge" style="background:' + color + '">' + esc(d.tr.r) + "</span>" +
+             '<span class="ms-dep-head">' + esc(d.tr.h) + "</span></li>";
+    }).join("");
+    return head + '<ul class="ms-deplist">' + rows + "</ul>";
   }
 
   // ?linka=2 / #linka=2 → rovnou zafokusuj danou linku (deep-link z hlavního webu)
@@ -548,7 +760,8 @@
       inner = "<h2>" + esc(s.name) + "</h2>" +
               '<p class="ms-sub">' + meta.join(" · ") + "</p>" +
               "<h3>" + (T.linesHere || "Linky v zastávce") + "</h3>" +
-              '<div class="ms-linechips">' + chips + "</div>";
+              '<div class="ms-linechips">' + chips + "</div>" +
+              '<div id="ms-dep-wrap">' + departuresHtml(s) + "</div>";
     }
     elDetail.innerHTML = backBtn() + inner;
 
@@ -646,6 +859,7 @@
         });
         applyListFilter();
         refreshRouteStyles();
+        refreshVehicles();          // vozidla respektují filtr tram/bus/provozní
       });
     });
 

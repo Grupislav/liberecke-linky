@@ -57,6 +57,9 @@ $jsLang = [
     'historicTitle' => $lang['mapa_hist_nadpis']   ?? 'Historická linka %s',
     'formerStop'  => $lang['mapa_zanikla']         ?? 'zaniklá zastávka',
     'dirLabel'    => $lang['mapa_smer']            ?? 'Směr %s',
+    'vehicles'    => $lang['mapa_vozidla']         ?? 'Vozidla',
+    'departures'  => $lang['mapa_odjezdy']         ?? 'Odjezdy (následující hodina)',
+    'noDepartures' => $lang['mapa_odjezdy_zadne']  ?? 'V následující hodině tu nic nejede.',
 ];
 
 // Kategorie linek z DB (stejný dotaz jako dlaždice, sdílený přes fce.php).
