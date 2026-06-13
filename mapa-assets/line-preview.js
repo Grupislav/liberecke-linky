@@ -30,6 +30,9 @@
   }
   function alias(x) { return ALIASES[x] || x; }
   function norm(s) { return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " "); }
+  function cleanStopName(s) {
+    return String(s == null ? "" : s).replace(/\s*\([^)]*\)\s*$/, "").replace(/\s*[↑↓→←⇑⇓]\s*$/, "").trim();
+  }
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -103,25 +106,33 @@
     var routeByShort = {};
     (routes || []).forEach(function (r) { routeByShort[r.short_name] = r; });
 
+    // vykreslí seznam názvů; názvy s protějškem v GTFS jsou odkazem na mapu
+    function renderList(items) {
+      return "<ul class='ls-list'>" + items.map(function (raw) {
+        var clean = cleanStopName(raw);
+        if (stopByName[norm(clean)]) {
+          var href = BASE + "/mapa?zastavka=" + encodeURIComponent(clean) + (JA ? "&ja=" + encodeURIComponent(JA) : "");
+          return "<li><a class='ls-stop' href=\"" + esc(href) + "\">" + esc(raw) + "</a></li>";
+        }
+        return "<li>" + esc(raw) + "</li>";
+      }).join("") + "</ul>";
+    }
+
     Array.prototype.forEach.call(stopLists, function (el) {
       var short = el.getAttribute("data-linka");
-      // Jen aktuální (GTFS) linky generujeme dynamicky. Linky mimo provoz
-      // (legacy) si nechávají seznam z DB – jejich „stops" jsou jen pro
-      // vykreslení do mapy, ne pro výpis.
-      if (!routeByShort[short]) return;
-      var names = (routeByShort[short].stops || []).map(function (sid) {
-        return stopById[sid] && stopById[sid].name;
-      }).filter(Boolean);
-      if (!names.length) return;
-
-      el.innerHTML = "<ul class='ls-list'>" + names.map(function (n) {
-        // zastávka v síti → odkaz na mapu (?zastavka=); mimo síť (legacy) → prostý text
-        if (stopByName[norm(n)]) {
-          var href = BASE + "/mapa?zastavka=" + encodeURIComponent(n) + (JA ? "&ja=" + encodeURIComponent(JA) : "");
-          return "<li><a class='ls-stop' href=\"" + esc(href) + "\">" + esc(n) + "</a></li>";
-        }
-        return "<li>" + esc(n) + "</li>";
-      }).join("") + "</ul>";
+      if (routeByShort[short]) {
+        // aktuální linka: seznam z GTFS
+        var names = (routeByShort[short].stops || []).map(function (sid) {
+          return stopById[sid] && stopById[sid].name;
+        }).filter(Boolean);
+        if (names.length) el.innerHTML = renderList(names);
+        return;
+      }
+      // linka mimo provoz: přestav seznam z DB obsahu (<li>), odkazy kde název v GTFS
+      var lis = el.querySelectorAll("li");
+      if (!lis.length) return;
+      var raws = Array.prototype.map.call(lis, function (li) { return li.textContent.trim(); }).filter(Boolean);
+      if (raws.length) el.innerHTML = renderList(raws);
     });
   }
 

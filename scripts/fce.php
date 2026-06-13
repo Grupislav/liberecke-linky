@@ -91,6 +91,38 @@ function fetch_line_kods_db($server, $user, $pass, $db): array {
     return $kods;
 }
 
+/**
+ * Seznam zastávek linek mimo provoz z DB (sloupec `zastavky`, HTML <li>).
+ * Vrací linka -> [názvy zastávek]. Pro detail na mapě, kde DB není po ruce.
+ */
+function fetch_legacy_stop_lists_db($server, $user, $pass, $db): array {
+    if ($server === null || $user === null || $db === null) return [];
+    $conn = @mysqli_connect($server, $user, $pass, $db);
+    if (!$conn) return [];
+    mysqli_set_charset($conn, 'utf8');
+    $out = [];
+    $res = mysqli_query(
+        $conn,
+        "SELECT t.linka, t.zastavky FROM texty t
+         INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id WHERE tl.kod = 'mimoprovoz'"
+    );
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $names = [];
+            if (preg_match_all('/<li[^>]*>(.*?)<\/li>/is', (string)($row['zastavky'] ?? ''), $mm)) {
+                foreach ($mm[1] as $raw) {
+                    $name = trim(html_entity_decode(strip_tags($raw), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                    if ($name !== '') $names[] = $name;
+                }
+            }
+            if ($names) $out[(string)$row['linka']] = $names;
+        }
+        mysqli_free_result($res);
+    }
+    mysqli_close($conn);
+    return $out;
+}
+
 /** linka->barva dlaždice (kategorie z DB → hex). [] při nedostupné DB. */
 function fetch_line_tile_colors_db($server, $user, $pass, $db): array {
     $colors = line_category_colors();

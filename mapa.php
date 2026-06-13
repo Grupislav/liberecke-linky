@@ -70,6 +70,9 @@ foreach (fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? 
     if ($lbl !== '') $tileCats[$short] = $lbl;
 }
 
+// seznam zastávek linek mimo provoz (z DB) – pro detail na mapě
+$legacyStops = fetch_legacy_stop_lists_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null);
+
 // aliasy linek trvale mimo provoz -> existující trasa (161->16, 301->30, …)
 $lineAliases = line_map_aliases();
 
@@ -226,6 +229,7 @@ foreach ($catColors as $kod => $hex) {
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tileCats: <?= json_encode($tileCats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tilePriority: <?= json_encode($tilePriority, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
+    legacyStops: <?= json_encode($legacyStops, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     aliases: <?= json_encode($lineAliases, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     lang: <?= json_encode($jsLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
   };

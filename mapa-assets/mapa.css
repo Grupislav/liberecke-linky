@@ -137,6 +137,8 @@
   margin-left: 6px;
 }
 .ms-stoplist li:hover { color: #0078c8; }
+.ms-stoplist li.ms-stop-noclick { cursor: default; }
+.ms-stoplist li.ms-stop-noclick:hover { color: #2b343c; }
 .ms-stoplist li::before {
   content: ""; position: absolute; left: -7px; top: 11px;
   width: 9px; height: 9px; border-radius: 50%;

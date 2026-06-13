@@ -10,6 +10,7 @@
   var T = (window.MAPA && window.MAPA.lang) || {};
   var TILE_COLORS = (window.MAPA && window.MAPA.tileColors) || {};
   var TILE_CATS = (window.MAPA && window.MAPA.tileCats) || {};   // linka -> název kategorie (z DB)
+  var LEGACY_STOPS = (window.MAPA && window.MAPA.legacyStops) || {};  // linka mimo provoz -> [názvy z DB]
   var ZPRIO = (window.MAPA && window.MAPA.tilePriority) || {};
   var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
   var DATA = BASE + "/mapa-assets/data/";
@@ -143,6 +144,11 @@
 
   // normalizace názvu zastávky pro párování legacy linek
   function norm(s) { return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " "); }
+
+  // ořež přípony názvů zastávek z DB (na znamení "(x)", šipky) pro párování na GTFS
+  function cleanStopName(s) {
+    return String(s == null ? "" : s).replace(/\s*\([^)]*\)\s*$/, "").replace(/\s*[↑↓→←⇑⇓]\s*$/, "").trim();
+  }
 
   // ── linky mimo provoz (legacy-routes.json) ───────────────────────
   // Trasa se sestaví spojnicí zastávek (dle názvů → stops.json), kreslí se
@@ -360,7 +366,7 @@
 
       var dim;
       if (emph) dim = false;
-      else if (focusedRouteId) dim = true;     // něco vyfokusováno → ostatní šedé
+      else if (focusedRouteId || hoveredRouteId) dim = true;   // aktivní nebo pod myší → ostatní zešednou
       else dim = !visibleByType;
 
       var style = {
@@ -403,10 +409,20 @@
 
   function renderRouteDetail(r) {
     var col = routeColor(r);
-    // legacy linky nemají na mapě seznam zastávek (jejich „stops" slouží jen
-    // k vykreslení trasy; výpis zastávek je na detailu linky a bere se z DB)
     var stopsSection = "";
-    if (!r.legacy) {
+    if (r.legacy) {
+      // legacy: seznam zastávek z DB (názvy v GTFS jsou klikací, ostatní ne)
+      var lnames = LEGACY_STOPS[r.short_name] || [];
+      if (lnames.length) {
+        var lh = lnames.map(function (raw) {
+          var s = stopByName[norm(cleanStopName(raw))];
+          if (s) return '<li data-stop="' + s.id + '" style="border-left-color:' + col + '">' + esc(raw) + "</li>";
+          return '<li class="ms-stop-noclick" style="border-left-color:' + col + '">' + esc(raw) + "</li>";
+        }).join("");
+        stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + " (" + lnames.length + ")</h3>" +
+                       '<ul class="ms-stoplist">' + lh + "</ul>";
+      }
+    } else {
       var stopsHtml = (r.stops || []).map(function (sid) {
         var s = stopById[sid];
         if (!s) return "";

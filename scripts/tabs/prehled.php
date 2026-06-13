@@ -64,6 +64,12 @@ $routeName = line_route_longname($linka);
 $katSg     = $lang['mapa_katsg_' . $kategorie] ?? '';
 if ($kategorie === 'mimoprovoz') {
     $titulekLinky = sprintf($lang['mapa_mimo_nadpis'] ?? 'Linka %s (trvale mimo provoz)', $linka);
+    // trasová část za dvojtečkou bereme z DB (sloupec `trasa`), ne z GTFS
+    $dbTrasa = (string)($t['trasa'] ?? '');
+    if (strpos($dbTrasa, ': ') !== false) {
+        $rp = trim(explode(': ', $dbTrasa, 2)[1]);
+        if ($rp !== '') $titulekLinky .= ': ' . $rp;
+    }
 } elseif ($katSg !== '' && $routeName !== null && $routeName !== '') {
     $titulekLinky = $katSg . ' ' . $linka . ': ' . $routeName;
 } else {
