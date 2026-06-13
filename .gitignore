@@ -14,6 +14,9 @@
 # Lokální statický test-harness mapy (běh bez PHP, neverzovat)
 /dev/
 
+# DB exporty (dumpy z phpMyAdmin) – jen pracovní, nepatří do repa
+*.sql
+
 # IDE / OS
 .idea/
 .vscode/

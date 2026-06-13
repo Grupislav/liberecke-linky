@@ -36,10 +36,9 @@ function line_category_colors(): array {
  * hodnota = linka v GTFS, jejíž trasa/náhled se použije. Rozšiřuj dle potřeby.
  */
 function line_map_aliases(): array {
-    return [
-        '161' => '16',
-        '301' => '30',
-    ];
+    // 161/301 jsou nyní plnohodnotné legacy linky (legacy-routes.json), ne aliasy.
+    // Sem patří jen linky, které chceš ukázat jako jinou (existující) linku 1:1.
+    return [];
 }
 
 /**
@@ -51,12 +50,12 @@ function line_category_priority(): array {
     return [
         'tramvaje'   => 1,
         'autobusy'   => 2,
-        'pracovni'   => 2,
-        'skolni'     => 3,
-        'nakupni'    => 4,
-        'nocni'      => 5,
-        'historicke' => 6,
-        'mimoprovoz' => 6,
+        'pracovni'   => 3,   // pracovní pod autobusy
+        'skolni'     => 4,
+        'nakupni'    => 5,
+        'nocni'      => 6,
+        'historicke' => 7,
+        'mimoprovoz' => 7,
     ];
 }
 
@@ -81,16 +80,39 @@ function fetch_line_kods($conn): array {
     return $out;
 }
 
-/** Vrátí dlouhý název trasy linky z GTFS (routes.json) nebo legacy-routes.json. */
+/** Otevře spojení dle DB configu a vrátí linka->kód kategorie ([] při chybě). */
+function fetch_line_kods_db($server, $user, $pass, $db): array {
+    if ($server === null || $user === null || $db === null) return [];
+    $conn = @mysqli_connect($server, $user, $pass, $db);
+    if (!$conn) return [];
+    mysqli_set_charset($conn, 'utf8');
+    $kods = fetch_line_kods($conn);
+    mysqli_close($conn);
+    return $kods;
+}
+
+/** linka->barva dlaždice (kategorie z DB → hex). [] při nedostupné DB. */
+function fetch_line_tile_colors_db($server, $user, $pass, $db): array {
+    $colors = line_category_colors();
+    $out = [];
+    foreach (fetch_line_kods_db($server, $user, $pass, $db) as $short => $kod) {
+        if (isset($colors[$kod])) $out[$short] = $colors[$kod];
+    }
+    return $out;
+}
+
+/**
+ * Vrátí dlouhý název trasy aktuální linky z GTFS (routes.json) – pro dynamický
+ * nadpis "Kategorie číslo: trasa". Linky mimo provoz tu schválně nejsou:
+ * pro ně se použije ručně udržovaný nadpis ze sloupce `trasa` v DB.
+ */
 function line_route_longname(string $linka): ?string {
-    foreach (['routes.json', 'legacy-routes.json'] as $file) {
-        $raw = @file_get_contents(__DIR__ . '/../mapa-assets/data/' . $file);
-        if (!$raw) continue;
-        foreach (json_decode($raw, true) ?: [] as $r) {
-            if (isset($r['short_name']) && (string)$r['short_name'] === $linka) {
-                $ln = trim((string)($r['long_name'] ?? ''));
-                if ($ln !== '') return $ln;
-            }
+    $raw = @file_get_contents(__DIR__ . '/../mapa-assets/data/routes.json');
+    if (!$raw) return null;
+    foreach (json_decode($raw, true) ?: [] as $r) {
+        if (isset($r['short_name']) && (string)$r['short_name'] === $linka) {
+            $ln = trim((string)($r['long_name'] ?? ''));
+            if ($ln !== '') return $ln;
         }
     }
     return null;

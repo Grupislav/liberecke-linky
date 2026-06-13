@@ -28,3 +28,5 @@ jobs:
             **/.git*
             **/.github/**
             config.example.php
+            CLAUDE.md
+            tools/**

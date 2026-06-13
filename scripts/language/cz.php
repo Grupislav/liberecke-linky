@@ -37,6 +37,7 @@ $lang['mapa_iframe_title'] = 'Mapa linky %s';
 
 // stránka Mapa sítě (mapa.php / mapa.js)
 $lang['mapa_linky']          = 'Linky';
+$lang['mapa_nav']            = 'Interaktivní mapa';
 $lang['mapa_titulek']        = 'Mapa linek MHD Liberec a Jablonec n. N. | Liberecké linky';
 $lang['mapa_popis']          = 'Interaktivní mapa linek a zastávek MHD v Liberci a Jablonci nad Nisou nad otevřenými daty (GTFS).';
 $lang['mapa_hledat']         = 'Hledat linku nebo zastávku…';
@@ -46,6 +47,7 @@ $lang['mapa_hledat_zastavku'] = 'Hledat zastávku…';
 $lang['mapa_tram']           = 'Tramvaje';
 $lang['mapa_bus']            = 'Autobusy';
 $lang['mapa_vse']            = 'Vše';
+$lang['mapa_filtr_mimo']     = 'Mimo provoz';
 $lang['mapa_nic']            = 'Nic';
 $lang['mapa_zastavka']       = 'Zastávka';
 $lang['mapa_zona']           = 'Zóna';
@@ -63,7 +65,8 @@ $lang['mapa_sit']            = 'MAPA SÍTĚ';
 $lang['mapa_zobraz_v_siti']  = 'Zobrazit v interaktivní mapě';
 $lang['mapa_detail_linky']   = 'Detail a historie linky';
 $lang['mapa_nahled_alt']     = 'Náhled trasy linky %s';
-$lang['mapa_mimo_provoz_pozn'] = 'Trasa je přibližná – linka je mimo provoz.';
+$lang['mapa_mimo_provoz_pozn'] = 'Trasa je přibližná.';
+$lang['mapa_mimo_nadpis']      = 'Linka %s (trvale mimo provoz)';
 
 // legenda kategorií linek na mapě (popisky ke kategoriím v typy_linek)
 $lang['mapa_legenda']        = 'Kategorie linek';

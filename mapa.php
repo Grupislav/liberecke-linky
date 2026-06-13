@@ -36,6 +36,7 @@ $jsLang = [
     'lines'       => $lang['mapa_linky']          ?? 'Linky',
     'tram'        => $lang['mapa_tram']           ?? 'Tramvaje',
     'bus'         => $lang['mapa_bus']            ?? 'Autobusy',
+    'legacy'      => $lang['mapa_filtr_mimo']      ?? 'Mimo provoz',
     'all'         => $lang['mapa_vse']            ?? 'Vše',
     'none'        => $lang['mapa_nic']            ?? 'Nic',
     'stop'        => $lang['mapa_zastavka']       ?? 'Zastávka',
@@ -51,6 +52,7 @@ $jsLang = [
     'unknown'     => $lang['mapa_neznamo']        ?? 'neznámo',
     'detailLink'  => $lang['mapa_detail_linky']   ?? 'Detail a historie linky',
     'legacyNote'  => $lang['mapa_mimo_provoz_pozn'] ?? 'Trasa je přibližná – linka je mimo provoz.',
+    'legacyTitle' => $lang['mapa_mimo_nadpis']     ?? 'Linka %s (trvale mimo provoz)',
 ];
 
 // Kategorie linek z DB (stejný dotaz jako dlaždice, sdílený přes fce.php).
@@ -60,17 +62,12 @@ $catColors = line_category_colors();
 $catPrio   = line_category_priority();
 $tileColors = [];
 $tilePriority = [];
-if (isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
-    $conn = @mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
-    if ($conn) {
-        mysqli_set_charset($conn, 'utf8');
-        $kods = fetch_line_kods($conn);
-        mysqli_close($conn);
-        foreach ($kods as $short => $kod) {
-            if (isset($catColors[$kod])) $tileColors[$short] = $catColors[$kod];
-            if (isset($catPrio[$kod]))   $tilePriority[$short] = $catPrio[$kod];
-        }
-    }
+$tileCats = [];   // linka -> název kategorie (singular) pro nadpis detailu na mapě
+foreach (fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null) as $short => $kod) {
+    if (isset($catColors[$kod])) $tileColors[$short] = $catColors[$kod];
+    if (isset($catPrio[$kod]))   $tilePriority[$short] = $catPrio[$kod];
+    $lbl = $lang['mapa_katsg_' . $kod] ?? '';
+    if ($lbl !== '') $tileCats[$short] = $lbl;
 }
 
 // aliasy linek trvale mimo provoz -> existující trasa (161->16, 301->30, …)
@@ -138,12 +135,17 @@ foreach ($catColors as $kod => $hex) {
 <?php // ── HLAVIČKA + MENU (Linky / Mapa / jazyk) ───────────────────────── ?>
 <div class="roztahovak-modry">
   <div class="hlavicka container">
-    <div id="nadpis"><h1><a class="nadpis-home" href="<?= $esc($asset('') . keep_params(['ja' => $l]) . '#prehled') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1></div>
+    <div id="nadpis">
+      <h1><a class="nadpis-home" href="<?= $esc($asset('') . keep_params(['ja' => $l]) . '#prehled') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1>
+      <span class="nadpis-sep">|</span>
+      <span class="nadpis-switch">
+        <a href="<?= $esc($asset('') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['prehled']) ?></a>
+        <a class="current" href="<?= $esc($asset('mapa') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['mapa_nav'] ?? 'Interaktivní mapa') ?></a>
+      </span>
+    </div>
     <div id="menu">
       <nav>
         <ul>
-          <li><a href="<?= $esc($asset('') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['prehled']) ?></a></li>
-          <li><a class="current" href="<?= $esc($asset('mapa') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['mapa'] ?? 'Mapa') ?></a></li>
           <li class="lang-switch">
             <a href="#" aria-label="<?= $l === 'cz' ? 'Změnit jazyk' : 'Change language' ?>" hreflang="<?= $l === 'cz' ? 'cs' : $esc($l) ?>"><?= strtoupper($esc($l)) ?></a>
             <ul class="jazyk">
@@ -183,6 +185,7 @@ foreach ($catColors as $kod => $hex) {
         <button type="button" data-filter="all" class="ms-chip is-on"><?= $esc($jsLang['all']) ?></button>
         <button type="button" data-filter="tram" class="ms-chip"><?= $esc($jsLang['tram']) ?></button>
         <button type="button" data-filter="bus" class="ms-chip"><?= $esc($jsLang['bus']) ?></button>
+        <button type="button" data-filter="legacy" class="ms-chip"><?= $esc($jsLang['legacy']) ?></button>
       </div>
       <ul id="ms-routes" class="ms-routes"></ul>
       <ul id="ms-stops" class="ms-routes" hidden></ul>
@@ -221,6 +224,7 @@ foreach ($catColors as $kod => $hex) {
     base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>,
     ja:   <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>,
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
+    tileCats: <?= json_encode($tileCats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tilePriority: <?= json_encode($tilePriority, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     aliases: <?= json_encode($lineAliases, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     lang: <?= json_encode($jsLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>

@@ -62,7 +62,9 @@ mysqli_close($conn);
 $kategorie = (string)($t['kategorie'] ?? '');
 $routeName = line_route_longname($linka);
 $katSg     = $lang['mapa_katsg_' . $kategorie] ?? '';
-if ($katSg !== '' && $routeName !== null && $routeName !== '') {
+if ($kategorie === 'mimoprovoz') {
+    $titulekLinky = sprintf($lang['mapa_mimo_nadpis'] ?? 'Linka %s (trvale mimo provoz)', $linka);
+} elseif ($katSg !== '' && $routeName !== null && $routeName !== '') {
     $titulekLinky = $katSg . ' ' . $linka . ': ' . $routeName;
 } else {
     $titulekLinky = (string)($t['trasa'] ?? '');

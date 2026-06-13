@@ -9,7 +9,7 @@
       "Karlov"
     ],
     "type": "bus",
-    "long_name": "Fügnerova – Karlov"
+    "long_name": "GOTTWALDOVO NÁMĚSTÍ - Karlinky - OSTAŠOV - KARLOV"
   },
   {
     "short_name": "B",
@@ -20,7 +20,7 @@
       "Machnín"
     ],
     "type": "bus",
-    "long_name": "Fügnerova – Machnín"
+    "long_name": "GOTTWALDOVO NÁMĚSTÍ - STRÁŽ NAD NISOU - MACHNÍN"
   },
   {
     "short_name": "C",
@@ -30,7 +30,7 @@
       "Rudolfov"
     ],
     "type": "bus",
-    "long_name": "Fügnerova – Rudolfov"
+    "long_name": "FÜGNEROVA - PAVLOVICE - KATEŘINKY - RUDOLFOV"
   },
   {
     "short_name": "D",
@@ -39,7 +39,7 @@
       "Ruprechtice síd."
     ],
     "type": "bus",
-    "long_name": "Fügnerova – Ruprechtice síd."
+    "long_name": "FÜGNEROVA - RUPRECHTICE"
   },
   {
     "short_name": "E",
@@ -48,7 +48,7 @@
       "Harcov kostel"
     ],
     "type": "bus",
-    "long_name": "Fügnerova – Harcov kostel"
+    "long_name": "FÜGNEROVA - STARÝ HARCOV"
   },
   {
     "short_name": "F",
@@ -57,7 +57,7 @@
       "Harcov Střelnice"
     ],
     "type": "bus",
-    "long_name": "Fügnerova – Harcov Střelnice"
+    "long_name": "FÜGNEROVA - HARCOV STŘELNICE"
   },
   {
     "short_name": "6",
@@ -69,7 +69,7 @@
       "Nám.Dr.E.Beneše"
     ],
     "type": "bus",
-    "long_name": "Nám.Dr.E.Beneše – Nám.Dr.E.Beneše"
+    "long_name": "RADNICE - Pavlovice - Stráž nad Nisou - Růžodol I - RADNICE"
   },
   {
     "short_name": "8",
@@ -79,7 +79,7 @@
       "Ostašov"
     ],
     "type": "bus",
-    "long_name": "Nám.Dr.E.Beneše – Ostašov"
+    "long_name": "RADNICE - Františkov - OSTAŠOV"
   },
   {
     "short_name": "201",
@@ -111,12 +111,12 @@
       "Ruprechtice síd."
     ],
     "type": "bus",
-    "long_name": "Šimonovice – Ruprechtice síd."
+    "long_name": "RUPRECHTICE sídl. - FÜGNEROVA - PILÍNKOV - ŠIMONOVICE"
   },
   {
     "short_name": "7",
     "type": "bus",
-    "long_name": "Nám.Dr.E.Beneše – Chrastava",
+    "long_name": "RADNICE - Krásná Studánka - CHRASTAVA",
     "stops": [
       "Nám.Dr.E.Beneše",
       "Krásná Studánka",
@@ -130,7 +130,7 @@
   {
     "short_name": "41",
     "type": "bus",
-    "long_name": "Rybníček – Areál Vesec",
+    "long_name": "RYBNÍČEK - Nádraží - AREÁL VESEC",
     "stops": [
       "Rybníček",
       "Nádraží",
@@ -144,7 +144,7 @@
   {
     "short_name": "81",
     "type": "bus",
-    "long_name": "Fügnerova – Areál Vesec",
+    "long_name": "FÜGNEROVA - Nádraží - AREÁL VESEC",
     "stops": [
       "Fügnerova",
       "Rybníček",
@@ -159,7 +159,7 @@
   {
     "short_name": "44",
     "type": "bus",
-    "long_name": "Zelené Údolí (okruh přes Vratislavice)",
+    "long_name": "ZELENÉ ÚDOLÍ - SÍDLIŠTĚ NOVÉ VRATISLAVICE",
     "stops": [
       "Zelené Údolí",
       {
@@ -184,7 +184,7 @@
   {
     "short_name": "71",
     "type": "bus",
-    "long_name": "Zelené Údolí (okruh přes Vratislavice)",
+    "long_name": "ZELENÉ ÚDOLÍ - SÍDLIŠTĚ NOVÉ VRATISLAVICE",
     "stops": [
       "Zelené Údolí",
       {
@@ -209,7 +209,7 @@
   {
     "short_name": "90",
     "type": "bus",
-    "long_name": "Fügnerova (okruh přes Vesec)",
+    "long_name": "FÜGNEROVA – Zelené Údolí - Vesec samoobsluha - Rochlice - FÜGNEROVA",
     "stops": [
       "Fügnerova",
       "Košická",
@@ -232,6 +232,48 @@
       "Melantrichova",
       "Košická",
       "Fügnerova"
+    ]
+  },
+  {
+    "short_name": "161",
+    "type": "bus",
+    "long_name": "FÜGNEROVA - OSTAŠOV - MACHNÍN ŽD - NOVINA - KŘIŽANSKÉ SEDLO",
+    "stops": [
+      "Fügnerova",
+      "Babylon",
+      "Nádraží",
+      "Viadukt",
+      "Františkov škola",
+      "Františkov sídliště",
+      "Karlinky",
+      "Slévárna",
+      "Kovošrot",
+      "Ostašov škola",
+      "Ostašov",
+      "Machnín",
+      "Machnín žel. zast.",
+      "Hamrštejn",
+      "Kryštofovo Údolí lom",
+      "Kryštofovo Údolí",
+      "Kryšt. Údolí ob. úřad",
+      "Novina",
+      "Křižanské sedlo"
+    ]
+  },
+  {
+    "short_name": "301",
+    "type": "bus",
+    "long_name": "FÜGNEROVA - STRÁŽ NAD NISOU",
+    "stops": [
+      "Fügnerova",
+      "Babylon",
+      "Nádraží",
+      "Žitavská",
+      "Růžodol I",
+      "Stráž n. Nis. elektrárna",
+      "Stráž n. Nis. Oblouková",
+      "Stráž n. Nis. Neumannova",
+      "Stráž nad Nisou"
     ]
   }
 ]

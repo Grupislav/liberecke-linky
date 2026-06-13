@@ -19,6 +19,7 @@
   var BASE = (window.MAPA && window.MAPA.base) || "";
   var JA = (window.MAPA && window.MAPA.ja) || "";
   var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
+  var TILE_COLORS = (window.MAPA && window.MAPA.tileColors) || {};   // barvy linek dle dlaždic (shoda s velkou mapou)
   var SVG_NS = "http://www.w3.org/2000/svg";
   var W = 500, H = 333, PAD = 14;
 
@@ -38,21 +39,22 @@
     previews.length ? getJSON("shapes.json", null) : Promise.resolve(null),
     stopLists.length ? getJSON("routes.json", null) : Promise.resolve(null),
     getJSON("stops.json", null),
-    getJSON("legacy-routes.json", [])
+    getJSON("legacy-routes.json", []),
+    previews.length ? getJSON("legacy-shapes.json", {}) : Promise.resolve({})
   ]).then(function (res) {
-    var shapesGeo = res[0], routes = res[1], stops = res[2], legacy = res[3] || [];
+    var shapesGeo = res[0], routes = res[1], stops = res[2], legacy = res[3] || [], legacyShapes = res[4] || {};
 
     var stopById = {}, stopByName = {};
     (stops || []).forEach(function (s) { stopById[s.id] = s; stopByName[norm(s.name)] = s; });
     var legacyByShort = {};
     legacy.forEach(function (lr) { if (lr && lr.short_name) legacyByShort[lr.short_name] = lr; });
 
-    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort);
-    if (stopLists.length) renderStopLists(routes, stopById, stopByName, legacyByShort);
+    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes);
+    if (stopLists.length) renderStopLists(routes, stopById, stopByName);
   });
 
   // ── náhledy trasy ──────────────────────────────────────────────────
-  function renderPreviews(shapesGeo, stopByName, legacyByShort) {
+  function renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes) {
     var feats = ((shapesGeo && shapesGeo.features) || []).filter(function (f) {
       return f.geometry && f.geometry.coordinates && f.geometry.coordinates.length;
     });
@@ -77,14 +79,18 @@
       }
       var lr = legacyByShort[sel] || legacyByShort[a.getAttribute("data-linka")];
       if (lr) {
-        var coords = (lr.stops || []).map(function (e) {
-          var name = (e && typeof e === "object") ? e.name : e;
-          var st = stopByName[norm(name)];
-          if (st) return [st.lon, st.lat];
-          if (e && typeof e === "object" && e.lat != null && e.lon != null) return [e.lon, e.lat];
-          return null;
-        }).filter(Boolean);
-        if (coords.length >= 2) {
+        // sešitá trasa po ulicích (legacy-shapes.json), jinak spojnice zastávek
+        var coords = legacyShapes[lr.short_name];
+        if (!(coords && coords.length >= 2)) {
+          coords = (lr.stops || []).map(function (e) {
+            var name = (e && typeof e === "object") ? e.name : e;
+            var st = stopByName[norm(name)];
+            if (st) return [st.lon, st.lat];
+            if (e && typeof e === "object" && e.lat != null && e.lon != null) return [e.lon, e.lat];
+            return null;
+          }).filter(Boolean);
+        }
+        if (coords && coords.length >= 2) {
           var color = lr.type === "tram" ? "#cc2900" : "#007db3";
           renderSvg(a, feats, proj, { kind: "legacy", coords: coords, color: color });
         }
@@ -93,23 +99,20 @@
   }
 
   // ── seznam zastávek ────────────────────────────────────────────────
-  function renderStopLists(routes, stopById, stopByName, legacyByShort) {
+  function renderStopLists(routes, stopById, stopByName) {
     var routeByShort = {};
     (routes || []).forEach(function (r) { routeByShort[r.short_name] = r; });
 
     Array.prototype.forEach.call(stopLists, function (el) {
       var short = el.getAttribute("data-linka");
-      var names = null;
-      if (routeByShort[short]) {
-        names = (routeByShort[short].stops || []).map(function (sid) {
-          return stopById[sid] && stopById[sid].name;
-        }).filter(Boolean);
-      } else if (legacyByShort[short]) {
-        names = (legacyByShort[short].stops || []).map(function (e) {
-          return (e && typeof e === "object") ? e.name : e;   // názvy přímo z legacy
-        });
-      }
-      if (!names || !names.length) return;   // jinak ponecháme obsah z DB
+      // Jen aktuální (GTFS) linky generujeme dynamicky. Linky mimo provoz
+      // (legacy) si nechávají seznam z DB – jejich „stops" jsou jen pro
+      // vykreslení do mapy, ne pro výpis.
+      if (!routeByShort[short]) return;
+      var names = (routeByShort[short].stops || []).map(function (sid) {
+        return stopById[sid] && stopById[sid].name;
+      }).filter(Boolean);
+      if (!names.length) return;
 
       el.innerHTML = "<ul class='ls-list'>" + names.map(function (n) {
         // zastávka v síti → odkaz na mapu (?zastavka=); mimo síť (legacy) → prostý text
@@ -171,7 +174,7 @@
 
     if (hi.kind === "shape") {
       feats.filter(function (f) { return f.properties.short_name === hi.sel; }).forEach(function (f) {
-        var color = f.properties.color || "#0078c8";
+        var color = TILE_COLORS[f.properties.short_name] || f.properties.color || "#0078c8";
         f.geometry.coordinates.forEach(function (ln) {
           var pl = polyline(ln, proj, color, 3.5, 1);
           if (pl) svg.appendChild(pl);

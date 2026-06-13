@@ -9,6 +9,7 @@
   var JA = (window.MAPA && window.MAPA.ja) || "";
   var T = (window.MAPA && window.MAPA.lang) || {};
   var TILE_COLORS = (window.MAPA && window.MAPA.tileColors) || {};
+  var TILE_CATS = (window.MAPA && window.MAPA.tileCats) || {};   // linka -> název kategorie (z DB)
   var ZPRIO = (window.MAPA && window.MAPA.tilePriority) || {};
   var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
   var DATA = BASE + "/mapa-assets/data/";
@@ -47,7 +48,10 @@
   var routeLine = {};            // route id -> L.LayerGroup (polylines)
   var stopMarker = {};           // stop id  -> L.CircleMarker
   var focusedRouteId = null;
-  var filter = "all";            // all | tram | bus
+  var hoveredRouteId = null;     // linka pod kurzorem v seznamu (dočasné zvýraznění)
+  var focusedStopId = null;      // vybraná zastávka (špendlík zůstává)
+  var stopPin = null;            // výrazné označení polohy zastávky na mapě
+  var filter = "all";            // all | tram | bus | legacy (mimo provoz)
   var query = "";
   var mode = "lines";            // lines | stops
 
@@ -73,10 +77,11 @@
     getJSON("stops.json"),
     getJSON("shapes.json"),
     getJSON("meta.json").catch(function () { return null; }),
-    getJSON("legacy-routes.json").catch(function () { return []; })
+    getJSON("legacy-routes.json").catch(function () { return []; }),
+    getJSON("legacy-shapes.json").catch(function () { return {}; })
   ]).then(function (res) {
     routes = res[0]; stops = res[1];
-    init(res[2], res[3], res[4]);
+    init(res[2], res[3], res[4], res[5]);
   }).catch(function (e) {
     showMsg(T.noData || "Data nejsou k dispozici.");
     if (window.console) console.error(e);
@@ -90,7 +95,7 @@
   }
 
   // ── inicializace ─────────────────────────────────────────────────
-  function init(shapes, meta, legacy) {
+  function init(shapes, meta, legacy, legacyShapes) {
     routes.forEach(function (r) { routeById[r.id] = r; routeByShort[r.short_name] = r; });
     stops.forEach(function (s) { stopById[s.id] = s; stopByName[norm(s.name)] = s; });
 
@@ -103,7 +108,7 @@
 
     drawRoutes(shapes);
     drawStops();
-    addLegacyRoutes(legacy);   // linky mimo provoz z legacy-routes.json (přibližná trasa po zastávkách)
+    addLegacyRoutes(legacy, legacyShapes);   // linky mimo provoz (geometrie z legacy-shapes.json)
     applyZOrder();             // pořadí vrstev dle kategorie (tramvaje navrchu … mimo provoz dole)
     buildRouteList();
     buildStopList();
@@ -142,7 +147,8 @@
   // ── linky mimo provoz (legacy-routes.json) ───────────────────────
   // Trasa se sestaví spojnicí zastávek (dle názvů → stops.json), kreslí se
   // čárkovaně jako „přibližná". Nemají vlastní GTFS geometrii.
-  function addLegacyRoutes(legacy) {
+  function addLegacyRoutes(legacy, legacyShapes) {
+    legacyShapes = legacyShapes || {};
     (legacy || []).forEach(function (lr) {
       if (!lr || !lr.short_name) return;
       var ids = [], names = [], latlngs = [];
@@ -169,13 +175,20 @@
       routeById[rid] = r;
       if (!routeByShort[lr.short_name]) routeByShort[lr.short_name] = r;
 
+      // geometrie: sešitá trasa po ulicích z legacy-shapes.json, jinak rovná spojnice zastávek
+      var geom = legacyShapes[lr.short_name];
+      var drawLatlngs = (geom && geom.length >= 2)
+        ? geom.map(function (c) { return [c[1], c[0]]; })
+        : latlngs;
+
       var grp = L.layerGroup();
-      L.polyline(latlngs, {
+      L.polyline(drawLatlngs, {
         color: color, weight: W_BASE, opacity: OP_BASE,
         dashArray: "6 7", lineJoin: "round", lineCap: "round"
       }).on("click", function () { focusRoute(rid); }).addTo(grp);
       routeLine[rid] = grp;
-      grp.addTo(routeLayer);
+      // legacy linky se do mapy NEpřidávají automaticky – zobrazí je až
+      // filtr „Mimo provoz", hover v seznamu, nebo focus (refreshRouteStyles).
     });
   }
 
@@ -191,7 +204,7 @@
     routes.slice().sort(function (a, b) { return routePriority(b) - routePriority(a); })
       .forEach(function (r) {
         var grp = routeLine[r.id];
-        if (grp) grp.eachLayer(function (ln) { if (ln.bringToFront) ln.bringToFront(); });
+        if (grp && routeLayer.hasLayer(grp)) grp.eachLayer(function (ln) { if (ln.bringToFront) ln.bringToFront(); });
       });
   }
 
@@ -240,6 +253,7 @@
       var li = document.createElement("li");
       li.dataset.id = r.id;
       li.dataset.type = r.type;
+      li.dataset.legacy = r.legacy ? "1" : "0";
       li.dataset.search = (r.short_name + " " + r.long_name).toLowerCase();
       if (r.legacy) li.classList.add("ms-legacy");
 
@@ -264,7 +278,10 @@
   function applyListFilter() {
     var items = elRoutes.querySelectorAll("li");
     Array.prototype.forEach.call(items, function (li) {
-      var okType = filter === "all" || li.dataset.type === filter;
+      var isLeg = li.dataset.legacy === "1";
+      var okType = filter === "legacy"
+        ? isLeg
+        : (!isLeg && (filter === "all" || li.dataset.type === filter));
       var okQ = !query || li.dataset.search.indexOf(query) !== -1;
       li.classList.toggle("is-hidden", !(okType && okQ));
     });
@@ -277,21 +294,23 @@
     stops.forEach(function (s) {
       var li = document.createElement("li");
       li.className = "ms-stop-item";
-      li.dataset.search = (s.name || "").toLowerCase();
+      li.dataset.search = ((s.name || "") + " " + (s.code || "")).toLowerCase();
 
       var nm = document.createElement("span");
       nm.className = "ms-line-name";
       nm.textContent = s.name;
       li.appendChild(nm);
 
-      var cnt = (s.routes && s.routes.length) || 0;
-      if (cnt) {
+      if (s.code) {
         var c = document.createElement("span");
         c.className = "ms-stop-count";
-        c.textContent = cnt + "×";
+        c.textContent = s.code;        // kód zastávky (GTFS stop_code)
         li.appendChild(c);
       }
+
       li.addEventListener("click", function () { focusStop(s.id); });
+      li.addEventListener("mouseenter", function () { previewStop(s.id, true); });
+      li.addEventListener("mouseleave", function () { previewStop(s.id, false); });
       elStops.appendChild(li);
     });
   }
@@ -324,39 +343,43 @@
     routes.forEach(function (r) {
       var grp = routeLine[r.id];
       if (!grp) return;
-      var visibleByType = filter === "all" || r.type === filter;
-      var focused = focusedRouteId === r.id;
-      var dim = focusedRouteId ? !focused : !visibleByType;
+      var emph = focusedRouteId === r.id || hoveredRouteId === r.id;
+
+      if (r.legacy) {
+        // legacy se kreslí jen ve filtru „Mimo provoz" nebo když je zvýrazněná
+        var show = filter === "legacy" || emph;
+        var has = routeLayer.hasLayer(grp);
+        if (show && !has) grp.addTo(routeLayer);
+        else if (!show && has) routeLayer.removeLayer(grp);
+        if (!show) return;
+      }
+
+      var visibleByType = r.legacy
+        ? (filter === "legacy")
+        : (filter !== "legacy" && (filter === "all" || r.type === filter));
+
+      var dim;
+      if (emph) dim = false;
+      else if (focusedRouteId) dim = true;     // něco vyfokusováno → ostatní šedé
+      else dim = !visibleByType;
+
       var style = {
         color: dim ? DIM_COLOR : routeColor(r),
-        weight: focused ? W_FOCUS : (dim ? W_DIM : W_BASE),
-        opacity: focused ? 1 : (dim ? OP_DIM : OP_BASE)
+        weight: emph ? W_FOCUS : (dim ? W_DIM : W_BASE),
+        opacity: emph ? 1 : (dim ? OP_DIM : OP_BASE)
       };
+      var front = emph || (r.legacy && filter === "legacy");
       grp.eachLayer(function (ln) {
         ln.setStyle(style);
-        if (focused && ln.bringToFront) ln.bringToFront();
+        if (front && ln.bringToFront) ln.bringToFront();
       });
     });
   }
 
   // hover v seznamu → dočasné zvýraznění trasy (bez přiblížení); přiblíží až klik
   function hoverRoute(rid, on) {
-    var r = routeById[rid];
-    var grp = routeLine[rid];
-    if (!grp || !r) return;
-    if (on) {
-      grp.eachLayer(function (ln) {
-        ln.setStyle({ color: routeColor(r), weight: W_FOCUS, opacity: 1 });
-        if (ln.bringToFront) ln.bringToFront();
-      });
-    } else {
-      refreshRouteStyles();
-      if (focusedRouteId && routeLine[focusedRouteId]) {
-        routeLine[focusedRouteId].eachLayer(function (ln) {
-          if (ln.bringToFront) ln.bringToFront();
-        });
-      }
-    }
+    hoveredRouteId = on ? rid : null;
+    refreshRouteStyles();
   }
 
   // ── FOCUS: linka ─────────────────────────────────────────────────
@@ -364,6 +387,8 @@
     var r = routeById[rid];
     if (!r) return;
     focusedRouteId = rid;
+    focusedStopId = null;
+    setStopPin(null);
     refreshRouteStyles();
     highlightStops(r.stops || []);
     renderRouteDetail(r);
@@ -378,37 +403,41 @@
 
   function renderRouteDetail(r) {
     var col = routeColor(r);
-    var stopsHtml, stopCount;
-    if (r.legacy) {
-      // legacy: vykreslíme názvy (mohou zahrnovat i zastávky mimo síť bez markeru)
-      var lnames = r.stopNames || [];
-      stopCount = lnames.length;
-      stopsHtml = lnames.map(function (n) {
-        return '<li style="border-left-color:' + col + '">' + esc(n) + "</li>";
-      }).join("");
-    } else {
-      stopCount = (r.stops || []).length;
-      stopsHtml = (r.stops || []).map(function (sid) {
+    // legacy linky nemají na mapě seznam zastávek (jejich „stops" slouží jen
+    // k vykreslení trasy; výpis zastávek je na detailu linky a bere se z DB)
+    var stopsSection = "";
+    if (!r.legacy) {
+      var stopsHtml = (r.stops || []).map(function (sid) {
         var s = stopById[sid];
         if (!s) return "";
         return '<li data-stop="' + s.id + '" style="border-left-color:' + col + '">' +
                esc(s.name) + "</li>";
       }).join("");
+      stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + " (" + (r.stops || []).length + ")</h3>" +
+                     '<ul class="ms-stoplist">' + stopsHtml + "</ul>";
     }
 
     var detailUrl = BASE + "/?linka=" + encodeURIComponent(r.short_name) +
                     (JA ? "&ja=" + encodeURIComponent(JA) : "") + "#prehled";
 
+    // nadpis: legacy → "Linka XX (trvale mimo provoz)"; jinak "Kategorie [číslo v rámečku]"
+    var headerHtml;
+    if (r.legacy) {
+      headerHtml = "<h2>" + esc((T.legacyTitle || "Linka %s (trvale mimo provoz)").replace("%s", r.short_name)) + "</h2>";
+    } else {
+      var cat = TILE_CATS[r.short_name] || (r.type === "tram" ? (T.tram || "Tram") : (T.bus || "Bus"));
+      headerHtml = "<h2>" + esc(cat) +
+        ' <span class="ms-badge" style="background:' + col + '">' + esc(r.short_name) + "</span></h2>";
+    }
+
     elDetail.innerHTML =
       backBtn() +
-      '<h2><span class="ms-badge" style="background:' + col + '">' + esc(r.short_name) + "</span> " +
-      (r.type === "tram" ? T.tram || "Tram" : T.bus || "Bus") + "</h2>" +
+      headerHtml +
       '<p class="ms-sub">' + esc(r.long_name) + "</p>" +
       (r.legacy ? '<p class="ms-legacy-note">' + (T.legacyNote || "Trasa je přibližná – linka je mimo provoz.") + "</p>" : "") +
       '<a class="ms-detaillink" href="' + esc(detailUrl) + '">' +
         (T.detailLink || "Detail a historie linky") + " &rarr;</a>" +
-      "<h3>" + (T.lineStops || "Zastávky linky") + " (" + stopCount + ")</h3>" +
-      '<ul class="ms-stoplist">' + stopsHtml + "</ul>";
+      stopsSection;
 
     bindDetail();
     showDetail(true);
@@ -419,8 +448,10 @@
     var s = stopById[sid];
     if (!s) return;
     focusedRouteId = null;
+    focusedStopId = sid;
     refreshRouteStyles();
     highlightStops([sid]);
+    setStopPin(sid);
 
     var chips = (s.routes || []).map(function (sn) {
       var r = routeByShort[sn];
@@ -462,6 +493,32 @@
     });
   }
 
+  // výrazné označení polohy zastávky (velké kolečko); sid=null značku schová
+  function setStopPin(sid) {
+    var s = sid && stopById[sid];
+    if (!s) {
+      if (stopPin && map.hasLayer(stopPin)) map.removeLayer(stopPin);
+      return;
+    }
+    var ll = [s.lat, s.lon];
+    if (!stopPin) {
+      stopPin = L.circleMarker(ll, {
+        radius: 13, color: "#c0392b", weight: 3.5,
+        fillColor: "#c0392b", fillOpacity: 0.2, interactive: false
+      }).addTo(map);
+    } else {
+      stopPin.setLatLng(ll);
+      if (!map.hasLayer(stopPin)) stopPin.addTo(map);
+    }
+    if (stopPin.bringToFront) stopPin.bringToFront();
+  }
+
+  // hover zastávky (v seznamu / detailu): dočasně ukáž špendlík; po odjetí
+  // vrať na vybranou zastávku (nebo schovej)
+  function previewStop(sid, on) {
+    setStopPin(on ? sid : focusedStopId);
+  }
+
   // ── přepínání panelu detail / browse ─────────────────────────────
   function showDetail(on) {
     elDetail.hidden = !on;
@@ -470,10 +527,12 @@
 
   function resetView() {
     focusedRouteId = null;
+    focusedStopId = null;
     showDetail(false);
     refreshRouteStyles();
     applyZOrder();
     highlightStops([]);
+    setStopPin(null);
   }
 
   function backBtn() {
@@ -490,7 +549,10 @@
       });
     });
     Array.prototype.forEach.call(elDetail.querySelectorAll("[data-stop]"), function (el) {
-      el.addEventListener("click", function () { focusStop(el.getAttribute("data-stop")); });
+      var sid = el.getAttribute("data-stop");
+      el.addEventListener("click", function () { focusStop(sid); });
+      el.addEventListener("mouseenter", function () { previewStop(sid, true); });
+      el.addEventListener("mouseleave", function () { previewStop(sid, false); });
     });
   }
 
@@ -503,7 +565,7 @@
           b.classList.toggle("is-on", b === btn);
         });
         applyListFilter();
-        if (!focusedRouteId) refreshRouteStyles();
+        refreshRouteStyles();
       });
     });
 

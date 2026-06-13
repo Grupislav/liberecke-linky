@@ -37,6 +37,7 @@ $lang['mapa_iframe_title'] = 'Map for route %s';
 
 // Network map page (mapa.php / mapa.js)
 $lang['mapa_linky']          = 'Routes';
+$lang['mapa_nav']            = 'Interactive map';
 $lang['mapa_titulek']        = 'Public transit map – Liberec & Jablonec n. N. | Liberec Routes';
 $lang['mapa_popis']          = 'Interactive map of public transit routes and stops in Liberec and Jablonec nad Nisou, based on open data (GTFS).';
 $lang['mapa_hledat']         = 'Search a route or stop…';
@@ -46,6 +47,7 @@ $lang['mapa_hledat_zastavku'] = 'Search a stop…';
 $lang['mapa_tram']           = 'Trams';
 $lang['mapa_bus']            = 'Buses';
 $lang['mapa_vse']            = 'All';
+$lang['mapa_filtr_mimo']     = 'Out of service';
 $lang['mapa_nic']            = 'None';
 $lang['mapa_zastavka']       = 'Stop';
 $lang['mapa_zona']           = 'Zone';
@@ -63,7 +65,8 @@ $lang['mapa_sit']            = 'NETWORK MAP';
 $lang['mapa_zobraz_v_siti']  = 'Show in the interactive map';
 $lang['mapa_detail_linky']   = 'Route detail & history';
 $lang['mapa_nahled_alt']     = 'Route %s preview';
-$lang['mapa_mimo_provoz_pozn'] = 'Route is approximate – line is out of service.';
+$lang['mapa_mimo_provoz_pozn'] = 'Route is approximate.';
+$lang['mapa_mimo_nadpis']      = 'Line %s (permanently out of service)';
 
 // line-category legend on the map (labels for typy_linek categories)
 $lang['mapa_legenda']        = 'Line categories';
