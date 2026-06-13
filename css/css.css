@@ -46,9 +46,15 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 .line-map-preview.is-ready .lmp-label { position: absolute; left: 10px; bottom: 10px; font-size: 12px; padding: 5px 9px; }
 .line-map-preview:hover .lmp-label { background: #23475f; }
 
-/* dynamicky generovaný seznam zastávek v záložce Přehled (z GTFS) */
-.line-stops .ls-list { margin: 0; padding-left: 1.5em; }
-.line-stops .ls-list li { padding: 2px 0; line-height: 1.4; }
+/* dynamicky generovaný seznam zastávek v záložce Přehled (z GTFS) – odrážky jako na mapě */
+.line-stops .ls-list { list-style: none; margin: 0; padding: 0; }
+.line-stops .ls-list li { position: relative; padding: 4px 0 4px 18px; line-height: 1.35; }
+.line-stops .ls-list li::before {
+  content: ""; position: absolute; left: 0; top: 9px;
+  width: 8px; height: 8px; border-radius: 50%; background: #fff; border: 2px solid #00a186;
+}
+.line-stops .ls-stop { color: #34495e; text-decoration: none; }
+.line-stops .ls-stop:hover { color: #00a186; text-decoration: underline; }
 
 /* Style buttons */
 .btn {

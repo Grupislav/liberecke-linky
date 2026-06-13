@@ -40,6 +40,9 @@ $lang['mapa_linky']          = 'Routes';
 $lang['mapa_titulek']        = 'Public transit map – Liberec & Jablonec n. N. | Liberec Routes';
 $lang['mapa_popis']          = 'Interactive map of public transit routes and stops in Liberec and Jablonec nad Nisou, based on open data (GTFS).';
 $lang['mapa_hledat']         = 'Search a route or stop…';
+$lang['mapa_zastavky']       = 'Stops';
+$lang['mapa_hledat_linku']   = 'Search a route…';
+$lang['mapa_hledat_zastavku'] = 'Search a stop…';
 $lang['mapa_tram']           = 'Trams';
 $lang['mapa_bus']            = 'Buses';
 $lang['mapa_vse']            = 'All';
@@ -57,9 +60,10 @@ $lang['mapa_neznamo']        = 'unknown';
 
 // integration: header, in-tab preview, map↔detail cross-links
 $lang['mapa_sit']            = 'NETWORK MAP';
-$lang['mapa_zobraz_v_siti']  = 'Show in network map';
+$lang['mapa_zobraz_v_siti']  = 'Show in the interactive map';
 $lang['mapa_detail_linky']   = 'Route detail & history';
 $lang['mapa_nahled_alt']     = 'Route %s preview';
+$lang['mapa_mimo_provoz_pozn'] = 'Route is approximate – line is out of service.';
 
 // line-category legend on the map (labels for typy_linek categories)
 $lang['mapa_legenda']        = 'Line categories';
@@ -68,8 +72,18 @@ $lang['mapa_kat_autobusy']   = 'Buses';
 $lang['mapa_kat_nocni']      = 'Night';
 $lang['mapa_kat_pracovni']   = 'Workday';
 $lang['mapa_kat_skolni']     = 'School';
-$lang['mapa_kat_nakupni']    = 'Shopping';
+$lang['mapa_kat_nakupni']    = 'Commercial';
 $lang['mapa_kat_historicke'] = 'Historical';
+
+// singular category names for the route title in the Overview ("Category number: route")
+$lang['mapa_katsg_tramvaje']   = 'Tram';
+$lang['mapa_katsg_autobusy']   = 'Bus';
+$lang['mapa_katsg_nocni']      = 'Night line';
+$lang['mapa_katsg_pracovni']   = 'Workday line';
+$lang['mapa_katsg_skolni']     = 'School line';
+$lang['mapa_katsg_nakupni']    = 'Commercial line';
+$lang['mapa_katsg_historicke'] = 'Historical line';
+$lang['mapa_katsg_mimoprovoz'] = 'Out-of-service line';
 
 // intros (no route selected)
 $lang['prehled_intro']      = "This tab shows the basic information about the selected route. Please choose a route in the top menu.";

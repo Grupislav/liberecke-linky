@@ -59,6 +59,21 @@
 }
 .ms-chip.is-on { background: #0078c8; border-color: #0078c8; color: #fff; }
 
+/* přepínač Linky / Zastávky */
+.ms-modes { display: flex; border-bottom: 1px solid #e3e7eb; }
+.ms-mode {
+  flex: 1; padding: 11px 8px; border: none; background: #f5f7f9; cursor: pointer;
+  font-size: 14px; color: #4a565f; border-bottom: 2px solid transparent;
+}
+.ms-mode.is-on { background: #fff; color: #1f2a33; font-weight: 700; border-bottom-color: #0078c8; }
+
+/* filtr tram/bus musí jít skrýt v režimu Zastávky (jinak by display:flex přebil [hidden]) */
+.ms-toolbar[hidden] { display: none; }
+
+/* položka zastávky v panelu */
+.ms-routes li.ms-stop-item { justify-content: space-between; }
+.ms-stop-count { flex: 0 0 auto; color: #9aa4ad; font-size: 12px; }
+
 /* seznam linek – #ms-browse musí být flex sloupec s min-height:0, aby ul mohl scrollovat
    (jen když není skrytý – jinak by display:flex přebil [hidden] a detail by se nezvětšil) */
 #ms-browse:not([hidden]) { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
@@ -156,6 +171,14 @@
 .mapa-legenda .ml-title { font-weight: 700; color: #33414d; }
 .mapa-legenda .ml-item { display: inline-flex; align-items: center; gap: 7px; }
 .mapa-legenda .ml-swatch { width: 18px; height: 4px; border-radius: 2px; flex: 0 0 auto; }
+
+/* linky mimo provoz (legacy) – přibližná trasa po zastávkách */
+.ms-routes li.ms-legacy .ms-badge { opacity: .8; }
+.ms-routes li.ms-legacy .ms-line-name { font-style: italic; color: #7a858e; }
+#ms-detail .ms-legacy-note {
+  background: #fdf3e6; border: 1px solid #f0d9b5; color: #8a6d3b;
+  padding: 6px 9px; border-radius: 4px; font-size: 12px; margin: 2px 0 10px;
+}
 
 /* ── responsivita ────────────────────────────────────────────────── */
 @media (max-width: 760px) {

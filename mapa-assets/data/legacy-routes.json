@@ -1,0 +1,237 @@
+[
+  {
+    "short_name": "A",
+    "stops": [
+      "Fügnerova",
+      "Nádraží",
+      "Karlinky",
+      "Ostašov",
+      "Karlov"
+    ],
+    "type": "bus",
+    "long_name": "Fügnerova – Karlov"
+  },
+  {
+    "short_name": "B",
+    "stops": [
+      "Fügnerova",
+      "Nádraží",
+      "Stráž nad Nisou",
+      "Machnín"
+    ],
+    "type": "bus",
+    "long_name": "Fügnerova – Machnín"
+  },
+  {
+    "short_name": "C",
+    "stops": [
+      "Fügnerova",
+      "Pavlovice křižovatka",
+      "Rudolfov"
+    ],
+    "type": "bus",
+    "long_name": "Fügnerova – Rudolfov"
+  },
+  {
+    "short_name": "D",
+    "stops": [
+      "Fügnerova",
+      "Ruprechtice síd."
+    ],
+    "type": "bus",
+    "long_name": "Fügnerova – Ruprechtice síd."
+  },
+  {
+    "short_name": "E",
+    "stops": [
+      "Fügnerova",
+      "Harcov kostel"
+    ],
+    "type": "bus",
+    "long_name": "Fügnerova – Harcov kostel"
+  },
+  {
+    "short_name": "F",
+    "stops": [
+      "Fügnerova",
+      "Harcov Střelnice"
+    ],
+    "type": "bus",
+    "long_name": "Fügnerova – Harcov Střelnice"
+  },
+  {
+    "short_name": "6",
+    "stops": [
+      "Nám.Dr.E.Beneše",
+      "Pavlovice křižovatka",
+      "Stráž nad Nisou",
+      "Růžodol I",
+      "Nám.Dr.E.Beneše"
+    ],
+    "type": "bus",
+    "long_name": "Nám.Dr.E.Beneše – Nám.Dr.E.Beneše"
+  },
+  {
+    "short_name": "8",
+    "stops": [
+      "Nám.Dr.E.Beneše",
+      "Františkov sídliště",
+      "Ostašov"
+    ],
+    "type": "bus",
+    "long_name": "Nám.Dr.E.Beneše – Ostašov"
+  },
+  {
+    "short_name": "201",
+    "stops": [
+      "Šimonovice",
+      "Minkovice žel. přejezd",
+      "Minkovice statek",
+      "Pilínkov",
+      "Pilínkov křižovatka",
+      "Doubí - UCT",
+      "Doubí obilná",
+      "Doubí pošta",
+      "Doubí mlýn",
+      "Doubská",
+      "Kamenická",
+      "Rochlice",
+      "Mostecká",
+      "Čechova",
+      "Melantrichova",
+      "Košická",
+      "Fügnerova",
+      "Šaldovo náměstí",
+      "Hostina obrů",
+      "Tržní náměstí",
+      "Ruprechtická",
+      "U Jelena",
+      "U Beránka",
+      "Hlávkova",
+      "Ruprechtice síd."
+    ],
+    "type": "bus",
+    "long_name": "Šimonovice – Ruprechtice síd."
+  },
+  {
+    "short_name": "7",
+    "type": "bus",
+    "long_name": "Nám.Dr.E.Beneše – Chrastava",
+    "stops": [
+      "Nám.Dr.E.Beneše",
+      "Krásná Studánka",
+      {
+        "name": "Chrastava",
+        "lat": 50.8166189,
+        "lon": 14.9650539
+      }
+    ]
+  },
+  {
+    "short_name": "41",
+    "type": "bus",
+    "long_name": "Rybníček – Areál Vesec",
+    "stops": [
+      "Rybníček",
+      "Nádraží",
+      {
+        "name": "Areál Vesec",
+        "lat": 50.7300661,
+        "lon": 15.0700481
+      }
+    ]
+  },
+  {
+    "short_name": "81",
+    "type": "bus",
+    "long_name": "Fügnerova – Areál Vesec",
+    "stops": [
+      "Fügnerova",
+      "Rybníček",
+      "Nádraží",
+      {
+        "name": "Areál Vesec",
+        "lat": 50.7300661,
+        "lon": 15.0700481
+      }
+    ]
+  },
+  {
+    "short_name": "44",
+    "type": "bus",
+    "long_name": "Zelené Údolí (okruh přes Vratislavice)",
+    "stops": [
+      "Zelené Údolí",
+      {
+        "name": "Seniorů",
+        "lat": 50.7514567,
+        "lon": 15.0762064
+      },
+      "Sídliště Nové Vratislavice",
+      {
+        "name": "Krajní",
+        "lat": 50.7516025,
+        "lon": 15.0796608
+      },
+      {
+        "name": "Ořechová",
+        "lat": 50.7508625,
+        "lon": 15.0784539
+      },
+      "Zelené Údolí"
+    ]
+  },
+  {
+    "short_name": "71",
+    "type": "bus",
+    "long_name": "Zelené Údolí (okruh přes Vratislavice)",
+    "stops": [
+      "Zelené Údolí",
+      {
+        "name": "Seniorů",
+        "lat": 50.7514567,
+        "lon": 15.0762064
+      },
+      "Sídliště Nové Vratislavice",
+      {
+        "name": "Krajní",
+        "lat": 50.7516025,
+        "lon": 15.0796608
+      },
+      {
+        "name": "Ořechová",
+        "lat": 50.7508625,
+        "lon": 15.0784539
+      },
+      "Zelené Údolí"
+    ]
+  },
+  {
+    "short_name": "90",
+    "type": "bus",
+    "long_name": "Fügnerova (okruh přes Vesec)",
+    "stops": [
+      "Fügnerova",
+      "Košická",
+      "U Močálu",
+      "Horní Kopečná",
+      "Dobiášova",
+      "Krejčího",
+      "Zelené Údolí",
+      "Rochlice",
+      "Slovanská",
+      "Na Srázu",
+      "Jeřmanická",
+      "Vesec samoobsluha",
+      "Vesec U Střediska",
+      "Mařanova",
+      "Doubí mlýn",
+      "Rochlice",
+      "Mostecká",
+      "Čechova",
+      "Melantrichova",
+      "Košická",
+      "Fügnerova"
+    ]
+  }
+]

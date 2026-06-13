@@ -255,7 +255,7 @@ $esc = static function ($s) {
 </script>
 
 <!-- Náhled trasy linky v záložce Přehled (inline SVG z GTFS dat) -->
-<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?> };</script>
+<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?> };</script>
 <script src="mapa-assets/line-preview.js" defer></script>
 
 </body>

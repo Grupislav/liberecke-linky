@@ -32,7 +32,9 @@ if (!$conn) {
 mysqli_set_charset($conn, "utf8");
 
 // 3) Prepared statement
-$sql = "SELECT trasa, zastavky, funkce, mapa FROM texty WHERE linka = ?";
+$sql = "SELECT t.trasa, t.zastavky, t.funkce, t.mapa, tl.kod AS kategorie
+        FROM texty t LEFT JOIN typy_linek tl ON tl.id = t.typ_linky_id
+        WHERE t.linka = ?";
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
     mysqli_close($conn);
@@ -55,7 +57,17 @@ mysqli_stmt_close($stmt);
 mysqli_close($conn);
 
 // 4) Výstup
-$trasa = htmlspecialchars($t['trasa'] ?? '', ENT_QUOTES, 'UTF-8');
+// Nadpis linky dynamicky ve tvaru "Kategorie číslo: trasa" (kategorie z DB,
+// trasa z GTFS/legacy). Když některý díl chybí, padáme zpět na sloupec `trasa`.
+$kategorie = (string)($t['kategorie'] ?? '');
+$routeName = line_route_longname($linka);
+$katSg     = $lang['mapa_katsg_' . $kategorie] ?? '';
+if ($katSg !== '' && $routeName !== null && $routeName !== '') {
+    $titulekLinky = $katSg . ' ' . $linka . ': ' . $routeName;
+} else {
+    $titulekLinky = (string)($t['trasa'] ?? '');
+}
+$trasa = htmlspecialchars($titulekLinky, ENT_QUOTES, 'UTF-8');
 
 // Náhled trasy → proklik do interaktivní mapy sítě (/mapa?linka=X).
 // Samotný obrázek dokresluje mapa-assets/line-preview.js z GTFS dat;

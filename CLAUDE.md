@@ -13,7 +13,10 @@ Web **„Liberecké linky"** — přehled MHD linek v Liberci a Jablonci n. N.
 - `mapa-assets/mapa.js` — klientská logika. Na začátku je blok **`TILE`** = podkladová mapa (teď OSM; pro produkci přepnout na keyed providera, jinde se nic nemění). `var LIBEREC`, šířky/opacity čar.
 - `mapa-assets/mapa.css` — layout (mapa + boční panel), responsivita.
 - `mapa-assets/data/*.json` — **generovaná data, commitují se a deployují**: `stops.json` (224 stanic), `routes.json` (51 linek), `shapes.json` (geometrie tras, GeoJSON), `meta.json` (platnost feedu).
-- `tools/build_data.py` — generátor dat z GTFS (Python, bez závislostí).
+- `mapa-assets/data/legacy-routes.json` — **ručně udržovaný** (NE z build_data.py): linky trvale mimo provoz, které nemají GTFS data. Formát: `[{ "short_name":"50", "long_name":"…", "type":"bus|tram", "stops":["Název zastávky", …] }]`. Mapa je kreslí přibližně (čárkovaně) spojnicí zastávek (párování dle názvu na `stops.json`); nenapárované názvy hlásí `console.warn`. Pokrývá i složené linky (např. 201 = 20 + část 14) jako prostou posloupnost zastávek.
+- `mapa-assets/line-preview.js` — klient pro hlavní web (záložka Přehled): náhled trasy (SVG nad `shapes.json`, celá síť + zvýrazněná linka) a dynamický seznam zastávek z dat. Respektuje aliasy i legacy linky.
+- `tools/build_data.py` — generátor dat z GTFS (Python, bez závislostí). **Nepřepisuje** `legacy-routes.json`.
+- Aliasy/legacy/barvy: `line_map_aliases()` (mimo-provoz → dnešní linka, 161→16), `fetch_line_kods()` + `line_category_colors()` + `line_category_priority()` (barvy a pořadí vrstev linek dle kategorie z DB), `line_route_longname()` (název trasy z GTFS/legacy pro nadpis přehledu) — vše ve `scripts/fce.php`.
 
 ## Regenerace dat z GTFS (cca měsíčně)
 Z kořene repa:
@@ -28,7 +31,7 @@ Datový model: stanice = GTFS `location_type=1` (nástupiště se agregují k ro
 
 ## Konvence a úskalí
 - **Auto-deploy:** push do `main` spustí GitHub Action `deploy-ftp.yml` → nahraje na FTP produkce. **Necommitovat/nepushovat bez výslovného pokynu uživatele.**
-- **Cesty k assetům:** přes `$appBasePath` z `config.php` (prázdné = kořen domény; produkce `/blog/liberecke-linky`). V JS je k dispozici `window.MAPA.base`.
+- **Cesty k assetům:** přes `$appBasePath` z `config.php` (prázdné = kořen domény; **produkce `/liberecke-linky`** — musí odpovídat reálnému umístění, jinak se rozbijí assety mapy i odkazy). V JS je k dispozici `window.MAPA.base`.
 - `config.php` a `jr/` jsou gitignored (nepatří do commitů).
 - **Lokální běh:** `php -S localhost:8080` z kořene. Vestavěný server **neumí `.htaccess`** → mapu lokálně otevírej jako `/mapa.php` (čistá `/mapa` jede až na produkčním Apache).
 - **Na tomto stroji není nainstalované PHP** (ani XAMPP) — `mapa.php` nelze lokálně lintnout/spustit; ověřuj ručně, finální test u uživatele.

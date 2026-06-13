@@ -43,12 +43,30 @@ function line_map_aliases(): array {
 }
 
 /**
- * Mapování linka (short_name) -> barva dlaždice z DB. Stejný dotaz, jaký
- * obarvuje dlaždice (vypislinek.php), jen vytažený do sdílené funkce.
- * Při nedostupné DB vrací [] – mapa pak spadne zpět na barvy z GTFS.
+ * Pořadí vykreslení linek na mapě podle kategorie (nižší = výš/navrchu).
+ * Tramvaje navrchu, pak autobusy/pracovní, školní, komerční, dole noční a
+ * historické/mimo provoz.
  */
-function fetch_line_tile_colors($conn): array {
-    $colors = line_category_colors();
+function line_category_priority(): array {
+    return [
+        'tramvaje'   => 1,
+        'autobusy'   => 2,
+        'pracovni'   => 2,
+        'skolni'     => 3,
+        'nakupni'    => 4,
+        'nocni'      => 5,
+        'historicke' => 6,
+        'mimoprovoz' => 6,
+    ];
+}
+
+/**
+ * Mapování linka (short_name) -> kód kategorie z DB. Stejný dotaz, jaký
+ * obarvuje dlaždice (vypislinek.php), jen vytažený do sdílené funkce.
+ * Z kódu se pak odvodí barva (line_category_colors) i pořadí (line_category_priority).
+ * Při nedostupné DB vrací [].
+ */
+function fetch_line_kods($conn): array {
     $out = [];
     $res = mysqli_query(
         $conn,
@@ -56,12 +74,24 @@ function fetch_line_tile_colors($conn): array {
     );
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {
-            $kod = (string)($row['kod'] ?? '');
-            if (isset($colors[$kod])) {
-                $out[(string)$row['linka']] = $colors[$kod];
-            }
+            $out[(string)$row['linka']] = (string)($row['kod'] ?? '');
         }
         mysqli_free_result($res);
     }
     return $out;
+}
+
+/** Vrátí dlouhý název trasy linky z GTFS (routes.json) nebo legacy-routes.json. */
+function line_route_longname(string $linka): ?string {
+    foreach (['routes.json', 'legacy-routes.json'] as $file) {
+        $raw = @file_get_contents(__DIR__ . '/../mapa-assets/data/' . $file);
+        if (!$raw) continue;
+        foreach (json_decode($raw, true) ?: [] as $r) {
+            if (isset($r['short_name']) && (string)$r['short_name'] === $linka) {
+                $ln = trim((string)($r['long_name'] ?? ''));
+                if ($ln !== '') return $ln;
+            }
+        }
+    }
+    return null;
 }

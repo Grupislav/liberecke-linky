@@ -31,6 +31,8 @@ $canonical = $__req !== ''
 // strings předané do JS (i18n)
 $jsLang = [
     'search'      => $lang['mapa_hledat']        ?? 'Hledat linku nebo zastávku…',
+    'searchLines' => $lang['mapa_hledat_linku']   ?? 'Hledat linku…',
+    'searchStops' => $lang['mapa_hledat_zastavku']?? 'Hledat zastávku…',
     'lines'       => $lang['mapa_linky']          ?? 'Linky',
     'tram'        => $lang['mapa_tram']           ?? 'Tramvaje',
     'bus'         => $lang['mapa_bus']            ?? 'Autobusy',
@@ -48,18 +50,26 @@ $jsLang = [
     'no'          => $lang['mapa_ne']             ?? 'ne',
     'unknown'     => $lang['mapa_neznamo']        ?? 'neznámo',
     'detailLink'  => $lang['mapa_detail_linky']   ?? 'Detail a historie linky',
+    'legacyNote'  => $lang['mapa_mimo_provoz_pozn'] ?? 'Trasa je přibližná – linka je mimo provoz.',
 ];
 
-// Barvy linek z DB (shodné s dlaždicemi na hlavním webu); stejný dotaz jako
-// u dlaždic, jen sdílený přes fce.php. Při nedostupné DB zůstane [] a mapa
-// spadne zpět na barvy generované z GTFS.
+// Kategorie linek z DB (stejný dotaz jako dlaždice, sdílený přes fce.php).
+// Z kódu kategorie odvodíme barvu (shodnou s dlaždicemi) i pořadí vrstev.
+// Při nedostupné DB zůstanou pole prázdná → mapa spadne zpět na GTFS.
+$catColors = line_category_colors();
+$catPrio   = line_category_priority();
 $tileColors = [];
+$tilePriority = [];
 if (isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
     $conn = @mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
     if ($conn) {
         mysqli_set_charset($conn, 'utf8');
-        $tileColors = fetch_line_tile_colors($conn);
+        $kods = fetch_line_kods($conn);
         mysqli_close($conn);
+        foreach ($kods as $short => $kod) {
+            if (isset($catColors[$kod])) $tileColors[$short] = $catColors[$kod];
+            if (isset($catPrio[$kod]))   $tilePriority[$short] = $catPrio[$kod];
+        }
     }
 }
 
@@ -69,7 +79,6 @@ $lineAliases = line_map_aliases();
 // Legenda kategorií = kategorie, jejichž barvu má aspoň jedna linka reálně
 // zobrazená na mapě (průnik DB ∩ routes.json). Bez dalšího dotazu.
 $legend = [];
-$catColors = line_category_colors();
 $mapShorts = [];
 $routesJsonRaw = @file_get_contents(__DIR__ . '/mapa-assets/data/routes.json');
 if ($routesJsonRaw) {
@@ -158,8 +167,13 @@ foreach ($catColors as $kod => $hex) {
 <?php // ── MAPA + BOČNÍ PANEL ────────────────────────────────────────────── ?>
 <div class="mapa-layout">
   <aside id="mapa-sidebar" aria-label="<?= $esc($lang['mapa_linky'] ?? 'Linky') ?>">
+    <div class="ms-modes" role="tablist">
+      <button type="button" data-mode="lines" class="ms-mode is-on"><?= $esc($lang['mapa_linky'] ?? 'Linky') ?></button>
+      <button type="button" data-mode="stops" class="ms-mode"><?= $esc($lang['mapa_zastavky'] ?? 'Zastávky') ?></button>
+    </div>
+
     <div class="ms-search">
-      <input type="search" id="ms-search-input" placeholder="<?= $esc($jsLang['search']) ?>" autocomplete="off">
+      <input type="search" id="ms-search-input" placeholder="<?= $esc($jsLang['searchLines']) ?>" autocomplete="off">
     </div>
 
     <div id="ms-detail" hidden></div>
@@ -171,6 +185,7 @@ foreach ($catColors as $kod => $hex) {
         <button type="button" data-filter="bus" class="ms-chip"><?= $esc($jsLang['bus']) ?></button>
       </div>
       <ul id="ms-routes" class="ms-routes"></ul>
+      <ul id="ms-stops" class="ms-routes" hidden></ul>
     </div>
 
     <div class="ms-foot">
@@ -206,6 +221,7 @@ foreach ($catColors as $kod => $hex) {
     base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>,
     ja:   <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>,
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
+    tilePriority: <?= json_encode($tilePriority, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     aliases: <?= json_encode($lineAliases, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     lang: <?= json_encode($jsLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
   };

@@ -40,6 +40,9 @@ $lang['mapa_linky']          = 'Linky';
 $lang['mapa_titulek']        = 'Mapa linek MHD Liberec a Jablonec n. N. | Liberecké linky';
 $lang['mapa_popis']          = 'Interaktivní mapa linek a zastávek MHD v Liberci a Jablonci nad Nisou nad otevřenými daty (GTFS).';
 $lang['mapa_hledat']         = 'Hledat linku nebo zastávku…';
+$lang['mapa_zastavky']       = 'Zastávky';
+$lang['mapa_hledat_linku']   = 'Hledat linku…';
+$lang['mapa_hledat_zastavku'] = 'Hledat zastávku…';
 $lang['mapa_tram']           = 'Tramvaje';
 $lang['mapa_bus']            = 'Autobusy';
 $lang['mapa_vse']            = 'Vše';
@@ -57,9 +60,10 @@ $lang['mapa_neznamo']        = 'neznámo';
 
 // integrace: nadpis, náhled v záložce, prolinky mapa↔detail
 $lang['mapa_sit']            = 'MAPA SÍTĚ';
-$lang['mapa_zobraz_v_siti']  = 'Zobrazit v mapě sítě';
+$lang['mapa_zobraz_v_siti']  = 'Zobrazit v interaktivní mapě';
 $lang['mapa_detail_linky']   = 'Detail a historie linky';
 $lang['mapa_nahled_alt']     = 'Náhled trasy linky %s';
+$lang['mapa_mimo_provoz_pozn'] = 'Trasa je přibližná – linka je mimo provoz.';
 
 // legenda kategorií linek na mapě (popisky ke kategoriím v typy_linek)
 $lang['mapa_legenda']        = 'Kategorie linek';
@@ -68,8 +72,18 @@ $lang['mapa_kat_autobusy']   = 'Autobusy';
 $lang['mapa_kat_nocni']      = 'Noční';
 $lang['mapa_kat_pracovni']   = 'Pracovní';
 $lang['mapa_kat_skolni']     = 'Školní';
-$lang['mapa_kat_nakupni']    = 'Nákupní';
+$lang['mapa_kat_nakupni']    = 'Komerční';
 $lang['mapa_kat_historicke'] = 'Historické';
+
+// singulární názvy kategorií pro nadpis linky v přehledu ("Kategorie číslo: trasa")
+$lang['mapa_katsg_tramvaje']   = 'Tramvaj';
+$lang['mapa_katsg_autobusy']   = 'Autobus';
+$lang['mapa_katsg_nocni']      = 'Noční linka';
+$lang['mapa_katsg_pracovni']   = 'Pracovní linka';
+$lang['mapa_katsg_skolni']     = 'Školní linka';
+$lang['mapa_katsg_nakupni']    = 'Komerční linka';
+$lang['mapa_katsg_historicke'] = 'Historická linka';
+$lang['mapa_katsg_mimoprovoz'] = 'Linka mimo provoz';
 
 // (volitelné) úvodní texty, když není vybraná linka
 $lang['prehled_intro']      = "Na této záložce najdete základní informace o dané lince. Pokračujte výběrem linky v horním menu.";
