@@ -8,7 +8,13 @@
   var BASE = (window.MAPA && window.MAPA.base) || "";
   var JA = (window.MAPA && window.MAPA.ja) || "";
   var T = (window.MAPA && window.MAPA.lang) || {};
+  var TILE_COLORS = (window.MAPA && window.MAPA.tileColors) || {};
   var DATA = BASE + "/mapa-assets/data/";
+
+  // barva linky podle dlaždic (z DB); fallback na barvu z GTFS
+  function rcolor(shortName, fallback) {
+    return (shortName && TILE_COLORS[shortName]) || fallback;
+  }
 
   // ── PODKLADOVÁ MAPA ──────────────────────────────────────────────
   // Pro přechod na keyed providera (MapTiler/Stadia/Carto/Mapy.cz)
@@ -119,7 +125,7 @@
       f.geometry.coordinates.forEach(function (line) {
         var latlngs = line.map(function (c) { return [c[1], c[0]]; });
         L.polyline(latlngs, {
-          color: p.color, weight: W_BASE, opacity: OP_BASE,
+          color: rcolor(p.short_name, p.color), weight: W_BASE, opacity: OP_BASE,
           lineJoin: "round", lineCap: "round"
         }).on("click", function () { focusRoute(rid); }).addTo(grp);
       });
@@ -160,7 +166,7 @@
 
       var b = document.createElement("span");
       b.className = "ms-badge";
-      b.style.background = r.color;
+      b.style.background = rcolor(r.short_name, r.color);
       b.textContent = r.short_name;
 
       var nm = document.createElement("span");
@@ -170,6 +176,8 @@
       li.appendChild(b);
       li.appendChild(nm);
       li.addEventListener("click", function () { focusRoute(r.id); });
+      li.addEventListener("mouseenter", function () { hoverRoute(r.id, true); });
+      li.addEventListener("mouseleave", function () { hoverRoute(r.id, false); });
       elRoutes.appendChild(li);
     });
   }
@@ -201,6 +209,25 @@
     });
   }
 
+  // hover v seznamu → dočasné zvýraznění trasy (bez přiblížení); přiblíží až klik
+  function hoverRoute(rid, on) {
+    var grp = routeLine[rid];
+    if (!grp) return;
+    if (on) {
+      grp.eachLayer(function (ln) {
+        ln.setStyle({ weight: W_FOCUS, opacity: OP_BASE });
+        if (ln.bringToFront) ln.bringToFront();
+      });
+    } else {
+      refreshRouteStyles();
+      if (focusedRouteId && routeLine[focusedRouteId]) {
+        routeLine[focusedRouteId].eachLayer(function (ln) {
+          if (ln.bringToFront) ln.bringToFront();
+        });
+      }
+    }
+  }
+
   // ── FOCUS: linka ─────────────────────────────────────────────────
   function focusRoute(rid) {
     var r = routeById[rid];
@@ -219,10 +246,11 @@
   }
 
   function renderRouteDetail(r) {
+    var col = rcolor(r.short_name, r.color);
     var stopsHtml = (r.stops || []).map(function (sid) {
       var s = stopById[sid];
       if (!s) return "";
-      return '<li data-stop="' + s.id + '" style="border-left-color:' + r.color + '">' +
+      return '<li data-stop="' + s.id + '" style="border-left-color:' + col + '">' +
              esc(s.name) + "</li>";
     }).join("");
 
@@ -231,7 +259,7 @@
 
     elDetail.innerHTML =
       backBtn() +
-      '<h2><span class="ms-badge" style="background:' + r.color + '">' + esc(r.short_name) + "</span> " +
+      '<h2><span class="ms-badge" style="background:' + col + '">' + esc(r.short_name) + "</span> " +
       (r.type === "tram" ? T.tram || "Tram" : T.bus || "Bus") + "</h2>" +
       '<p class="ms-sub">' + esc(r.long_name) + "</p>" +
       '<a class="ms-detaillink" href="' + esc(detailUrl) + '">' +
@@ -253,7 +281,7 @@
 
     var chips = (s.routes || []).map(function (sn) {
       var r = routeByShort[sn];
-      var color = r ? r.color : "#666";
+      var color = r ? rcolor(r.short_name, r.color) : "#666";
       var rid = r ? r.id : "";
       return '<span class="ms-badge" style="background:' + color + '" data-route="' + rid + '">' + esc(sn) + "</span>";
     }).join("");

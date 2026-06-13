@@ -59,8 +59,9 @@
 }
 .ms-chip.is-on { background: #0078c8; border-color: #0078c8; color: #fff; }
 
-/* seznam linek */
-.ms-routes { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; }
+/* seznam linek – #ms-browse musí být flex sloupec s min-height:0, aby ul mohl scrollovat */
+#ms-browse { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.ms-routes { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 .ms-routes li {
   display: flex;
   align-items: center;
@@ -88,7 +89,7 @@
 .ms-line-name { color: #4a565f; font-size: 12.5px; line-height: 1.25; }
 
 /* detail (zastávka / linka) */
-#ms-detail { padding: 12px; overflow-y: auto; flex: 1 1 auto; }
+#ms-detail { padding: 12px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 #ms-detail .ms-back {
   display: inline-flex; align-items: center; gap: 6px;
   background: none; border: none; color: #0078c8; cursor: pointer;
@@ -141,8 +142,8 @@
 .leaflet-popup-content .ms-badge { margin: 1px 3px 1px 0; cursor: pointer; }
 .leaflet-popup-content b { display: block; margin-bottom: 4px; }
 
-/* menu „current“ stav (doplněk) */
-#menu nav ul li a.current { text-decoration: underline; }
+/* hlavička nad mapou – aby se jazykový dropdown nezobrazoval pod Leaflet mapou */
+.mapa-body .roztahovak-modry { position: relative; z-index: 1000; }
 
 /* ── responsivita ────────────────────────────────────────────────── */
 @media (max-width: 760px) {

@@ -102,7 +102,7 @@ $esc = static function ($s) {
 ?>
 <div class="roztahovak-modry">
   <div class="hlavicka container">
-    <div id="nadpis"><h1><?= $esc($lang['hlavninadpis']) ?> <span class="nadpis-sep">|</span> <a class="nadpis-mapa" href="<?= htmlspecialchars(($__appBase === '' ? '' : $__appBase) . '/mapa' . keep_params(['ja' => $l]), ENT_QUOTES, 'UTF-8') ?>"><?= $esc($lang['mapa_sit'] ?? 'MAPA SÍTĚ') ?></a></h1></div>
+    <div id="nadpis"><h1><?= $esc($lang['hlavninadpis']) ?></h1></div>
 
     <div id="menu">
       <nav>

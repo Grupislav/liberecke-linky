@@ -49,6 +49,19 @@ $jsLang = [
     'unknown'     => $lang['mapa_neznamo']        ?? 'neznámo',
     'detailLink'  => $lang['mapa_detail_linky']   ?? 'Detail a historie linky',
 ];
+
+// Barvy linek z DB (shodné s dlaždicemi na hlavním webu); stejný dotaz jako
+// u dlaždic, jen sdílený přes fce.php. Při nedostupné DB zůstane [] a mapa
+// spadne zpět na barvy generované z GTFS.
+$tileColors = [];
+if (isset($dbServer, $dbUzivatel, $dbHeslo, $dbDb)) {
+    $conn = @mysqli_connect($dbServer, $dbUzivatel, $dbHeslo, $dbDb);
+    if ($conn) {
+        mysqli_set_charset($conn, 'utf8');
+        $tileColors = fetch_line_tile_colors($conn);
+        mysqli_close($conn);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= $esc($l) ?>">
@@ -91,7 +104,7 @@ $jsLang = [
 <?php // ── HLAVIČKA + MENU (Linky / Mapa / jazyk) ───────────────────────── ?>
 <div class="roztahovak-modry">
   <div class="hlavicka container">
-    <div id="nadpis"><h1><?= $esc($lang['hlavninadpis']) ?> <span class="nadpis-sep">|</span> <a class="nadpis-mapa current" href="<?= $esc($asset('mapa') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['mapa_sit'] ?? 'MAPA SÍTĚ') ?></a></h1></div>
+    <div id="nadpis"><h1><?= $esc($lang['hlavninadpis']) ?></h1></div>
     <div id="menu">
       <nav>
         <ul>
@@ -157,6 +170,7 @@ $jsLang = [
   window.MAPA = {
     base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>,
     ja:   <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>,
+    tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     lang: <?= json_encode($jsLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>
   };
 </script>

@@ -22,10 +22,9 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 .paticka p a:hover { text-decoration: none; }
 .hlavninadpis {width: 100%; float:left;}
 
-/* odkaz na mapu sítě v nadpisu (ruší se dědičnost #nadpis h1 span) */
-#nadpis h1 span.nadpis-sep { font-size: 16px; font-weight: normal; font-style: normal; color: #6f8aa0; margin: 0 6px; }
-.nadpis-mapa { color: #fff; text-decoration: none; }
-.nadpis-mapa:hover { text-decoration: underline; }
+/* aktivní režim v horním menu (Linky / Mapa) – jasné přepínání */
+#menu nav ul li a.current,
+#menu nav ul li:hover a.current { background: #00a186; color: #fff; }
 
 /* náhled trasy linky v záložce Přehled (proklik na /mapa) */
 .line-map-preview {
