@@ -72,8 +72,10 @@ $lang['mapa_hist_nadpis']      = 'Historical line %s';
 $lang['mapa_zanikla']          = 'former stop';
 $lang['mapa_smer']             = 'To %s';
 $lang['mapa_vozidla']          = 'Vehicles';
-$lang['mapa_odjezdy']          = 'Departures (next hour)';
-$lang['mapa_odjezdy_zadne']    = 'No departures in the next hour.';
+$lang['mapa_barevne_linky']    = 'Coloured lines';
+$lang['mapa_odjezdy']          = 'Departures';
+$lang['mapa_odjezdy_zadne']    = 'Nothing departs here right now.';
+$lang['mapa_jr_spoje']         = 'Trip schedule';
 
 // line-category legend on the map (labels for typy_linek categories)
 $lang['mapa_legenda']        = 'Line categories';

@@ -72,8 +72,10 @@ $lang['mapa_hist_nadpis']      = 'Historická linka %s';
 $lang['mapa_zanikla']          = 'zaniklá zastávka';
 $lang['mapa_smer']             = 'Směr %s';
 $lang['mapa_vozidla']          = 'Vozidla';
-$lang['mapa_odjezdy']          = 'Odjezdy (následující hodina)';
-$lang['mapa_odjezdy_zadne']    = 'V následující hodině tu nic nejede.';
+$lang['mapa_barevne_linky']    = 'Barevné linky';
+$lang['mapa_odjezdy']          = 'Odjezdy';
+$lang['mapa_odjezdy_zadne']    = 'Odsud teď nic nejede.';
+$lang['mapa_jr_spoje']         = 'Jízdní řád spoje';
 
 // legenda kategorií linek na mapě (popisky ke kategoriím v typy_linek)
 $lang['mapa_legenda']        = 'Kategorie linek';

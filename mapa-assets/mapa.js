@@ -40,7 +40,7 @@
   // styly čar
   var W_DIM = 1.8, W_BASE = 3, W_FOCUS = 6;
   var OP_DIM = 0.5, OP_BASE = 0.85;
-  var DIM_COLOR = "#c4ccd3";   // ostatní linky při zvýraznění/filtru – světle šedá
+  var DIM_COLOR = "#9aa7b0";   // výchozí trasování / ostatní linky – šedá (tmavší, ať obsluhované oblasti vyniknou)
 
   // ── stav ─────────────────────────────────────────────────────────
   var map, baseLayer, routeLayer, stopLayer;
@@ -63,7 +63,13 @@
   var stopIndexById = {};        // id stanice -> index ve `stops` (= index v timetable)
   var vehLayer = null;           // vrstva vozidel
   var vehOn = true;              // přepínač zobrazení vozidel
+  var colorLines = false;        // přepínač: obarvit provozní linky (jinak šedá síť)
   var vehTimer = null;
+  var hoverTrip = null;          // spoj pod kurzorem (dočasné zvýraznění trasy)
+  var focusedTrip = null;        // rozkliknutý spoj (jízdní řád v sidebaru)
+  var focusedTripRouteId = null; // linka rozkliknutého spoje (její běžná čára se skryje)
+  var tripOverlay = null;        // vrstva: projetá (čárkovaně) + zbývající část trasy
+  var routeGeom = {};            // route id -> [[ [lat,lng], … ], …] (pro rozdělení trasy)
 
   var elMap = document.getElementById("mapa");
   var elRoutes = document.getElementById("ms-routes");
@@ -141,7 +147,7 @@
       buildDepIndex();
       vehLayer = L.layerGroup();
       if (vehOn) vehLayer.addTo(map);
-      addVehicleToggle();
+      addMapToggles();
       refreshVehicles();
       vehTimer = window.setInterval(tick, 20000);   // pravidelná aktualizace
       // pokud je už otevřený detail zastávky (např. deep-link), doplň odjezdy
@@ -158,6 +164,10 @@
     if (wrap && focusedStopId != null) {
       var s = stopById[focusedStopId];
       if (s && !s.historical) wrap.innerHTML = departuresHtml(s);
+    }
+    if (focusedTrip) {                          // posuň polohu/trasu i jízdní řád spoje
+      var st = tripState(focusedTrip);
+      if (st) { showTripView(focusedTrip); renderTripDetail(focusedTrip, st); }
     }
   }
 
@@ -181,6 +191,12 @@
     dt.setDate(dt.getDate() - 1);
     var p = function (n) { return (n < 10 ? "0" : "") + n; };
     return { ymd: "" + dt.getFullYear() + p(dt.getMonth() + 1) + p(dt.getDate()), wd: (wd + 6) % 7 };
+  }
+  function nextDay(ymd, wd) {
+    var dt = new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8));
+    dt.setDate(dt.getDate() + 1);
+    var p = function (n) { return (n < 10 ? "0" : "") + n; };
+    return { ymd: "" + dt.getFullYear() + p(dt.getMonth() + 1) + p(dt.getDate()), wd: (wd + 1) % 7 };
   }
 
   // service_id aktivní v daný den (bitmaska po–ne + rozsah platnosti)
@@ -235,80 +251,107 @@
     });
   }
 
-  // umísti vozidlo do zastávky, kde podle JŘ právě je (bez mezilehlé polohy)
+  function inWindow(tr, t) {
+    var u = tr.u;
+    return t >= u[0][1] - 120 && t <= u[u.length - 1][1] + 120;   // −2 min před / +2 min po
+  }
+
+  // index zastávky, kde vozidlo podle JŘ právě je (bez mezilehlé polohy)
+  function positionAt(tr, t) {
+    var u = tr.u, n = u.length, first = u[0][1], last = u[n - 1][1], i, terminus = false, nextIdx = -1;
+    if (t <= first) { i = 0; nextIdx = u[1][0]; }              // výchozí (před odjezdem)
+    else if (t >= last) { i = n - 1; terminus = true; }        // konečná (po příjezdu) – bez šipky
+    else { i = 0; while (i < n - 1 && u[i + 1][1] <= t) i++; if (i < n - 1) nextIdx = u[i + 1][0]; else terminus = true; }
+    return { i: i, terminus: terminus, nextIdx: nextIdx };
+  }
+
+  // stav spoje teď (který referenční čas platí + poloha); null = nejede
+  function tripState(tr) {
+    var now = pragueNow();
+    var today = activeServices(now.ymd, now.wd);
+    var pv = prevDay(now.ymd, now.wd), yest = activeServices(pv.ymd, pv.wd);
+    var t = null;
+    if (today[tr.s] && inWindow(tr, now.sec)) t = now.sec;
+    else if (yest[tr.s] && inWindow(tr, now.sec + 86400)) t = now.sec + 86400;  // po půlnoci
+    if (t == null) return null;
+    var p = positionAt(tr, t); p.t = t; return p;
+  }
+
+  // umísti vozidlo do zastávky, kde podle JŘ právě je
   function placeVehicle(tr, t) {
-    var u = tr.u, n = u.length, first = u[0][1], last = u[n - 1][1];
-    if (t < first - 120 || t > last + 120) return;        // mimo „živé" okno
-    var i, terminus = false, nextIdx = -1;
-    if (t <= first) {                 // ≤2 min před odjezdem z výchozí
-      i = 0; nextIdx = u[1][0];
-    } else if (t >= last) {           // ≤2 min po příjezdu do konečné – bez šipky
-      i = n - 1; terminus = true;
-    } else {
-      i = 0;
-      while (i < n - 1 && u[i + 1][1] <= t) i++;           // poslední opuštěná zastávka
-      if (i < n - 1) nextIdx = u[i + 1][0]; else terminus = true;
-    }
-    var s = stops[u[i][0]];
+    if (!inWindow(tr, t)) return;
+    var u = tr.u, p = positionAt(tr, t), s = stops[u[p.i][0]];
     if (!s) return;
     var bearing = null;
-    if (!terminus && nextIdx >= 0) {
-      var ns = stops[nextIdx];
+    if (!p.terminus && p.nextIdx >= 0) {
+      var ns = stops[p.nextIdx];
       if (ns) bearing = bearingDeg([s.lat, s.lon], [ns.lat, ns.lon]);
     }
     var color = tr.m === "tram" ? "#cc2900" : "#007db3";
     var icon = L.divIcon({
       className: "ms-veh", html: vehicleSvg(color, bearing),
-      iconSize: [24, 24], iconAnchor: [12, 12]
+      iconSize: [26, 26], iconAnchor: [13, 13]
     });
     var m = L.marker([s.lat, s.lon], { icon: icon, keyboard: false, riseOnHover: true });
-    m.bindTooltip(tr.r + " → " + tr.h, { direction: "top" });
-    var rr = routeByShort[tr.r];
-    if (rr) m.on("click", function () { focusRoute(rr.id); });
+    m.bindTooltip("<b>" + esc(tr.r) + "</b> &rarr; " + esc(tr.h) +
+                  "<br><span class='ms-veh-stop'>" + esc(s.name) + "</span>", { direction: "top" });
+    m.on("mouseover", function () { hoverTrip = tr; showTripView(tr); });
+    m.on("mouseout", function () { hoverTrip = null; if (focusedTrip) showTripView(focusedTrip); else hideTripView(); });
+    m.on("click", function () { focusTrip(tr); });
     m.addTo(vehLayer);
   }
 
   function vehicleSvg(color, bearing) {
     var rot = (bearing == null) ? "" : ' style="transform:rotate(' + bearing.toFixed(0) + 'deg)"';
-    var arrow = (bearing == null) ? "" : '<path d="M12 0 L16.5 8 L7.5 8 Z" fill="' + color + '"/>';
-    return '<div class="ms-veh-i"' + rot + '><svg viewBox="0 0 24 24" width="24" height="24">' +
-           arrow + '<circle cx="12" cy="12" r="6" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
+    var arrow = (bearing == null) ? ""    // konečná → bez šipky; jinak šipka k další zastávce (bílý obrys)
+      : '<path d="M13 1.5 L18 10 L8 10 Z" fill="' + color + '" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>';
+    return '<div class="ms-veh-i"' + rot + '><svg viewBox="0 0 26 26" width="26" height="26">' +
+           arrow + '<circle cx="13" cy="13" r="6.5" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
            "</svg></div>";
   }
 
-  function addVehicleToggle() {
+  function addMapToggles() {
     var Ctl = L.Control.extend({
       options: { position: "topright" },
       onAdd: function () {
-        var div = L.DomUtil.create("div", "leaflet-bar ms-veh-toggle");
-        div.innerHTML = '<label><input type="checkbox"' + (vehOn ? " checked" : "") + "> " +
-                        esc(T.vehicles || "Vozidla") + "</label>";
+        var div = L.DomUtil.create("div", "leaflet-bar ms-toggles");
+        div.innerHTML =
+          '<label><input type="checkbox" data-t="veh"' + (vehOn ? " checked" : "") + "> " +
+          esc(T.vehicles || "Vozidla") + "</label>" +
+          '<label><input type="checkbox" data-t="col"' + (colorLines ? " checked" : "") + "> " +
+          esc(T.colorLines || "Barevné linky") + "</label>";
         L.DomEvent.disableClickPropagation(div);
-        var cb = div.querySelector("input");
-        cb.addEventListener("change", function () {
-          vehOn = cb.checked;
+        var veh = div.querySelector('[data-t="veh"]');
+        veh.addEventListener("change", function () {
+          vehOn = veh.checked;
           if (vehOn) { if (!map.hasLayer(vehLayer)) vehLayer.addTo(map); refreshVehicles(); }
           else { vehLayer.clearLayers(); if (map.hasLayer(vehLayer)) map.removeLayer(vehLayer); }
         });
+        var col = div.querySelector('[data-t="col"]');
+        col.addEventListener("change", function () { colorLines = col.checked; refreshRouteStyles(); });
         return div;
       }
     });
     map.addControl(new Ctl());
   }
 
-  // ── odjezdy ze zastávky v následující hodině ─────────────────────
-  function departuresFor(idx) {
+  // ── odjezdy ze zastávky (okno 24 h; přes půlnoc do zítřejší služby) ──
+  function departuresFor(idx, now) {
     if (!TT || !depByStop || depByStop[idx] == null) return [];
-    var now = pragueNow();
-    var today = activeServices(now.ymd, now.wd);
-    var pv = prevDay(now.ymd, now.wd);
-    var yest = activeServices(pv.ymd, pv.wd);
-    var H = 3600, res = [];
-    depByStop[idx].forEach(function (d) {
-      var tr = TT.trips[d.ti];
-      if (today[tr.s] && d.sec >= now.sec && d.sec <= now.sec + H) res.push({ sec: d.sec, tr: tr });
-      var ys = d.sec - 86400;   // spoj z včerejší služby pokračující po půlnoci
-      if (yest[tr.s] && ys >= now.sec && ys <= now.sec + H) res.push({ sec: ys, tr: tr });
+    var pv = prevDay(now.ymd, now.wd), nx = nextDay(now.ymd, now.wd);
+    var sets = {                                   // služby předešlého / dnešního / zítřejšího dne
+      "-1": activeServices(pv.ymd, pv.wd),
+      "0": activeServices(now.ymd, now.wd),
+      "1": activeServices(nx.ymd, nx.wd)
+    };
+    var res = [];
+    depByStop[idx].forEach(function (e) {
+      var tr = TT.trips[e.ti];
+      for (var o = -1; o <= 1; o++) {
+        if (!sets[o][tr.s]) continue;
+        var abs = e.sec + o * 86400;               // absolutní čas vůči dnešní půlnoci
+        if (abs >= now.sec && abs <= now.sec + 86400) { res.push({ sec: abs, tr: tr }); break; }
+      }
     });
     res.sort(function (a, b) { return a.sec - b.sec; });
     return res;
@@ -324,17 +367,143 @@
     if (!TT || !s) return "";
     var idx = stopIndexById[s.id];
     if (idx == null) return "";
-    var list = departuresFor(idx);
-    var head = "<h3>" + (T.departures || "Odjezdy (následující hodina)") + "</h3>";
-    if (!list.length)
-      return head + '<p class="ms-dep-empty">' + (T.noDepartures || "V následující hodině tu nic nejede.") + "</p>";
-    var rows = list.map(function (d) {
+    var now = pragueNow();
+    var all = departuresFor(idx, now);             // až 24 h dopředu, seřazené
+    var head = "<h3>" + (T.departures || "Odjezdy") + "</h3>";
+    if (!all.length)
+      return head + '<p class="ms-dep-empty">' + (T.noDepartures || "Odsud teď nic nejede.") + "</p>";
+    // počet do hodiny určí, kolik ukázat: min 5 (z 24 h), max 10; přes 10/h → až 20
+    var hourCount = 0;
+    while (hourCount < all.length && all[hourCount].sec <= now.sec + 3600) hourCount++;
+    var n = hourCount > 10 ? Math.min(hourCount, 20) : Math.max(hourCount, 5);
+    n = Math.min(n, all.length);
+    var rows = all.slice(0, n).map(function (d) {
       var color = d.tr.m === "tram" ? "#cc2900" : "#007db3";
       return '<li class="ms-dep"><span class="ms-dep-time">' + fmtTime(d.sec) + "</span>" +
              '<span class="ms-badge" style="background:' + color + '">' + esc(d.tr.r) + "</span>" +
              '<span class="ms-dep-head">' + esc(d.tr.h) + "</span></li>";
     }).join("");
     return head + '<ul class="ms-deplist">' + rows + "</ul>";
+  }
+
+  // ── detail spoje: jízdní řád + projetá/zbývající část trasy na mapě ──
+  // projekce bodu [lat,lng] na lomenou čáru → {seg, t, d2}
+  function projPoint(line, pt) {
+    var k = Math.cos(pt[0] * Math.PI / 180), px = pt[1] * k, py = pt[0];
+    var best = { seg: 0, t: 0, d2: Infinity };
+    for (var i = 0; i < line.length - 1; i++) {
+      var ax = line[i][1] * k, ay = line[i][0], bx = line[i + 1][1] * k, by = line[i + 1][0];
+      var dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+      var t = L ? ((px - ax) * dx + (py - ay) * dy) / L : 0;
+      t = t < 0 ? 0 : (t > 1 ? 1 : t);
+      var cx = ax + t * dx, cy = ay + t * dy, d2 = (px - cx) * (px - cx) + (py - cy) * (py - cy);
+      if (d2 < best.d2) best = { seg: i, t: t, d2: d2 };
+    }
+    return best;
+  }
+  function ptAt(line, p) {
+    return [line[p.seg][0] + (line[p.seg + 1][0] - line[p.seg][0]) * p.t,
+            line[p.seg][1] + (line[p.seg + 1][1] - line[p.seg][1]) * p.t];
+  }
+  function sliceBetween(line, a, b) {
+    if (a.seg > b.seg || (a.seg === b.seg && a.t > b.t)) { var tmp = a; a = b; b = tmp; }
+    var out = [ptAt(line, a)];
+    for (var i = a.seg + 1; i <= b.seg; i++) out.push(line[i]);
+    out.push(ptAt(line, b));
+    return out;
+  }
+  // vyber tu z polylinií trasy, která nejlíp sedí na zadané body
+  function pickLine(lines, pts) {
+    var best = null, bestD = Infinity;
+    (lines || []).forEach(function (ln) {
+      if (ln.length < 2) return;
+      var d = 0;
+      pts.forEach(function (p) { d += projPoint(ln, p).d2; });
+      if (d < bestD) { bestD = d; best = ln; }
+    });
+    return best;
+  }
+
+  function tripStopIds(tr) {
+    return tr.u.map(function (x) { var s = stops[x[0]]; return s ? s.id : null; }).filter(Boolean);
+  }
+
+  // nakresli trasu spoje: projetou část čárkovaně, zbývající plně
+  function drawTripOverlay(tr, st, rr) {
+    var u = tr.u, color = routeColor(rr);
+    var F = stops[u[0][0]], C = stops[u[st.i][0]], Z = stops[u[u.length - 1][0]];
+    if (!F || !C || !Z) return;
+    var fc = [F.lat, F.lon], cc = [C.lat, C.lon], zc = [Z.lat, Z.lon];
+    var line = pickLine(routeGeom[rr.id], [fc, cc, zc]), traveled, remaining;
+    if (line) {                       // rozřízni reálnou geometrii v aktuální poloze
+      traveled = sliceBetween(line, projPoint(line, fc), projPoint(line, cc));
+      remaining = sliceBetween(line, projPoint(line, cc), projPoint(line, zc));
+    } else {                          // bez geometrie → spojnice zastávek
+      traveled = []; remaining = [];
+      for (var a = 0; a <= st.i; a++) { var s1 = stops[u[a][0]]; if (s1) traveled.push([s1.lat, s1.lon]); }
+      for (var b = st.i; b < u.length; b++) { var s2 = stops[u[b][0]]; if (s2) remaining.push([s2.lat, s2.lon]); }
+    }
+    if (remaining.length >= 2)
+      L.polyline(remaining, { color: color, weight: W_FOCUS, opacity: 1, lineCap: "round", lineJoin: "round" }).addTo(tripOverlay);
+    if (traveled.length >= 2)
+      L.polyline(traveled, { color: color, weight: W_FOCUS, opacity: 1, dashArray: "3 9", lineCap: "round", lineJoin: "round" }).addTo(tripOverlay);
+  }
+
+  // zvýraznění spoje (hover i klik): trasa + zastávky; vrací stav nebo null
+  function showTripView(tr) {
+    var rr = routeByShort[tr.r]; if (!rr) return null;
+    var st = tripState(tr); if (!st) return null;
+    focusedTripRouteId = rr.id;
+    if (!tripOverlay) tripOverlay = L.layerGroup().addTo(map);
+    tripOverlay.clearLayers();
+    drawTripOverlay(tr, st, rr);
+    highlightStops(tripStopIds(tr));
+    refreshRouteStyles();
+    return st;
+  }
+  // zruš dočasné zvýraznění (po odjetí kurzoru), zachovej případně vybranou zastávku
+  function hideTripView() {
+    focusedTripRouteId = null;
+    if (tripOverlay) tripOverlay.clearLayers();
+    highlightStops(focusedStopId != null ? [focusedStopId] : []);
+    refreshRouteStyles();
+  }
+  // úplné zrušení spoje (přechod na linku/zastávku/reset)
+  function clearTrip() {
+    focusedTrip = null; hoverTrip = null; focusedTripRouteId = null;
+    if (tripOverlay) tripOverlay.clearLayers();
+  }
+
+  function focusTrip(tr) {
+    var rr = routeByShort[tr.r];
+    var st = showTripView(tr);
+    if (!st) { if (rr) focusRoute(rr.id); return; }   // spoj už nejede → aspoň linka
+    focusedTrip = tr; focusedStopId = null; setStopPin(null);
+    renderTripDetail(tr, st);
+    var grp = rr ? routeLine[rr.id] : null;
+    if (grp) {
+      var b = L.latLngBounds([]);
+      grp.eachLayer(function (ln) { b.extend(ln.getBounds()); });
+      if (b.isValid()) map.fitBounds(b, { padding: [40, 40] });
+    }
+  }
+
+  function renderTripDetail(tr, st) {
+    var rr = routeByShort[tr.r];
+    var col = rr ? routeColor(rr) : (tr.m === "tram" ? "#cc2900" : "#007db3");
+    var rows = tr.u.map(function (x, k) {
+      var s = stops[x[0]]; if (!s) return "";
+      var cls = k < st.i ? "ms-tp-past" : (k === st.i ? "ms-tp-now" : "");
+      return '<li class="ms-tp ' + cls + '" data-stop="' + s.id + '" style="border-left-color:' + col + '">' +
+             '<span class="ms-tp-time">' + fmtTime(x[1]) + "</span>" +
+             '<span class="ms-tp-name">' + esc(s.name) + "</span></li>";
+    }).join("");
+    elDetail.innerHTML = backBtn() +
+      '<h2><span class="ms-badge" style="background:' + col + '">' + esc(tr.r) + "</span> &rarr; " + esc(tr.h) + "</h2>" +
+      '<p class="ms-sub">' + (T.tripSchedule || "Jízdní řád spoje") + "</p>" +
+      '<ul class="ms-tplist">' + rows + "</ul>";
+    bindDetail();
+    showDetail(true);
   }
 
   // ?linka=2 / #linka=2 → rovnou zafokusuj danou linku (deep-link z hlavního webu)
@@ -468,8 +637,10 @@
     (geojson.features || []).forEach(function (f) {
       var p = f.properties, rid = p.id;
       var grp = L.layerGroup();
+      routeGeom[rid] = [];
       f.geometry.coordinates.forEach(function (line) {
         var latlngs = line.map(function (c) { return [c[1], c[0]]; });
+        routeGeom[rid].push(latlngs);     // pro rozdělení trasy na projetou/zbývající
         L.polyline(latlngs, {
           color: rcolor(p.short_name, p.color), weight: W_BASE, opacity: OP_BASE,
           lineJoin: "round", lineCap: "round"
@@ -614,20 +785,27 @@
         if (!show) return;
       }
 
-      var visibleByType = r.legacy
-        ? (filter === legacyGroup(r))
-        : (filter !== "legacy" && filter !== "historicke" && (filter === "all" || r.type === filter));
-
+      // barevnost trasy:
+      //  • zvýrazněná (hover v seznamu/na vozidle, focus) = barevně, má přednost
+      //  • něco jiného zvýrazněné → ostatní šedě
+      //  • jinak se provozní linky obarví jen při zapnutém přepínači „Barevné
+      //    linky" (a respektuje typový filtr); legacy se barví ve svém filtru.
+      //    Výchozí stav = šedá síť, ať vyniknou vozidla.
+      var someFocus = !!(focusedRouteId || hoveredRouteId || focusedTripRouteId);
       var dim;
       if (emph) dim = false;
-      else if (focusedRouteId || hoveredRouteId) dim = true;   // aktivní nebo pod myší → ostatní zešednou
-      else dim = !visibleByType;
+      else if (someFocus) dim = true;
+      else if (r.legacy) dim = filter !== legacyGroup(r);
+      else dim = !(colorLines && (filter === "all" || filter === r.type));
 
       var style = {
         color: dim ? DIM_COLOR : routeColor(r),
         weight: emph ? W_FOCUS : (dim ? W_DIM : W_BASE),
         opacity: emph ? 1 : (dim ? OP_DIM : OP_BASE)
       };
+      // rozkliknutý spoj: běžnou čáru linky skryjeme – kreslí ji overlay
+      // (projetá část čárkovaně, zbývající plně)
+      if (!r.legacy && focusedTripRouteId === r.id) style = { opacity: 0, weight: 0 };
       var front = emph || (r.legacy && filter === "legacy");
       grp.eachLayer(function (ln) {
         ln.setStyle(style);
@@ -646,6 +824,7 @@
   function focusRoute(rid) {
     var r = routeById[rid];
     if (!r) return;
+    clearTrip();
     focusedRouteId = rid;
     focusedStopId = null;
     setStopPin(null);
@@ -736,6 +915,7 @@
   function focusStop(sid) {
     var s = stopById[sid];
     if (!s) return;
+    clearTrip();
     focusedRouteId = null;
     focusedStopId = sid;
     refreshRouteStyles();
@@ -819,6 +999,7 @@
   }
 
   function resetView() {
+    clearTrip();
     focusedRouteId = null;
     focusedStopId = null;
     showDetail(false);
