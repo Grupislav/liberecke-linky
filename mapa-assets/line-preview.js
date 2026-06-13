@@ -106,7 +106,7 @@
     var routeByShort = {};
     (routes || []).forEach(function (r) { routeByShort[r.short_name] = r; });
 
-    // vykreslí seznam názvů; názvy s protějškem v GTFS jsou odkazem na mapu
+    // přehled: jen přímé párování na GTFS (historii zastávek tu neřešíme)
     function renderList(items) {
       return "<ul class='ls-list'>" + items.map(function (raw) {
         var clean = cleanStopName(raw);

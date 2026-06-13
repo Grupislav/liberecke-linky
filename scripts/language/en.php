@@ -5,7 +5,7 @@
 $lang['titulekstranky'] = "Liberec routes project – overview, history, local geography";
 $lang['popisstranky']   = "Liberec routes project – overview, history, local geography";
 $lang['hlavninadpis']   = "Liberec Routes";
-$lang['paticka']        = "Contributors: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historical records)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videos, proofreading)</a>, Tomáš Krupička Sr. (local facts) and others.<br><a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>Project idea</a> · <a style='color:white' target='_blank' rel='noopener' href='https://github.com/Grupislav/Liberecke-linky'>Source code (GitHub)</a>.";
+$lang['paticka']        = "Contributors: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historical records)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videos, proofreading)</a>, Tomáš Krupička Sr. (local facts) and others.<br><a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>Project idea</a> · <a style='color:white' target='_blank' rel='noopener' href='https://github.com/Grupislav/Liberecke-linky'>Source code (GitHub)</a> · <a style='color:white' target='_blank' href='https://tomaskrupicka.cz/'>Blog</a>.";
 
 // tabs
 $lang['prehled']       = "Overview";
@@ -48,6 +48,7 @@ $lang['mapa_tram']           = 'Trams';
 $lang['mapa_bus']            = 'Buses';
 $lang['mapa_vse']            = 'All';
 $lang['mapa_filtr_mimo']     = 'Out of service';
+$lang['mapa_filtr_historicke'] = 'Historical';
 $lang['mapa_nic']            = 'None';
 $lang['mapa_zastavka']       = 'Stop';
 $lang['mapa_zona']           = 'Zone';
@@ -67,6 +68,8 @@ $lang['mapa_detail_linky']   = 'Route detail & history';
 $lang['mapa_nahled_alt']     = 'Route %s preview';
 $lang['mapa_mimo_provoz_pozn'] = 'Route is approximate.';
 $lang['mapa_mimo_nadpis']      = 'Line %s (permanently out of service)';
+$lang['mapa_hist_nadpis']      = 'Historical line %s';
+$lang['mapa_zanikla']          = 'former stop';
 
 // line-category legend on the map (labels for typy_linek categories)
 $lang['mapa_legenda']        = 'Line categories';

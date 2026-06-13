@@ -139,6 +139,11 @@
 .ms-stoplist li:hover { color: #0078c8; }
 .ms-stoplist li.ms-stop-noclick { cursor: default; }
 .ms-stoplist li.ms-stop-noclick:hover { color: #2b343c; }
+
+/* zaniklé / přejmenované zastávky (historie) – kurzívou, jako linky mimo provoz */
+.ms-stoplist li.ms-stop-hist { font-style: italic; }
+.ms-routes li.ms-stop-hist .ms-line-name { font-style: italic; color: #7a858e; }
+.ms-sub.ms-stop-hist { font-style: italic; color: #7a858e; }
 .ms-stoplist li::before {
   content: ""; position: absolute; left: -7px; top: 11px;
   width: 9px; height: 9px; border-radius: 50%;

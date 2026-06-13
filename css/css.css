@@ -57,6 +57,7 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 }
 .line-stops .ls-stop { color: #34495e; text-decoration: none; }
 .line-stops .ls-stop:hover { color: #00a186; text-decoration: underline; }
+.line-stops .ls-stop-hist { font-style: italic; color: #7a858e; }
 
 /* Style buttons */
 .btn {

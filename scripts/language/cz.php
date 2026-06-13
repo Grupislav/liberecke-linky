@@ -5,7 +5,7 @@
 $lang['titulekstranky'] = "Projekt Liberecké linky - přehled, historie, místopis linek MHD";
 $lang['popisstranky']   = "Projekt Liberecké linky - přehled, historie, místopis linek MHD";
 $lang['hlavninadpis']   = "Liberecké linky";
-$lang['paticka']        = "Spolupracovali: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historické záznamy)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videozáznamy, korektury)</a>, Tomáš Krupička st. (doplnění a korektura místopisných údajů) a další.<br><a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>Smysl projektu</a> · <a style='color:white' target='_blank' rel='noopener' href='https://github.com/Grupislav/Liberecke-linky'>Zdrojový kód (GitHub)</a>.";
+$lang['paticka']        = "Spolupracovali: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historické záznamy)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videozáznamy, korektury)</a>, Tomáš Krupička st. (doplnění a korektura místopisných údajů) a další.<br><a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>Smysl projektu</a> · <a style='color:white' target='_blank' rel='noopener' href='https://github.com/Grupislav/Liberecke-linky'>Zdrojový kód (GitHub)</a> · <a style='color:white' target='_blank' href='https://tomaskrupicka.cz/'>Blog</a>.";
 
 // tabs
 $lang['prehled']       = "Přehled";
@@ -48,6 +48,7 @@ $lang['mapa_tram']           = 'Tramvaje';
 $lang['mapa_bus']            = 'Autobusy';
 $lang['mapa_vse']            = 'Vše';
 $lang['mapa_filtr_mimo']     = 'Mimo provoz';
+$lang['mapa_filtr_historicke'] = 'Historické';
 $lang['mapa_nic']            = 'Nic';
 $lang['mapa_zastavka']       = 'Zastávka';
 $lang['mapa_zona']           = 'Zóna';
@@ -67,6 +68,8 @@ $lang['mapa_detail_linky']   = 'Detail a historie linky';
 $lang['mapa_nahled_alt']     = 'Náhled trasy linky %s';
 $lang['mapa_mimo_provoz_pozn'] = 'Trasa je přibližná.';
 $lang['mapa_mimo_nadpis']      = 'Linka %s (trvale mimo provoz)';
+$lang['mapa_hist_nadpis']      = 'Historická linka %s';
+$lang['mapa_zanikla']          = 'zaniklá zastávka';
 
 // legenda kategorií linek na mapě (popisky ke kategoriím v typy_linek)
 $lang['mapa_legenda']        = 'Kategorie linek';

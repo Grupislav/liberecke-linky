@@ -46,6 +46,7 @@
   var map, baseLayer, routeLayer, stopLayer;
   var routes = [], stops = [];
   var routeById = {}, routeByShort = {}, stopById = {}, stopByName = {};
+  var STOP_RENAMED = {}, STOP_ALIASES = {}, vanishedStops = [];  // historie zastávek
   var routeLine = {};            // route id -> L.LayerGroup (polylines)
   var stopMarker = {};           // stop id  -> L.CircleMarker
   var focusedRouteId = null;
@@ -79,10 +80,11 @@
     getJSON("shapes.json"),
     getJSON("meta.json").catch(function () { return null; }),
     getJSON("legacy-routes.json").catch(function () { return []; }),
-    getJSON("legacy-shapes.json").catch(function () { return {}; })
+    getJSON("legacy-shapes.json").catch(function () { return {}; }),
+    getJSON("stops-history.json").catch(function () { return {}; })
   ]).then(function (res) {
     routes = res[0]; stops = res[1];
-    init(res[2], res[3], res[4], res[5]);
+    init(res[2], res[3], res[4], res[5], res[6]);
   }).catch(function (e) {
     showMsg(T.noData || "Data nejsou k dispozici.");
     if (window.console) console.error(e);
@@ -96,9 +98,10 @@
   }
 
   // ── inicializace ─────────────────────────────────────────────────
-  function init(shapes, meta, legacy, legacyShapes) {
+  function init(shapes, meta, legacy, legacyShapes, history) {
     routes.forEach(function (r) { routeById[r.id] = r; routeByShort[r.short_name] = r; });
     stops.forEach(function (s) { stopById[s.id] = s; stopByName[norm(s.name)] = s; });
+    processHistory(history);
 
     map = L.map(elMap, { preferCanvas: true, zoomControl: true })
             .setView(LIBEREC, 12);
@@ -150,6 +153,35 @@
     return String(s == null ? "" : s).replace(/\s*\([^)]*\)\s*$/, "").replace(/\s*[↑↓→←⇑⇓]\s*$/, "").trim();
   }
 
+  // historie zastávek: přejmenování, varianty zápisu, zaniklé (se souřadnicemi)
+  function processHistory(h) {
+    h = h || {};
+    var rn = h.renamed || {}, al = h.aliases || {};
+    Object.keys(rn).forEach(function (k) { STOP_RENAMED[norm(k)] = rn[k]; });
+    Object.keys(al).forEach(function (k) { STOP_ALIASES[norm(k)] = al[k]; });
+    (h.vanished || []).forEach(function (v) {
+      if (!v || !v.name || v.lat == null || v.lon == null) return;
+      var s = { id: "hist:" + v.name, name: v.name, lat: v.lat, lon: v.lon, routes: [], historical: true };
+      stopById[s.id] = s;
+      if (!stopByName[norm(v.name)]) stopByName[norm(v.name)] = s;
+      vanishedStops.push(s);
+    });
+  }
+
+  // najdi zastávku pro název z DB seznamu (dnešní názvy → přejmenování → varianty → zaniklé).
+  // Historicky (kurzívou) se značí JEN zaniklé zastávky; přejmenované názvy stále
+  // existujících zastávek jsou klikací, ale bez označení a bez „→ nový název".
+  function resolveStopName(raw) {
+    var clean = cleanStopName(raw);
+    var k = norm(clean);
+    if (stopByName[k]) return { id: stopByName[k].id, display: clean, historical: !!stopByName[k].historical };
+    var nn = STOP_RENAMED[k];
+    if (nn && stopByName[norm(nn)]) return { id: stopByName[norm(nn)].id, display: clean, historical: false };
+    var av = STOP_ALIASES[k];
+    if (av && stopByName[norm(av)]) return { id: stopByName[norm(av)].id, display: clean, historical: false };
+    return null;
+  }
+
   // ── linky mimo provoz (legacy-routes.json) ───────────────────────
   // Trasa se sestaví spojnicí zastávek (dle názvů → stops.json), kreslí se
   // čárkovaně jako „přibližná". Nemají vlastní GTFS geometrii.
@@ -171,11 +203,12 @@
       if (latlngs.length < 2) return;
 
       var rid = "legacy-" + lr.short_name;
-      var color = lr.type === "tram" ? "#cc2900" : "#007db3";
+      var category = lr.category === "historicke" ? "historicke" : "mimoprovoz";
+      var color = category === "historicke" ? "#991f00" : (lr.type === "tram" ? "#cc2900" : "#007db3");
       var r = {
         id: rid, short_name: lr.short_name, long_name: lr.long_name || "",
-        type: lr.type === "tram" ? "tram" : "bus", color: color,
-        stops: ids, stopNames: names, legacy: true
+        type: lr.type === "tram" ? "tram" : "bus", color: color, category: category,
+        approximate: !!lr.approximate, stops: ids, stopNames: names, legacy: true
       };
       routes.push(r);
       routeById[rid] = r;
@@ -199,8 +232,11 @@
   }
 
   // pořadí vrstev podle kategorie (nižší priorita = výš); řeší překryvy barev
+  // skupina filtru pro legacy linku: Mimo provoz ("legacy") vs Historické
+  function legacyGroup(r) { return r.category === "historicke" ? "historicke" : "legacy"; }
+
   function routePriority(r) {
-    if (r.legacy) return 6;
+    if (r.legacy) return r.category === "historicke" ? 8 : 7;  // historické úplně dole
     var p = ZPRIO[r.short_name];
     if (p != null) return p;
     return r.type === "tram" ? 1 : 2;
@@ -260,6 +296,7 @@
       li.dataset.id = r.id;
       li.dataset.type = r.type;
       li.dataset.legacy = r.legacy ? "1" : "0";
+      li.dataset.category = r.category || "";
       li.dataset.search = (r.short_name + " " + r.long_name).toLowerCase();
       if (r.legacy) li.classList.add("ms-legacy");
 
@@ -285,9 +322,10 @@
     var items = elRoutes.querySelectorAll("li");
     Array.prototype.forEach.call(items, function (li) {
       var isLeg = li.dataset.legacy === "1";
-      var okType = filter === "legacy"
-        ? isLeg
-        : (!isLeg && (filter === "all" || li.dataset.type === filter));
+      var okType;
+      if (filter === "legacy") okType = isLeg && li.dataset.category !== "historicke";
+      else if (filter === "historicke") okType = isLeg && li.dataset.category === "historicke";
+      else okType = !isLeg && (filter === "all" || li.dataset.type === filter);
       var okQ = !query || li.dataset.search.indexOf(query) !== -1;
       li.classList.toggle("is-hidden", !(okType && okQ));
     });
@@ -297,9 +335,12 @@
   function buildStopList() {
     if (!elStops) return;
     elStops.innerHTML = "";
-    stops.forEach(function (s) {
+    var all = stops.concat(vanishedStops).slice().sort(function (a, b) {
+      return String(a.name).localeCompare(String(b.name), "cs");
+    });
+    all.forEach(function (s) {
       var li = document.createElement("li");
-      li.className = "ms-stop-item";
+      li.className = "ms-stop-item" + (s.historical ? " ms-stop-hist" : "");
       li.dataset.search = ((s.name || "") + " " + (s.code || "")).toLowerCase();
 
       var nm = document.createElement("span");
@@ -352,8 +393,8 @@
       var emph = focusedRouteId === r.id || hoveredRouteId === r.id;
 
       if (r.legacy) {
-        // legacy se kreslí jen ve filtru „Mimo provoz" nebo když je zvýrazněná
-        var show = filter === "legacy" || emph;
+        // legacy se kreslí jen ve svém filtru (Mimo provoz / Historické) nebo když je zvýrazněná
+        var show = filter === legacyGroup(r) || emph;
         var has = routeLayer.hasLayer(grp);
         if (show && !has) grp.addTo(routeLayer);
         else if (!show && has) routeLayer.removeLayer(grp);
@@ -361,8 +402,8 @@
       }
 
       var visibleByType = r.legacy
-        ? (filter === "legacy")
-        : (filter !== "legacy" && (filter === "all" || r.type === filter));
+        ? (filter === legacyGroup(r))
+        : (filter !== "legacy" && filter !== "historicke" && (filter === "all" || r.type === filter));
 
       var dim;
       if (emph) dim = false;
@@ -415,8 +456,11 @@
       var lnames = LEGACY_STOPS[r.short_name] || [];
       if (lnames.length) {
         var lh = lnames.map(function (raw) {
-          var s = stopByName[norm(cleanStopName(raw))];
-          if (s) return '<li data-stop="' + s.id + '" style="border-left-color:' + col + '">' + esc(raw) + "</li>";
+          var rr = resolveStopName(raw);
+          if (rr) {
+            return '<li data-stop="' + rr.id + '" class="' + (rr.historical ? "ms-stop-hist" : "") +
+                   '" style="border-left-color:' + col + '">' + esc(rr.display) + "</li>";
+          }
           return '<li class="ms-stop-noclick" style="border-left-color:' + col + '">' + esc(raw) + "</li>";
         }).join("");
         stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + " (" + lnames.length + ")</h3>" +
@@ -439,7 +483,10 @@
     // nadpis: legacy → "Linka XX (trvale mimo provoz)"; jinak "Kategorie [číslo v rámečku]"
     var headerHtml;
     if (r.legacy) {
-      headerHtml = "<h2>" + esc((T.legacyTitle || "Linka %s (trvale mimo provoz)").replace("%s", r.short_name)) + "</h2>";
+      var tpl = r.category === "historicke"
+        ? (T.historicTitle || "Historická linka %s")
+        : (T.legacyTitle || "Linka %s (trvale mimo provoz)");
+      headerHtml = "<h2>" + esc(tpl.replace("%s", r.short_name)) + "</h2>";
     } else {
       var cat = TILE_CATS[r.short_name] || (r.type === "tram" ? (T.tram || "Tram") : (T.bus || "Bus"));
       headerHtml = "<h2>" + esc(cat) +
@@ -450,7 +497,7 @@
       backBtn() +
       headerHtml +
       '<p class="ms-sub">' + esc(r.long_name) + "</p>" +
-      (r.legacy ? '<p class="ms-legacy-note">' + (T.legacyNote || "Trasa je přibližná – linka je mimo provoz.") + "</p>" : "") +
+      (r.approximate ? '<p class="ms-legacy-note">' + (T.legacyNote || "Trasa je přibližná.") + "</p>" : "") +
       '<a class="ms-detaillink" href="' + esc(detailUrl) + '">' +
         (T.detailLink || "Detail a historie linky") + " &rarr;</a>" +
       stopsSection;
@@ -469,24 +516,27 @@
     highlightStops([sid]);
     setStopPin(sid);
 
-    var chips = (s.routes || []).map(function (sn) {
-      var r = routeByShort[sn];
-      var color = r ? routeColor(r) : "#666";
-      var rid = r ? r.id : "";
-      return '<span class="ms-badge" style="background:' + color + '" data-route="' + rid + '">' + esc(sn) + "</span>";
-    }).join("");
-
-    var meta = [];
-    if (s.code) meta.push("#" + esc(s.code));
-    if (s.zone) meta.push((T.zone || "Zóna") + " " + esc(s.zone));
-    meta.push((T.wheelchair || "Bezbariérová") + ": " + wheel(s.wheelchair));
-
-    elDetail.innerHTML =
-      backBtn() +
-      "<h2>" + esc(s.name) + "</h2>" +
-      '<p class="ms-sub">' + meta.join(" · ") + "</p>" +
-      "<h3>" + (T.linesHere || "Linky v zastávce") + "</h3>" +
-      '<div class="ms-linechips">' + chips + "</div>";
+    var inner;
+    if (s.historical) {
+      inner = "<h2>" + esc(s.name) + "</h2>" +
+              '<p class="ms-sub ms-stop-hist">' + (T.formerStop || "zaniklá zastávka") + "</p>";
+    } else {
+      var chips = (s.routes || []).map(function (sn) {
+        var r = routeByShort[sn];
+        var color = r ? routeColor(r) : "#666";
+        var rid = r ? r.id : "";
+        return '<span class="ms-badge" style="background:' + color + '" data-route="' + rid + '">' + esc(sn) + "</span>";
+      }).join("");
+      var meta = [];
+      if (s.code) meta.push("#" + esc(s.code));
+      if (s.zone) meta.push((T.zone || "Zóna") + " " + esc(s.zone));
+      meta.push((T.wheelchair || "Bezbariérová") + ": " + wheel(s.wheelchair));
+      inner = "<h2>" + esc(s.name) + "</h2>" +
+              '<p class="ms-sub">' + meta.join(" · ") + "</p>" +
+              "<h3>" + (T.linesHere || "Linky v zastávce") + "</h3>" +
+              '<div class="ms-linechips">' + chips + "</div>";
+    }
+    elDetail.innerHTML = backBtn() + inner;
 
     bindDetail();
     showDetail(true);

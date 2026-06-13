@@ -1,0 +1,39 @@
+{
+  "_comment": "Ručně udržovaná historie zastávek. renamed = historické přejmenování (starý název → dnešní GTFS název, zobrazí se i v seznamu). aliases = jen jiný zápis téhož názvu (kvůli párování, bez historické poznámky). vanished = zaniklé zastávky se souřadnicemi (na mapě klikací). Hodnoty u renamed/aliases musí být PŘESNÝ název z mapa-assets/data/stops.json.",
+  "renamed": {
+    "Gottwaldovo náměstí": "Fügnerova",
+    "Radnice": "Nám.Dr.E.Beneše",
+    "Nitranská": "Babylon",
+    "Nádraží ČD": "Nádraží",
+    "Machnín ČD": "Machnín žel. zast.",
+    "Kryštofovo Údolí obchod": "Kryšt. Údolí ob. úřad",
+    "Likov": "Kamenická",
+    "Doubí U Mlýna": "Doubí mlýn",
+    "Doubí": "Doubí obilná",
+    "U Statku": "Minkovice statek",
+    "Železniční přejezd": "Minkovice žel. přejezd",
+    "Stráž SARÉ": "Stráž n. Nis. Oblouková",
+    "Minkovice křižovatka": "Pilínkov křižovatka",
+    "Proseč n.N. výhybna": "U Šamotky"
+  },
+  "aliases": {
+    "Nám. Dr. E. Beneše": "Nám.Dr.E.Beneše",
+    "RUPRECHTICE sídl.": "Ruprechtice síd.",
+    "JABLONEC NAD NISOU, Tyršovy sady": "Jablonec n.N., Tyršovy sady",
+    "VRATISLAVICE NAD NISOU, výhybna": "Vratislavice n.N. výhybna",
+    "Kyselka": "Vratislavická kyselka",
+    "LIDOVÉ SADY-ZOO": "Lidové sady - ZOO",
+    "Muzeum-Galerie Lázně": "Muzeum - Galerie Lázně",
+    "Ulice 5. května": "Ulice 5.května",
+    "Stráž n.N. Neumannova": "Stráž n. Nis. Neumannova",
+    "Růžodol I.": "Růžodol I"
+  },
+  "vanished": [
+    { "name": "Sved", "lat": 50.7594961, "lon": 15.0281303 },
+    { "name": "Chrastava", "lat": 50.8166189, "lon": 14.9650539 },
+    { "name": "Areál Vesec", "lat": 50.7300661, "lon": 15.0700481 },
+    { "name": "Seniorů", "lat": 50.7514567, "lon": 15.0762064 },
+    { "name": "Krajní", "lat": 50.7516025, "lon": 15.0796608 },
+    { "name": "Ořechová", "lat": 50.7508625, "lon": 15.0784539 }
+  ]
+}

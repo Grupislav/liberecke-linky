@@ -37,6 +37,7 @@ $jsLang = [
     'tram'        => $lang['mapa_tram']           ?? 'Tramvaje',
     'bus'         => $lang['mapa_bus']            ?? 'Autobusy',
     'legacy'      => $lang['mapa_filtr_mimo']      ?? 'Mimo provoz',
+    'historic'    => $lang['mapa_filtr_historicke'] ?? 'Historické',
     'all'         => $lang['mapa_vse']            ?? 'Vše',
     'none'        => $lang['mapa_nic']            ?? 'Nic',
     'stop'        => $lang['mapa_zastavka']       ?? 'Zastávka',
@@ -53,6 +54,8 @@ $jsLang = [
     'detailLink'  => $lang['mapa_detail_linky']   ?? 'Detail a historie linky',
     'legacyNote'  => $lang['mapa_mimo_provoz_pozn'] ?? 'Trasa je přibližná – linka je mimo provoz.',
     'legacyTitle' => $lang['mapa_mimo_nadpis']     ?? 'Linka %s (trvale mimo provoz)',
+    'historicTitle' => $lang['mapa_hist_nadpis']   ?? 'Historická linka %s',
+    'formerStop'  => $lang['mapa_zanikla']         ?? 'zaniklá zastávka',
 ];
 
 // Kategorie linek z DB (stejný dotaz jako dlaždice, sdílený přes fce.php).
@@ -95,6 +98,17 @@ foreach ($catColors as $kod => $hex) {
     if (isset($presentHex[$hex])) {
         $legend[] = ['color' => $hex, 'label' => $lang['mapa_kat_' . $kod] ?? $kod];
     }
+}
+// historické legacy linky (z legacy-routes.json) – vlastní položka legendy
+$legacyRaw = @file_get_contents(__DIR__ . '/mapa-assets/data/legacy-routes.json');
+$hasHistoric = false;
+if ($legacyRaw) {
+    foreach (json_decode($legacyRaw, true) ?: [] as $lr) {
+        if (($lr['category'] ?? '') === 'historicke') { $hasHistoric = true; break; }
+    }
+}
+if ($hasHistoric) {
+    $legend[] = ['color' => $catColors['historicke'] ?? '#991f00', 'label' => $lang['mapa_kat_historicke'] ?? 'Historické'];
 }
 ?>
 <!DOCTYPE html>
@@ -189,6 +203,7 @@ foreach ($catColors as $kod => $hex) {
         <button type="button" data-filter="tram" class="ms-chip"><?= $esc($jsLang['tram']) ?></button>
         <button type="button" data-filter="bus" class="ms-chip"><?= $esc($jsLang['bus']) ?></button>
         <button type="button" data-filter="legacy" class="ms-chip"><?= $esc($jsLang['legacy']) ?></button>
+        <button type="button" data-filter="historicke" class="ms-chip"><?= $esc($jsLang['historic']) ?></button>
       </div>
       <ul id="ms-routes" class="ms-routes"></ul>
       <ul id="ms-stops" class="ms-routes" hidden></ul>

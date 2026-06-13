@@ -9,7 +9,8 @@
       "Karlov"
     ],
     "type": "bus",
-    "long_name": "GOTTWALDOVO NÁMĚSTÍ - Karlinky - OSTAŠOV - KARLOV"
+    "long_name": "GOTTWALDOVO NÁMĚSTÍ - Karlinky - OSTAŠOV - KARLOV",
+    "approximate": true
   },
   {
     "short_name": "B",
@@ -20,7 +21,8 @@
       "Machnín"
     ],
     "type": "bus",
-    "long_name": "GOTTWALDOVO NÁMĚSTÍ - STRÁŽ NAD NISOU - MACHNÍN"
+    "long_name": "GOTTWALDOVO NÁMĚSTÍ - STRÁŽ NAD NISOU - MACHNÍN",
+    "approximate": true
   },
   {
     "short_name": "C",
@@ -30,7 +32,8 @@
       "Rudolfov"
     ],
     "type": "bus",
-    "long_name": "FÜGNEROVA - PAVLOVICE - KATEŘINKY - RUDOLFOV"
+    "long_name": "FÜGNEROVA - PAVLOVICE - KATEŘINKY - RUDOLFOV",
+    "approximate": true
   },
   {
     "short_name": "D",
@@ -39,7 +42,8 @@
       "Ruprechtice síd."
     ],
     "type": "bus",
-    "long_name": "FÜGNEROVA - RUPRECHTICE"
+    "long_name": "FÜGNEROVA - RUPRECHTICE",
+    "approximate": true
   },
   {
     "short_name": "E",
@@ -48,7 +52,8 @@
       "Harcov kostel"
     ],
     "type": "bus",
-    "long_name": "FÜGNEROVA - STARÝ HARCOV"
+    "long_name": "FÜGNEROVA - STARÝ HARCOV",
+    "approximate": true
   },
   {
     "short_name": "F",
@@ -57,7 +62,8 @@
       "Harcov Střelnice"
     ],
     "type": "bus",
-    "long_name": "FÜGNEROVA - HARCOV STŘELNICE"
+    "long_name": "FÜGNEROVA - HARCOV STŘELNICE",
+    "approximate": true
   },
   {
     "short_name": "6",
@@ -69,7 +75,8 @@
       "Nám.Dr.E.Beneše"
     ],
     "type": "bus",
-    "long_name": "RADNICE - Pavlovice - Stráž nad Nisou - Růžodol I - RADNICE"
+    "long_name": "RADNICE - Pavlovice - Stráž nad Nisou - Růžodol I - RADNICE",
+    "approximate": true
   },
   {
     "short_name": "8",
@@ -79,7 +86,8 @@
       "Ostašov"
     ],
     "type": "bus",
-    "long_name": "RADNICE - Františkov - OSTAŠOV"
+    "long_name": "RADNICE - Františkov - OSTAŠOV",
+    "approximate": true
   },
   {
     "short_name": "201",
@@ -125,7 +133,8 @@
         "lat": 50.8166189,
         "lon": 14.9650539
       }
-    ]
+    ],
+    "approximate": true
   },
   {
     "short_name": "41",
@@ -274,6 +283,69 @@
       "Stráž n. Nis. Oblouková",
       "Stráž n. Nis. Neumannova",
       "Stráž nad Nisou"
+    ]
+  },
+  {
+    "short_name": "1",
+    "type": "tram",
+    "category": "historicke",
+    "long_name": "LIDOVÉ SADY - Fügnerova – VIADUKT",
+    "stops": [
+      "Lidové sady - ZOO",
+      "Riegrova",
+      "Botanická zahrada",
+      "Muzeum - Galerie Lázně",
+      "Průmyslová škola",
+      "Ulice 5.května",
+      "Šaldovo náměstí",
+      "Fügnerova",
+      "Rybníček",
+      "Nádraží",
+      "Viadukt"
+    ]
+  },
+  {
+    "short_name": "4",
+    "type": "tram",
+    "category": "historicke",
+    "long_name": "VIADUKT - FÜGNEROVA - VRATISLAVICE NAD NISOU, výhybna - JABLONEC NAD NISOU, Tyršovy sady",
+    "stops": [
+      "Viadukt",
+      "Nádraží",
+      "Rybníček",
+      "Fügnerova",
+      "Mlýnská",
+      "Textilana",
+      "U Lomu",
+      "Nová Ruda",
+      "Sídliště Nové Vratislavice",
+      "Pivovarská",
+      "Lékárna",
+      "Vratislavice n.N. kostel",
+      "Vratislavice n.N. výhybna",
+      "Vratislavická kyselka",
+      "Za Tratí",
+      "Proseč n.N. pošta",
+      "U Šamotky",
+      "Nový Svět",
+      "Jablonec n.N. Zelené Údolí",
+      "Měnírna",
+      "Brandl",
+      "Liberecká",
+      "Jablonec n.N., Tyršovy sady"
+    ]
+  },
+  {
+    "short_name": "50",
+    "type": "bus",
+    "long_name": "U VĚŽE - Růžodol I. - RŮŽODOL MLÝN - ZŠ JABLOŇOVÁ",
+    "stops": [
+      "U Věže",
+      "Dožínková",
+      "Růžodol I",
+      "Růžodol Mlýn",
+      "Stráž n. Nis. Neumannova",
+      "ZŠ Jabloňová"
     ]
   }
 ]
