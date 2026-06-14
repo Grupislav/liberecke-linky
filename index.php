@@ -106,7 +106,7 @@ $esc = static function ($s) {
       <h1><a class="nadpis-home" href="<?= htmlspecialchars(url_with_params(['linka' => null, 'ja' => $l]) . '#prehled', ENT_QUOTES, 'UTF-8') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1>
       <span class="nadpis-sep">|</span>
       <span class="nadpis-switch">
-        <a class="current" href="<?= htmlspecialchars(keep_params(['ja' => $l]), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lang['prehled'], ENT_QUOTES, 'UTF-8') ?></a>
+        <a class="current" href="<?= htmlspecialchars(keep_params(['ja' => $l]), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lang['prehled_nav'] ?? $lang['prehled'], ENT_QUOTES, 'UTF-8') ?></a>
         <a href="<?= htmlspecialchars(($__appBase === '' ? '' : $__appBase) . '/mapa' . keep_params(['ja' => $l]), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($lang['mapa_nav'] ?? 'Interaktivní mapa', ENT_QUOTES, 'UTF-8') ?></a>
       </span>
     </div>

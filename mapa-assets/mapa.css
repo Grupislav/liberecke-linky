@@ -197,11 +197,12 @@
 }
 
 .ms-foot {
-  display: flex; justify-content: space-between; align-items: center;
-  gap: 8px; padding: 8px 10px; border-top: 1px solid #e3e7eb;
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+  gap: 4px 8px; padding: 8px 10px; border-top: 1px solid #e3e7eb;
   font-size: 11.5px; color: #7a858e;
 }
 .ms-foot a { color: #0078c8; }
+.ms-note { flex: 1 1 100%; line-height: 1.35; }   /* poznámka o polohách vozidel – na celý řádek */
 
 /* stavová hláška uprostřed mapy */
 .ms-msg {

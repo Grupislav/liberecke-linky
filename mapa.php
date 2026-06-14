@@ -162,7 +162,7 @@ if ($hasHistoric) {
       <h1><a class="nadpis-home" href="<?= $esc($asset('') . keep_params(['ja' => $l]) . '#prehled') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1>
       <span class="nadpis-sep">|</span>
       <span class="nadpis-switch">
-        <a href="<?= $esc($asset('') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['prehled']) ?></a>
+        <a href="<?= $esc($asset('') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['prehled_nav'] ?? $lang['prehled']) ?></a>
         <a class="current" href="<?= $esc($asset('mapa') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['mapa_nav'] ?? 'Interaktivní mapa') ?></a>
       </span>
     </div>
@@ -218,6 +218,7 @@ if ($hasHistoric) {
     <div class="ms-foot">
       <span id="ms-meta"></span>
       <span class="ms-src">Data: <a href="https://www.dpmlj.cz/opendata" target="_blank" rel="noopener">DPMLJ a.s.</a></span>
+      <span class="ms-note"><?= $esc($lang['mapa_pozn_poloha'] ?? '') ?></span>
     </div>
   </aside>
 

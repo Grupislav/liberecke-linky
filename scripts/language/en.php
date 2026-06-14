@@ -2,15 +2,16 @@
 /** English **/
 
 // meta + header
-$lang['titulekstranky'] = "Liberec routes project – overview, history, local geography";
-$lang['popisstranky']   = "Liberec routes project – overview, history, local geography";
+$lang['titulekstranky'] = "Liberec Routes — interactive transit map, line overviews, history, videos";
+$lang['popisstranky']   = "Liberec Routes — interactive transit map, line overviews, history, videos";
 $lang['hlavninadpis']   = "Liberec Routes";
 $lang['paticka']        = "Contributors: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historical records)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videos, proofreading)</a>, Tomáš Krupička Sr. (local facts) and others.<br><a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>Project idea</a> · <a style='color:white' target='_blank' rel='noopener' href='https://github.com/Grupislav/Liberecke-linky'>Source code (GitHub)</a> · <a style='color:white' target='_blank' href='https://tomaskrupicka.cz/'>Blog</a>.";
 
 // tabs
 $lang['prehled']       = "Overview";
+$lang['prehled_nav']   = "Line overview";
 $lang['historie']      = "History";
-$lang['pohledridice']  = "Driver's view";
+$lang['pohledridice']  = "Videos";
 $lang['mistopis']      = "Local geography";
 $lang['fotogalerie']   = "Photo gallery";
 
@@ -37,9 +38,10 @@ $lang['mapa_iframe_title'] = 'Map for route %s';
 
 // Network map page (mapa.php / mapa.js)
 $lang['mapa_linky']          = 'Routes';
-$lang['mapa_nav']            = 'Interactive map';
-$lang['mapa_titulek']        = 'Public transit map – Liberec & Jablonec n. N. | Liberec Routes';
+$lang['mapa_nav']            = 'Live map';
+$lang['mapa_titulek']        = 'Live transit map – Liberec & Jablonec n. N. | Liberec Routes';
 $lang['mapa_popis']          = 'Interactive map of public transit routes and stops in Liberec and Jablonec nad Nisou, based on open data (GTFS).';
+$lang['mapa_pozn_poloha']    = 'Vehicle positions are approximate, based on the timetable – no public GPS data is available.';
 $lang['mapa_hledat']         = 'Search a route or stop…';
 $lang['mapa_zastavky']       = 'Stops';
 $lang['mapa_hledat_linku']   = 'Search a route…';

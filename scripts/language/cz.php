@@ -2,15 +2,16 @@
 /** Čeština / Czech **/
 
 // meta + header
-$lang['titulekstranky'] = "Projekt Liberecké linky - přehled, historie, místopis linek MHD";
-$lang['popisstranky']   = "Projekt Liberecké linky - přehled, historie, místopis linek MHD";
+$lang['titulekstranky'] = "Liberecké linky — interaktivní mapa MHD, přehledy, historie, videozáznamy";
+$lang['popisstranky']   = "Liberecké linky — interaktivní mapa MHD, přehledy, historie, videozáznamy";
 $lang['hlavninadpis']   = "Liberecké linky";
 $lang['paticka']        = "Spolupracovali: <a style='color:white' target='_blank' href='http://www.boveraclub.com/'>Boveraclub (historické záznamy)</a>, <a style='color:white' target='_blank' href='https://www.youtube.com/channel/UCDnTRePslg2t4wC5MNPKOjQ/'>Liberecká podniková (videozáznamy, korektury)</a>, Tomáš Krupička st. (doplnění a korektura místopisných údajů) a další.<br><a style='color:white' target='_blank' href='https://tomaskrupicka.cz/dopravak/kazda-linka-ma-sve-kouzlo/'>Smysl projektu</a> · <a style='color:white' target='_blank' rel='noopener' href='https://github.com/Grupislav/Liberecke-linky'>Zdrojový kód (GitHub)</a> · <a style='color:white' target='_blank' href='https://tomaskrupicka.cz/'>Blog</a>.";
 
 // tabs
 $lang['prehled']       = "Přehled";
+$lang['prehled_nav']   = "Přehled linek";
 $lang['historie']      = "Historie";
-$lang['pohledridice']  = "Pohled řidiče";
+$lang['pohledridice']  = "Videozáznamy";
 $lang['mistopis']      = "Místopis";
 $lang['fotogalerie']   = "Fotogalerie";
 
@@ -37,9 +38,10 @@ $lang['mapa_iframe_title'] = 'Mapa linky %s';
 
 // stránka Mapa sítě (mapa.php / mapa.js)
 $lang['mapa_linky']          = 'Linky';
-$lang['mapa_nav']            = 'Interaktivní mapa';
-$lang['mapa_titulek']        = 'Mapa linek MHD Liberec a Jablonec n. N. | Liberecké linky';
+$lang['mapa_nav']            = 'Živá mapa';
+$lang['mapa_titulek']        = 'Živá mapa MHD Liberec a Jablonec n. N. | Liberecké linky';
 $lang['mapa_popis']          = 'Interaktivní mapa linek a zastávek MHD v Liberci a Jablonci nad Nisou nad otevřenými daty (GTFS).';
+$lang['mapa_pozn_poloha']    = 'Polohy vozidel jsou orientační, podle jízdního řádu – veřejná GPS data nejsou k dispozici.';
 $lang['mapa_hledat']         = 'Hledat linku nebo zastávku…';
 $lang['mapa_zastavky']       = 'Zastávky';
 $lang['mapa_hledat_linku']   = 'Hledat linku…';
