@@ -36,17 +36,20 @@ function gtfs_stop_list_html(string $linka, string $appBase, string $ja, string 
         return $items === '' ? '' : "<ul class='ls-list'>{$items}</ul>";
     };
 
-    // linka s odlišnými směry (jednosměrné zastávky / závleky) → seznam po směrech
+    // odlišné směry (jednosměrné zastávky / závleky) → přepínač směru + jeden seznam
     if (!empty($route['directions']) && count($route['directions']) >= 2) {
-        $out = '';
+        $btns = ''; $blocks = ''; $i = 0;
         foreach ($route['directions'] as $d) {
             $ul = $renderUl($d['stops'] ?? []);
             if ($ul === '') continue;
-            $label = sprintf($dirTpl, (string)($d['headsign'] ?? ''));
-            $out .= "<div class='ls-dir'><div class='ls-dir-head'>"
-                  . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . "</div>{$ul}</div>";
+            $head = htmlspecialchars((string)($d['headsign'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $btns .= "<button type='button' class='ls-dirbtn" . ($i === 0 ? ' is-on' : '')
+                   . "' data-dir='{$i}'>&rarr; {$head}</button>";
+            $blocks .= "<div class='ls-dir" . ($i === 0 ? '' : ' is-hidden') . "' data-dir='{$i}'>{$ul}</div>";
+            $i++;
         }
-        return $out;
+        if ($i >= 2) return "<div class='ls-dirs'><div class='ls-dirswitch'>{$btns}</div>{$blocks}</div>";
+        if ($blocks !== '') return $blocks;   // jen jeden směr s daty → bez přepínače
     }
     return $renderUl($route['stops'] ?? []);
 }

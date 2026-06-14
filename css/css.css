@@ -58,8 +58,13 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 .line-stops .ls-stop { color: #34495e; text-decoration: none; }
 .line-stops .ls-stop:hover { color: #00a186; text-decoration: underline; }
 .line-stops .ls-stop-hist { font-style: italic; color: #7a858e; }
-.line-stops .ls-dir + .ls-dir { margin-top: 12px; }
-.line-stops .ls-dir-head { font-weight: 600; color: #5a6b78; margin: 0 0 2px; }
+.line-stops .ls-dirswitch { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+.line-stops .ls-dirbtn {
+  flex: 1 1 0; padding: 5px 10px; border: 1px solid #cdd6dd; background: #fff;
+  color: #5a6b78; border-radius: 4px; cursor: pointer; font-size: 13px; line-height: 1.25;
+}
+.line-stops .ls-dirbtn.is-on { background: #00a186; border-color: #00a186; color: #fff; }
+.line-stops .ls-dir.is-hidden { display: none; }
 
 /* Style buttons */
 .btn {

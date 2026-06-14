@@ -290,11 +290,11 @@
     var color = tr.m === "tram" ? "#cc2900" : "#007db3";
     var icon = L.divIcon({
       className: "ms-veh", html: vehicleSvg(color, bearing),
-      iconSize: [26, 26], iconAnchor: [13, 13]
+      iconSize: [30, 30], iconAnchor: [15, 15]
     });
     var m = L.marker([s.lat, s.lon], { icon: icon, keyboard: false, riseOnHover: true });
-    m.bindTooltip("<b>" + esc(tr.r) + "</b> &rarr; " + esc(tr.h) +
-                  "<br><span class='ms-veh-stop'>" + esc(s.name) + "</span>", { direction: "top" });
+    m.bindTooltip("<span class='ms-badge' style='background:" + color + "'>" + esc(tr.r) + "</span> &rarr; " +
+                  esc(tr.h) + "<br><span class='ms-veh-stop'>" + esc(s.name) + "</span>", { direction: "top" });
     m.on("mouseover", function () { hoverTrip = tr; showTripView(tr); });
     m.on("mouseout", function () { hoverTrip = null; if (focusedTrip) showTripView(focusedTrip); else hideTripView(); });
     m.on("click", function () { focusTrip(tr); });
@@ -303,10 +303,10 @@
 
   function vehicleSvg(color, bearing) {
     var rot = (bearing == null) ? "" : ' style="transform:rotate(' + bearing.toFixed(0) + 'deg)"';
-    var arrow = (bearing == null) ? ""    // konečná → bez šipky; jinak šipka k další zastávce (bílý obrys)
-      : '<path d="M13 1.5 L18 10 L8 10 Z" fill="' + color + '" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>';
-    return '<div class="ms-veh-i"' + rot + '><svg viewBox="0 0 26 26" width="26" height="26">' +
-           arrow + '<circle cx="13" cy="13" r="6.5" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
+    var arrow = (bearing == null) ? ""    // konečná → bez šipky; jinak šipka k další zastávce
+      : '<path d="M15 0 L22 12 L8 12 Z" fill="' + color + '"/>';
+    return '<div class="ms-veh-i"' + rot + '><svg viewBox="0 0 30 30" width="30" height="30">' +
+           arrow + '<circle cx="15" cy="15" r="8" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
            "</svg></div>";
   }
 
@@ -498,8 +498,11 @@
              '<span class="ms-tp-time">' + fmtTime(x[1]) + "</span>" +
              '<span class="ms-tp-name">' + esc(s.name) + "</span></li>";
     }).join("");
+    var badge = rr
+      ? '<span class="ms-badge ms-badge-link" style="background:' + col + '" data-route="' + rr.id + '">' + esc(tr.r) + "</span>"
+      : '<span class="ms-badge" style="background:' + col + '">' + esc(tr.r) + "</span>";
     elDetail.innerHTML = backBtn() +
-      '<h2><span class="ms-badge" style="background:' + col + '">' + esc(tr.r) + "</span> &rarr; " + esc(tr.h) + "</h2>" +
+      "<h2>" + badge + " &rarr; " + esc(tr.h) + "</h2>" +
       '<p class="ms-sub">' + (T.tripSchedule || "Jízdní řád spoje") + "</p>" +
       '<ul class="ms-tplist">' + rows + "</ul>";
     bindDetail();
@@ -756,6 +759,7 @@
 
   // přepnutí panelu mezi režimy Linky / Zastávky
   function setMode(m) {
+    resetView();          // klik na tab z detailu (zastávka/spoj/linka) → zpět na přehled
     mode = m;
     Array.prototype.forEach.call(document.querySelectorAll(".ms-mode"), function (b) {
       b.classList.toggle("is-on", b.dataset.mode === m);
@@ -869,13 +873,17 @@
         return '<ul class="ms-stoplist">' + html + "</ul>";
       };
       if (r.directions && r.directions.length >= 2) {
-        // linka s odlišnými směry (jednosměrné zastávky / závleky) → seznam po směrech
+        // odlišné směry (jednosměrné zastávky / závleky) → přepínač směru + jeden seznam
+        var sw = r.directions.map(function (d, di) {
+          return '<button type="button" class="ms-dirbtn' + (di === 0 ? " is-on" : "") +
+                 '" data-dir="' + di + '">&rarr; ' + esc(d.headsign || "") + "</button>";
+        }).join("");
+        var blocks = r.directions.map(function (d, di) {
+          return '<div class="ms-dir' + (di === 0 ? "" : " is-hidden") + '" data-dir="' + di + '">' +
+                 renderUL(d.stops) + "</div>";
+        }).join("");
         stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + "</h3>" +
-          r.directions.map(function (d) {
-            var label = (T.dirLabel || "Směr %s").replace("%s", d.headsign || "");
-            return '<div class="ms-dir"><h4 class="ms-dir-head">' + esc(label) +
-                   " (" + (d.stops || []).length + ")</h4>" + renderUL(d.stops) + "</div>";
-          }).join("");
+                       '<div class="ms-dirs"><div class="ms-dirswitch">' + sw + "</div>" + blocks + "</div>";
       } else {
         stopsSection = "<h3>" + (T.lineStops || "Zastávky linky") + " (" + (r.stops || []).length + ")</h3>" +
                        renderUL(r.stops);
@@ -1027,6 +1035,16 @@
       el.addEventListener("click", function () { focusStop(sid); });
       el.addEventListener("mouseenter", function () { previewStop(sid, true); });
       el.addEventListener("mouseleave", function () { previewStop(sid, false); });
+    });
+    // přepínač směru výpisu zastávek (detail linky)
+    Array.prototype.forEach.call(elDetail.querySelectorAll(".ms-dirbtn"), function (btn) {
+      btn.addEventListener("click", function () {
+        var wrap = btn.parentNode.parentNode, dir = btn.getAttribute("data-dir");
+        Array.prototype.forEach.call(wrap.querySelectorAll(".ms-dirbtn"), function (b) { b.classList.toggle("is-on", b === btn); });
+        Array.prototype.forEach.call(wrap.querySelectorAll(".ms-dir"), function (d) {
+          d.classList.toggle("is-hidden", d.getAttribute("data-dir") !== dir);
+        });
+      });
     });
   }
 

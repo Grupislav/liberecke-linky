@@ -140,16 +140,20 @@
 .ms-stoplist li.ms-stop-noclick { cursor: default; }
 .ms-stoplist li.ms-stop-noclick:hover { color: #2b343c; }
 
-/* seznam zastávek po směrech (linky s jednosměrnými zastávkami / závleky) */
-.ms-dir + .ms-dir { margin-top: 14px; }
-.ms-dir-head {
-  margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #5a6b78;
-  text-transform: uppercase; letter-spacing: .02em;
+/* přepínač směru výpisu zastávek (linky s jednosměrnými zastávkami / závleky) */
+.ms-dirswitch { display: flex; gap: 6px; margin: 0 0 8px; flex-wrap: wrap; }
+.ms-dirbtn {
+  flex: 1 1 0; min-width: 0; padding: 5px 8px; border: 1px solid #cdd6dd;
+  background: #fff; color: #5a6b78; border-radius: 4px; cursor: pointer;
+  font-size: 12px; line-height: 1.25;
 }
+.ms-dirbtn.is-on { background: #0078c8; border-color: #0078c8; color: #fff; }
+.ms-dir.is-hidden { display: none; }
+.ms-badge-link { cursor: pointer; }
 
 /* vozidla na mapě (poloha dle JŘ) – kolečko + šipka ke směru jízdy */
 .leaflet-div-icon.ms-veh { background: transparent; border: 0; }
-.ms-veh-i { width: 26px; height: 26px; transform-origin: 13px 13px; }
+.ms-veh-i { width: 30px; height: 30px; transform-origin: 15px 15px; }
 .ms-veh-i svg { display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
 .ms-veh-stop { color: #5a6b78; font-size: 12px; }   /* aktuální (poslední) zastávka v tooltipu */
 

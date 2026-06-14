@@ -289,7 +289,7 @@
     "short_name": "1",
     "type": "tram",
     "category": "historicke",
-    "long_name": "LIDOVÉ SADY - Fügnerova – VIADUKT",
+    "long_name": "LIDOVÉ SADY - Fügnerova – RYBNÍČEK",
     "stops": [
       "Lidové sady - ZOO",
       "Riegrova",
@@ -299,9 +299,7 @@
       "Ulice 5.května",
       "Šaldovo náměstí",
       "Fügnerova",
-      "Rybníček",
-      "Nádraží",
-      "Viadukt"
+      "Rybníček"
     ]
   },
   {

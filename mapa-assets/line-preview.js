@@ -12,6 +12,18 @@
 (function () {
   "use strict";
 
+  // přepínač směru výpisu zastávek (funguje i nad serverem vykresleným seznamem)
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest(".ls-dirbtn");
+    if (!btn) return;
+    var wrap = btn.closest(".ls-dirs"); if (!wrap) return;
+    var dir = btn.getAttribute("data-dir");
+    Array.prototype.forEach.call(wrap.querySelectorAll(".ls-dirbtn"), function (b) { b.classList.toggle("is-on", b === btn); });
+    Array.prototype.forEach.call(wrap.querySelectorAll(".ls-dir"), function (d) {
+      d.classList.toggle("is-hidden", d.getAttribute("data-dir") !== dir);
+    });
+  });
+
   var previews = document.querySelectorAll(".line-map-preview[data-linka]");
   var stopLists = document.querySelectorAll(".line-stops[data-linka]");
   if (!previews.length && !stopLists.length) return;
@@ -147,11 +159,15 @@
           return (ids || []).map(function (sid) { return stopById[sid] && stopById[sid].name; }).filter(Boolean);
         };
         if (r.directions && r.directions.length >= 2) {
-          el.innerHTML = r.directions.map(function (d) {
-            var label = DIRLABEL.replace("%s", d.headsign || "");
-            return "<div class='ls-dir'><div class='ls-dir-head'>" + esc(label) +
-                   "</div>" + renderList(namesOf(d.stops)) + "</div>";
+          var btns = r.directions.map(function (d, di) {
+            return "<button type='button' class='ls-dirbtn" + (di === 0 ? " is-on" : "") +
+                   "' data-dir='" + di + "'>&rarr; " + esc(d.headsign || "") + "</button>";
           }).join("");
+          var blocks = r.directions.map(function (d, di) {
+            return "<div class='ls-dir" + (di === 0 ? "" : " is-hidden") + "' data-dir='" + di + "'>" +
+                   renderList(namesOf(d.stops)) + "</div>";
+          }).join("");
+          el.innerHTML = "<div class='ls-dirs'><div class='ls-dirswitch'>" + btns + "</div>" + blocks + "</div>";
         } else {
           var names = namesOf(r.stops);
           if (names.length) el.innerHTML = renderList(names);
