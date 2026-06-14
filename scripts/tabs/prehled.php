@@ -32,7 +32,7 @@ if (!$conn) {
 mysqli_set_charset($conn, "utf8");
 
 // 3) Prepared statement
-$sql = "SELECT t.trasa, t.zastavky, t.funkce, t.mapa, tl.kod AS kategorie
+$sql = "SELECT t.trasa, t.zastavky, t.funkce, tl.kod AS kategorie
         FROM texty t LEFT JOIN typy_linek tl ON tl.id = t.typ_linky_id
         WHERE t.linka = ?";
 $stmt = mysqli_prepare($conn, $sql);
@@ -79,7 +79,7 @@ $trasa = htmlspecialchars($titulekLinky, ENT_QUOTES, 'UTF-8');
 
 // Náhled trasy → proklik do interaktivní mapy sítě (/mapa?linka=X).
 // Samotný obrázek dokresluje mapa-assets/line-preview.js z GTFS dat;
-// bez JS zůstává funkční textový odkaz. Sloupec `mapa` v DB se už nepoužívá.
+// bez JS zůstává funkční textový odkaz. Sloupec `mapa` v DB byl odstraněn (nahrazen náhledem z GTFS).
 $appBase    = isset($appBasePath) ? rtrim((string)$appBasePath, '/') : '';
 $mapaHref   = htmlspecialchars(($appBase === '' ? '' : $appBase) . '/mapa?linka=' . urlencode($linka) . '&ja=' . urlencode($l), ENT_QUOTES, 'UTF-8');
 $linkaEsc   = htmlspecialchars($linka, ENT_QUOTES, 'UTF-8');
