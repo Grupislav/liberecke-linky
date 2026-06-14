@@ -3,6 +3,7 @@
    ==================================================================== */
 
 .mapa-layout {
+  position: relative;
   display: flex;
   align-items: stretch;
   height: calc(100vh - 220px);
@@ -13,6 +14,45 @@
   gap: 10px;
   box-sizing: border-box;
 }
+
+/* ── skrytí / zobrazení bočního panelu ───────────────────────────── */
+/* tlačítko „skrýt" v hlavičce panelu */
+.ms-collapse {
+  flex: 0 0 auto;
+  border: none;
+  background: #f5f7f9;
+  cursor: pointer;
+  color: #5a6670;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 13px;
+}
+.ms-collapse:hover { color: #1f2a33; }
+
+/* plovoucí tlačítko „zobrazit" přes mapou – jen když je panel skrytý */
+.ms-expand {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  z-index: 1100;
+  display: none;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid #cfd6dd;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2a33;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .28);
+}
+.ms-expand:hover { background: #f3f8fc; }
+.ms-expand span { font-size: 17px; line-height: 1; }
+
+.mapa-layout.ms-collapsed #mapa-sidebar { display: none; }
+.mapa-layout.ms-collapsed .ms-expand { display: inline-flex; }
 
 #mapa {
   flex: 1 1 auto;

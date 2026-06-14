@@ -216,10 +216,17 @@ if ($hasHistoric) {
 
 <?php // ── MAPA + BOČNÍ PANEL ────────────────────────────────────────────── ?>
 <div class="mapa-layout">
+  <button type="button" id="ms-expand" class="ms-expand" aria-controls="mapa-sidebar" aria-expanded="true"
+          aria-label="<?= $esc($lang['mapa_zobrazit_panel'] ?? 'Zobrazit panel') ?>">
+    <span aria-hidden="true">&#9776;</span> <?= $esc($lang['mapa_panel'] ?? 'Panel') ?>
+  </button>
   <aside id="mapa-sidebar" aria-label="<?= $esc($lang['mapa_linky'] ?? 'Linky') ?>">
     <div class="ms-modes" role="tablist">
       <button type="button" data-mode="lines" class="ms-mode is-on"><?= $esc($lang['mapa_linky'] ?? 'Linky') ?></button>
       <button type="button" data-mode="stops" class="ms-mode"><?= $esc($lang['mapa_zastavky'] ?? 'Zastávky') ?></button>
+      <button type="button" id="ms-collapse" class="ms-collapse" aria-controls="mapa-sidebar" aria-expanded="true"
+              title="<?= $esc($lang['mapa_skryt_panel'] ?? 'Skrýt panel') ?>"
+              aria-label="<?= $esc($lang['mapa_skryt_panel'] ?? 'Skrýt panel') ?>">&laquo;</button>
     </div>
 
     <div class="ms-search">

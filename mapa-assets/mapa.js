@@ -120,6 +120,8 @@
 
     map = L.map(elMap, { preferCanvas: true, zoomControl: true })
             .setView(LIBEREC, 12);
+    // zoom doprava nahoru, ať se nepere s plovoucím tlačítkem „zobrazit panel" vlevo
+    if (map.zoomControl) map.zoomControl.setPosition("topright");
     baseLayer = L.tileLayer(TILE.url, TILE.options).addTo(map);
 
     routeLayer = L.layerGroup().addTo(map);
@@ -780,6 +782,18 @@
     });
   }
 
+  // skrytí / zobrazení bočního panelu (víc místa pro mapu, hlavně na mobilu)
+  function setSidebar(collapsed) {
+    var layout = document.querySelector(".mapa-layout");
+    if (!layout) return;
+    layout.classList.toggle("ms-collapsed", collapsed);
+    var hideBtn = document.getElementById("ms-collapse");
+    var showBtn = document.getElementById("ms-expand");
+    if (hideBtn) hideBtn.setAttribute("aria-expanded", String(!collapsed));
+    if (showBtn) showBtn.setAttribute("aria-expanded", String(!collapsed));
+    if (map) map.invalidateSize();   // Leaflet musí přepočítat velikost kontejneru
+  }
+
   // přepnutí panelu mezi režimy Linky / Zastávky
   function setMode(m) {
     resetView();          // klik na tab z detailu (zastávka/spoj/linka) → zpět na přehled
@@ -1090,6 +1104,11 @@
     Array.prototype.forEach.call(document.querySelectorAll(".ms-mode"), function (btn) {
       btn.addEventListener("click", function () { setMode(btn.dataset.mode); });
     });
+
+    var elCollapse = document.getElementById("ms-collapse");
+    if (elCollapse) elCollapse.addEventListener("click", function () { setSidebar(true); });
+    var elExpand = document.getElementById("ms-expand");
+    if (elExpand) elExpand.addEventListener("click", function () { setSidebar(false); });
 
     if (elSearch) {
       elSearch.addEventListener("input", function () {
