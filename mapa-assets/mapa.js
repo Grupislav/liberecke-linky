@@ -1020,6 +1020,8 @@
   // vrať na vybranou zastávku (nebo schovej)
   function previewStop(sid, on) {
     setStopPin(on ? sid : focusedStopId);
+    var m = stopMarker[sid];               // ukaž i název zastávky (hover v seznamu)
+    if (m) { if (on) m.openTooltip(); else m.closeTooltip(); }
   }
 
   // ── přepínání panelu detail / browse ─────────────────────────────

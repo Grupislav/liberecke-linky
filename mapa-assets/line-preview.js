@@ -54,7 +54,7 @@
 
   Promise.all([
     previews.length ? getJSON("shapes.json", null) : Promise.resolve(null),
-    stopLists.length ? getJSON("routes.json", null) : Promise.resolve(null),
+    (previews.length || stopLists.length) ? getJSON("routes.json", null) : Promise.resolve(null),
     getJSON("stops.json", null),
     getJSON("legacy-routes.json", []),
     previews.length ? getJSON("legacy-shapes.json", {}) : Promise.resolve({}),
@@ -83,16 +83,39 @@
       return null;
     }
 
-    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes);
+    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById);
     if (stopLists.length) renderStopLists(routes, stopById, resolveTarget);
   });
 
   // ── náhledy trasy ──────────────────────────────────────────────────
-  function renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes) {
+  function renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById) {
     var feats = ((shapesGeo && shapesGeo.features) || []).filter(function (f) {
       return f.geometry && f.geometry.coordinates && f.geometry.coordinates.length;
     });
     if (!feats.length) return;
+
+    var routeByShort = {};
+    (routes || []).forEach(function (r) { routeByShort[r.short_name] = r; });
+    // zastávky provozní linky (z routes.json → souřadnice z stops.json), bez duplicit
+    function shapeStops(sel) {
+      var route = routeByShort[sel], seen = {}, out = [];
+      (route && route.stops || []).forEach(function (id) {
+        if (seen[id]) return; seen[id] = 1;
+        var s = stopById && stopById[id];
+        if (s) out.push({ c: [s.lon, s.lat], name: s.name });
+      });
+      return out;
+    }
+    // zastávky linky mimo provoz (názvy/souřadnice z legacy-routes.json)
+    function legacyStops(lr) {
+      return (lr.stops || []).map(function (e) {
+        var name = (e && typeof e === "object") ? e.name : e;
+        var st = stopByName[norm(name)];
+        if (st && st.lon != null) return { c: [st.lon, st.lat], name: st.name };
+        if (e && typeof e === "object" && e.lat != null && e.lon != null) return { c: [e.lon, e.lat], name: name };
+        return null;
+      }).filter(Boolean);
+    }
 
     var bb = bbox(feats);
     var kx = Math.cos(((bb.minY + bb.maxY) / 2) * Math.PI / 180);
@@ -108,7 +131,7 @@
     Array.prototype.forEach.call(previews, function (a) {
       var sel = alias(a.getAttribute("data-linka"));
       if (feats.some(function (f) { return f.properties.short_name === sel; })) {
-        renderSvg(a, feats, proj, { kind: "shape", sel: sel });
+        renderSvg(a, feats, proj, { kind: "shape", sel: sel, stops: shapeStops(sel) });
         return;
       }
       var lr = legacyByShort[sel] || legacyByShort[a.getAttribute("data-linka")];
@@ -126,10 +149,52 @@
         }
         if (coords && coords.length >= 2) {
           var color = lr.type === "tram" ? "#cc2900" : "#007db3";
-          renderSvg(a, feats, proj, { kind: "legacy", coords: coords, color: color });
+          renderSvg(a, feats, proj, { kind: "legacy", coords: coords, color: color, stops: legacyStops(lr) });
         }
       }
     });
+
+    // hover nad zastávkou v seznamu → zvýrazni kolečko v náhledu a ukaž název
+    Array.prototype.forEach.call(previews, function (a) {
+      if (a.querySelector(".lmp-svg")) wirePreviewHover(a);
+    });
+  }
+
+  function wirePreviewHover(a) {
+    var row = a.closest ? a.closest(".row") : null;
+    var list = row ? row.querySelector(".line-stops") : null;
+    var svg = a.querySelector(".lmp-svg");
+    if (!list || !svg) return;
+    var byName = {};
+    Array.prototype.forEach.call(svg.querySelectorAll(".lmp-stop"), function (c) {
+      byName[c.getAttribute("data-sn")] = c;
+    });
+    list.addEventListener("mouseover", function (e) { hoverPreviewStop(svg, byName, e.target, true); });
+    list.addEventListener("mouseout", function (e) { hoverPreviewStop(svg, byName, e.target, false); });
+  }
+  function clearPreviewHover(svg) {
+    Array.prototype.forEach.call(svg.querySelectorAll(".lmp-stop-hi"), function (c) { c.classList.remove("lmp-stop-hi"); });
+    var old = svg.querySelector('text[data-lbl="1"]');
+    if (old) old.parentNode.removeChild(old);
+  }
+  function hoverPreviewStop(svg, byName, target, on) {
+    var li = target.closest ? target.closest("li") : null;
+    if (!li) return;
+    clearPreviewHover(svg);
+    if (!on) return;
+    var c = byName[norm(li.textContent)];
+    if (!c) return;
+    c.classList.add("lmp-stop-hi");
+    var x = +c.getAttribute("cx"), y = +c.getAttribute("cy");
+    var t = document.createElementNS(SVG_NS, "text");
+    t.setAttribute("class", "lmp-stoplabel");
+    t.setAttribute("data-lbl", "1");
+    t.setAttribute("y", (y + 3.5).toFixed(1));
+    if (x > W * 0.66) { t.setAttribute("x", (x - 6).toFixed(1)); t.setAttribute("text-anchor", "end"); }
+    else { t.setAttribute("x", (x + 6).toFixed(1)); }
+    var title = c.querySelector("title");
+    t.textContent = title ? title.textContent : "";
+    svg.appendChild(t);
   }
 
   // ── seznam zastávek ────────────────────────────────────────────────
@@ -229,18 +294,37 @@
       });
     });
 
+    var lineColor;
     if (hi.kind === "shape") {
       feats.filter(function (f) { return f.properties.short_name === hi.sel; }).forEach(function (f) {
-        var color = TILE_COLORS[f.properties.short_name] || f.properties.color || "#0078c8";
+        lineColor = TILE_COLORS[f.properties.short_name] || f.properties.color || "#0078c8";
         f.geometry.coordinates.forEach(function (ln) {
-          var pl = polyline(ln, proj, color, 3.5, 1);
+          var pl = polyline(ln, proj, lineColor, 3.5, 1);
           if (pl) svg.appendChild(pl);
         });
       });
     } else { // legacy – čárkovaná spojnice zastávek
+      lineColor = hi.color;
       var pl = polyline(hi.coords, proj, hi.color, 3.5, 1, "7 6");
       if (pl) svg.appendChild(pl);
     }
+
+    // zastávky linky – kroužky s názvem na hover (nativní <title>)
+    (hi.stops || []).forEach(function (st) {
+      var c = document.createElementNS(SVG_NS, "circle");
+      c.setAttribute("cx", proj.x(st.c).toFixed(1));
+      c.setAttribute("cy", proj.y(st.c).toFixed(1));
+      c.setAttribute("r", "2.6");
+      c.setAttribute("class", "lmp-stop");
+      c.setAttribute("fill", "#fff");
+      c.setAttribute("stroke", lineColor || "#0078c8");
+      c.setAttribute("stroke-width", "1.4");
+      c.setAttribute("data-sn", norm(st.name));    // pro spárování s hoverem v seznamu zastávek
+      var t = document.createElementNS(SVG_NS, "title");
+      t.textContent = st.name;
+      c.appendChild(t);
+      svg.appendChild(c);
+    });
 
     a.insertBefore(svg, a.firstChild);
     a.classList.add("is-ready");

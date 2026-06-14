@@ -47,6 +47,15 @@ body{ color: #34495e; background: white; font-family: "Lucida Grande", "Lucida S
 }
 .line-map-preview.is-ready .lmp-label { position: absolute; left: 10px; bottom: 10px; font-size: 12px; padding: 5px 9px; }
 .line-map-preview:hover .lmp-label { background: #23475f; }
+/* zastávky v náhledu – název na hover (nativní <title>), kroužek se zvýrazní */
+.line-map-preview .lmp-stop { cursor: pointer; transition: r .1s ease; }
+.line-map-preview .lmp-stop:hover,
+.line-map-preview .lmp-stop-hi { r: 4.2; stroke-width: 2; }
+/* popisek názvu zastávky v náhledu při hoveru v seznamu (bílý obrys pro čitelnost) */
+.line-map-preview .lmp-stoplabel {
+  font-size: 11px; font-weight: 600; fill: #23323c;
+  stroke: #fff; stroke-width: 3px; paint-order: stroke; pointer-events: none;
+}
 
 /* dynamicky generovaný seznam zastávek v záložce Přehled (z GTFS) – odrážky jako na mapě */
 .line-stops .ls-list { list-style: none; margin: 0; padding: 0; }
