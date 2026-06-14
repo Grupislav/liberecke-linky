@@ -39,7 +39,7 @@ $lang['mapa_iframe_title'] = 'Map for route %s';
 // Network map page (mapa.php / mapa.js)
 $lang['mapa_linky']          = 'Routes';
 $lang['mapa_nav']            = 'Live map';
-$lang['mapa_titulek']        = 'Live transit map – Liberec & Jablonec n. N. | Liberec Routes';
+$lang['mapa_titulek']        = 'Live transit map – Liberec | Liberec Routes';
 $lang['mapa_popis']          = 'Interactive map of public transit routes and stops in Liberec and Jablonec nad Nisou, based on open data (GTFS).';
 $lang['mapa_pozn_poloha']    = 'Vehicle positions are approximate, based on the timetable – no public GPS data is available.';
 $lang['mapa_hledat']         = 'Search a route or stop…';

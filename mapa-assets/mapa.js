@@ -244,10 +244,18 @@
     var today = activeServices(now.ymd, now.wd);
     var pv = prevDay(now.ymd, now.wd);
     var yest = activeServices(pv.ymd, pv.wd);
+    var list = [];
     TT.trips.forEach(function (tr) {
       if (!vehiclePassesFilter(tr)) return;
-      if (today[tr.s]) placeVehicle(tr, now.sec);
-      if (yest[tr.s]) placeVehicle(tr, now.sec + 86400);   // spoje po půlnoci (služba včerejška)
+      if (today[tr.s]) collectVehicle(tr, now.sec, list);
+      if (yest[tr.s]) collectVehicle(tr, now.sec + 86400, list);   // spoje po půlnoci (služba včerejška)
+    });
+    // víc vozidel v jedné zastávce → rozprostři je do vějíře, ať se nepřekrývají
+    var byStop = {};
+    list.forEach(function (v) { (byStop[v.si] || (byStop[v.si] = [])).push(v); });
+    Object.keys(byStop).forEach(function (k) {
+      var g = byStop[k];
+      g.forEach(function (v, i) { drawVehicle(v, g.length, i); });
     });
   }
 
@@ -277,24 +285,38 @@
     var p = positionAt(tr, t); p.t = t; return p;
   }
 
-  // umísti vozidlo do zastávky, kde podle JŘ právě je
-  function placeVehicle(tr, t) {
+  // zjisti polohu vozidla (zastávku, kde podle JŘ právě je) a ulož ji k vykreslení
+  function collectVehicle(tr, t, list) {
     if (!inWindow(tr, t)) return;
-    var u = tr.u, p = positionAt(tr, t), s = stops[u[p.i][0]];
+    var u = tr.u, p = positionAt(tr, t), si = u[p.i][0], s = stops[si];
     if (!s) return;
     var bearing = null;
     if (!p.terminus && p.nextIdx >= 0) {
       var ns = stops[p.nextIdx];
       if (ns) bearing = bearingDeg([s.lat, s.lon], [ns.lat, ns.lon]);
     }
-    var color = tr.m === "tram" ? "#cc2900" : "#007db3";
+    list.push({ tr: tr, s: s, si: si, bearing: bearing });
+  }
+
+  // překryv ve stejné zastávce: 1 vozidlo na střed, víc do kružnice kolem ní
+  function fanLatLng(s, n, i) {
+    if (n <= 1) return [s.lat, s.lon];
+    var R = 0.00012 + 0.00004 * Math.min(n - 1, 6);    // poloměr roste s počtem (~13–40 m)
+    var a = (i / n) * 2 * Math.PI;
+    return [s.lat + R * Math.cos(a), s.lon + R * Math.sin(a) / Math.cos(s.lat * Math.PI / 180)];
+  }
+
+  function drawVehicle(v, n, i) {
+    var tr = v.tr, s = v.s, rr = routeByShort[tr.r];
+    var color = rr ? routeColor(rr) : (tr.m === "tram" ? "#cc2900" : "#007db3");   // barva dle kategorie linky
     var icon = L.divIcon({
-      className: "ms-veh", html: vehicleSvg(color, bearing),
-      iconSize: [30, 30], iconAnchor: [15, 15]
+      className: "ms-veh", html: vehicleSvg(color, v.bearing),
+      iconSize: [36, 36], iconAnchor: [18, 18]
     });
-    var m = L.marker([s.lat, s.lon], { icon: icon, keyboard: false, riseOnHover: true });
-    m.bindTooltip("<span class='ms-badge' style='background:" + color + "'>" + esc(tr.r) + "</span> &rarr; " +
-                  esc(tr.h) + "<br><span class='ms-veh-stop'>" + esc(s.name) + "</span>", { direction: "top" });
+    var m = L.marker(fanLatLng(s, n, i), { icon: icon, keyboard: false, riseOnHover: true });
+    // badge „linka → CÍL" jako reálný ukazatel; pod ním aktuální (poslední) zastávka
+    m.bindTooltip("<span class='ms-veh-dest' style='background:" + color + "'>" + esc(tr.r) + " &rarr; " +
+                  esc(tr.h) + "</span><br><span class='ms-veh-stop'>" + esc(s.name) + "</span>", { direction: "top" });
     m.on("mouseover", function () { hoverTrip = tr; showTripView(tr); });
     m.on("mouseout", function () { hoverTrip = null; if (focusedTrip) showTripView(focusedTrip); else hideTripView(); });
     m.on("click", function () { focusTrip(tr); });
@@ -304,9 +326,9 @@
   function vehicleSvg(color, bearing) {
     var rot = (bearing == null) ? "" : ' style="transform:rotate(' + bearing.toFixed(0) + 'deg)"';
     var arrow = (bearing == null) ? ""    // konečná → bez šipky; jinak šipka k další zastávce
-      : '<path d="M15 0 L22 12 L8 12 Z" fill="' + color + '"/>';
-    return '<div class="ms-veh-i"' + rot + '><svg viewBox="0 0 30 30" width="30" height="30">' +
-           arrow + '<circle cx="15" cy="15" r="8" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
+      : '<path d="M18 0 L27 15 L9 15 Z" fill="' + color + '"/>';
+    return '<div class="ms-veh-i"' + rot + '><svg viewBox="0 0 36 36" width="36" height="36">' +
+           arrow + '<circle cx="18" cy="18" r="8.5" fill="' + color + '" stroke="#fff" stroke-width="2"/>' +
            "</svg></div>";
   }
 

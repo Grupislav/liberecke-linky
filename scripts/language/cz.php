@@ -39,7 +39,7 @@ $lang['mapa_iframe_title'] = 'Mapa linky %s';
 // stránka Mapa sítě (mapa.php / mapa.js)
 $lang['mapa_linky']          = 'Linky';
 $lang['mapa_nav']            = 'Živá mapa';
-$lang['mapa_titulek']        = 'Živá mapa MHD Liberec a Jablonec n. N. | Liberecké linky';
+$lang['mapa_titulek']        = 'Živá mapa MHD Liberec | Liberecké linky';
 $lang['mapa_popis']          = 'Interaktivní mapa linek a zastávek MHD v Liberci a Jablonci nad Nisou nad otevřenými daty (GTFS).';
 $lang['mapa_pozn_poloha']    = 'Polohy vozidel jsou orientační, podle jízdního řádu – veřejná GPS data nejsou k dispozici.';
 $lang['mapa_hledat']         = 'Hledat linku nebo zastávku…';
