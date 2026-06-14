@@ -137,6 +137,17 @@ if ($hasHistoric) {
   <link rel="icon" href="<?= $esc($faviconHref) ?>" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="<?= $esc($canonical) ?>">
+  <?php $__ogImg = 'https://' . $__host . ($__appBase === '' ? '' : $__appBase) . '/mapa-assets/og-mapa.jpg'; ?>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Liberecké linky">
+  <meta property="og:locale" content="<?= $l === 'en' ? 'en_US' : 'cs_CZ' ?>">
+  <meta property="og:title" content="<?= $esc($lang['mapa_titulek'] ?? 'Živá mapa MHD Liberec') ?>">
+  <meta property="og:description" content="<?= $esc($lang['mapa_popis'] ?? '') ?>">
+  <meta property="og:url" content="<?= $esc($canonical) ?>">
+  <meta property="og:image" content="<?= $esc($__ogImg) ?>">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <script type="application/ld+json"><?= json_encode([
     "@context" => "https://schema.org", "@type" => "WebApplication",
     "name" => $lang['mapa_titulek'] ?? 'Mapa linek MHD',

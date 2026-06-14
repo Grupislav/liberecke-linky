@@ -49,6 +49,17 @@ $esc = static function ($s) {
   <link rel="icon" href="<?= htmlspecialchars($faviconHref, ENT_QUOTES, 'UTF-8') ?>" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <link rel="canonical" href="<?= $esc($canonical) ?>">
+  <?php $__ogImg = 'https://' . $__host . ($__appBase === '' ? '' : $__appBase) . '/mapa-assets/og-mapa.jpg'; ?>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Liberecké linky">
+  <meta property="og:locale" content="<?= $l === 'en' ? 'en_US' : 'cs_CZ' ?>">
+  <meta property="og:title" content="<?= $esc($lang['titulekstranky'] ?? 'Liberecké linky') ?>">
+  <meta property="og:description" content="<?= $esc($lang['popisstranky'] ?? '') ?>">
+  <meta property="og:url" content="<?= $esc($canonical) ?>">
+  <meta property="og:image" content="<?= $esc($__ogImg) ?>">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <!-- Schema.org -->
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"<?= $esc($lang['titulekstranky'] ?? 'Liberecké linky') ?>","description":"<?= $esc($lang['popisstranky'] ?? '') ?>","url":"<?= $esc($canonical) ?>","inLanguage":"<?= $l === 'en' ? 'en' : 'cs' ?>"}</script>
   <!-- CSS + ikony -->
