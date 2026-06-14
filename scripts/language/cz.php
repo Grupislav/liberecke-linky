@@ -28,6 +28,10 @@ $lang['historiecekana']     = "Historie linky čeká na své zpracování.";
 $lang['videocakana']        = "Video linky čeká na své zpracování.";
 $lang['mistopiscekana']     = "Místopisný článek čeká na své zpracování.";
 $lang['fotogaleriecekana']  = "Fotogalerie čeká na své zpracování nebo nejsou známy fotografie této linky. Pokud nějaké máte, <a href='mailto:info@tomaskrupicka.cz'>kontaktujte mě prosím</a>.";
+// Šablonové texty z DB sloupce fotogalerie (lokalizace přes strtr ve fotogalerie.php).
+$lang['fotogalerie_klik']   = "Pro zobrazení galerie klikněte zde";
+$lang['fotogalerie_nejsou'] = "Bohužel nejsou známy fotografie této linky. Pokud nějaké máte a můžete je sdílet <a href='mailto:info@tomaskrupicka.cz'>kontaktujte mě prosím</a>.";
+$lang['fotogalerie_alt']    = "Fotografie linky";
 
 // chyby DB / AJAX
 $lang['err_db']            = 'Došlo k chybě při připojení k databázi. Zkuste to prosím později.';

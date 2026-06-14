@@ -28,6 +28,10 @@ $lang['historiecekana']    = "The route history is yet to be written.";
 $lang['videocakana']       = "The route video is yet to be added.";
 $lang['mistopiscekana']    = "The local geography article is yet to be added.";
 $lang['fotogaleriecekana'] = "The photo gallery is not available yet. If you have photos of this route, please <a href='mailto:info@tomaskrupicka.cz'>contact me</a>.";
+// Template texts from the DB fotogalerie column (localized via strtr in fotogalerie.php).
+$lang['fotogalerie_klik']   = "Click here to view the gallery";
+$lang['fotogalerie_nejsou'] = "Unfortunately, no photographs of this line are known. If you have any and can share them, please <a href='mailto:info@tomaskrupicka.cz'>get in touch</a>.";
+$lang['fotogalerie_alt']    = "Photo of line";
 
 // DB / AJAX errors
 $lang['err_db']           = 'Could not connect to the database. Please try again later.';

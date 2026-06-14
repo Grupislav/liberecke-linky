@@ -24,9 +24,14 @@ $esc = static function ($s) {
 
 $__host = $_SERVER['HTTP_HOST'] ?? 'tomaskrupicka.cz';
 $__req  = $_SERVER['REQUEST_URI'] ?? '';
-$canonical = $__req !== ''
-    ? 'https://' . $__host . preg_replace('/\?.*/', '', $__req)
-    : 'https://' . $__host . ($__appBase === '' ? '/mapa' : $__appBase . '/mapa');
+$__path = $__req !== ''
+    ? preg_replace('/\?.*/', '', $__req)
+    : ($__appBase === '' ? '/mapa' : $__appBase . '/mapa');
+// Absolutní URL pro daný jazyk (cz = výchozí, bez ?ja). Pro canonical i hreflang.
+$__seoUrl = static function (string $langCode) use ($__host, $__path): string {
+    return 'https://' . $__host . $__path . ($langCode !== 'cz' ? '?ja=' . rawurlencode($langCode) : '');
+};
+$canonical = $__seoUrl($l);
 
 // strings předané do JS (i18n)
 $jsLang = [
@@ -137,6 +142,15 @@ if ($hasHistoric) {
   <link rel="icon" href="<?= $esc($faviconHref) ?>" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="canonical" href="<?= $esc($canonical) ?>">
+  <?php
+  // hreflang alternativy – ať se jazykové verze indexují samostatně (cz = x-default).
+  $__hreflangMap = ['cz' => 'cs', 'en' => 'en'];
+  foreach ($jazyky as $__code => $__x) {
+      $__hl = $__hreflangMap[$__code] ?? $__code;
+      echo '  <link rel="alternate" hreflang="' . $esc($__hl) . '" href="' . $esc($__seoUrl($__code)) . "\">\n";
+  }
+  ?>
+  <link rel="alternate" hreflang="x-default" href="<?= $esc($__seoUrl('cz')) ?>">
   <?php $__ogImg = 'https://' . $__host . ($__appBase === '' ? '' : $__appBase) . '/mapa-assets/og-mapa.jpg'; ?>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Liberecké linky">

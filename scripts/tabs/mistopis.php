@@ -28,7 +28,8 @@ if (!$conn) {
 mysqli_set_charset($conn, "utf8");
 
 // 3) Prepared statement
-$sql  = "SELECT mistopis FROM texty WHERE linka = ?";
+$col  = ($l === 'en') ? "COALESCE(NULLIF(mistopis_en, ''), mistopis)" : "mistopis";
+$sql  = "SELECT $col AS mistopis FROM texty WHERE linka = ?";
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
     mysqli_close($conn);

@@ -152,6 +152,34 @@ function fetch_line_kods_db($server, $user, $pass, $db): array {
 }
 
 /**
+ * Je daná linka kompletně přeložená do EN? (všechny _en sloupce vyplněné).
+ * Slouží k rozhodnutí o noindex a hreflang u anglických stránek.
+ * Graceful: při chybě/chybějících sloupcích (ještě neproběhla migrace) vrací false.
+ */
+function line_has_en_db($server, $user, $pass, $db, string $linka): bool {
+    if ($server === null || $user === null || $db === null) return false;
+    $conn = @mysqli_connect($server, $user, $pass, $db);
+    if (!$conn) return false;
+    mysqli_set_charset($conn, 'utf8');
+    $ok = false;
+    $sql = "SELECT 1 FROM texty WHERE linka = ?
+              AND TRIM(COALESCE(funkce_en, ''))       <> ''
+              AND TRIM(COALESCE(historie_en, ''))     <> ''
+              AND TRIM(COALESCE(pohledridice_en, '')) <> ''
+              AND TRIM(COALESCE(mistopis_en, ''))     <> '' LIMIT 1";
+    if ($stmt = @mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, "s", $linka);
+        if (@mysqli_stmt_execute($stmt)) {
+            mysqli_stmt_store_result($stmt);
+            $ok = mysqli_stmt_num_rows($stmt) > 0;
+        }
+        mysqli_stmt_close($stmt);
+    }
+    mysqli_close($conn);
+    return $ok;
+}
+
+/**
  * Seznam zastávek linek mimo provoz z DB (sloupec `zastavky`, HTML <li>).
  * Vrací linka -> [názvy zastávek]. Pro detail na mapě, kde DB není po ruce.
  */

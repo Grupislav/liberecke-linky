@@ -32,7 +32,9 @@ if (!$conn) {
 mysqli_set_charset($conn, "utf8");
 
 // 3) Prepared statement
-$sql = "SELECT t.trasa, t.zastavky, t.funkce, tl.kod AS kategorie
+// trasa i zastavky zůstávají česky (názvy zastávek), překládá se jen funkce.
+$funkceCol = ($l === 'en') ? "COALESCE(NULLIF(t.funkce_en, ''), t.funkce)" : "t.funkce";
+$sql = "SELECT t.trasa, t.zastavky, $funkceCol AS funkce, tl.kod AS kategorie
         FROM texty t LEFT JOIN typy_linek tl ON tl.id = t.typ_linky_id
         WHERE t.linka = ?";
 $stmt = mysqli_prepare($conn, $sql);

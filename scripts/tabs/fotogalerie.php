@@ -28,7 +28,8 @@ if (!$conn) {
 mysqli_set_charset($conn, "utf8");
 
 // 3) Prepared statement
-$sql  = "SELECT fotogalerie FROM texty WHERE linka = ?";
+$col  = ($l === 'en') ? "COALESCE(NULLIF(fotogalerie_en, ''), fotogalerie)" : "fotogalerie";
+$sql  = "SELECT $col AS fotogalerie FROM texty WHERE linka = ?";
 $stmt = mysqli_prepare($conn, $sql);
 if (!$stmt) {
     mysqli_close($conn);
@@ -53,11 +54,18 @@ mysqli_close($conn);
 // 4) Výstup
 $galHtml = $row['fotogalerie'] ?? '';
 
+// Lokalizace šablonových textů uložených natvrdo v DB (česky). Klíče jsou
+// české zdrojové řetězce; v cz jsou hodnoty totožné (no-op), v en se přeloží.
+$galHtml = strtr($galHtml, [
+    'Pro zobrazení galerie klikněte zde' => $lang['fotogalerie_klik'],
+    "Bohužel nejsou známy fotografie této linky. Pokud nějaké máte a můžete je sdílet <a href='mailto:info@tomaskrupicka.cz'>kontaktujte mě prosím</a>." => $lang['fotogalerie_nejsou'],
+]);
+
 if ($galHtml === '' || trim(strip_tags($galHtml)) === '') {
     echo "<p>" . ($lang['fotogaleriecekana']) . "</p>";
 } else {
     // doplnit alt obrázkům bez alt atributu
-    $altFallback = 'Fotografie linky ' . htmlspecialchars($linka, ENT_QUOTES, 'UTF-8');
+    $altFallback = $lang['fotogalerie_alt'] . ' ' . htmlspecialchars($linka, ENT_QUOTES, 'UTF-8');
     $galHtml = preg_replace_callback('/<img(?=[^>]*)((?![^>]*\balt=)[^>]*)>/i', function ($m) use ($altFallback) {
         return '<img' . $m[1] . ' alt="' . $altFallback . '">';
     }, $galHtml);

@@ -16,18 +16,54 @@ function keep_params(array $extra = []): string {
     return '?' . http_build_query($params);
 }
 
+// Vybraná linka z URL (stejná validace jako v tabech) – pro canonical i <title>.
+$selLinka = null;
+$__rawLinka = trim((string)($_GET['linka'] ?? ''));
+if ($__rawLinka !== '' && preg_match('/^(?:[A-Za-z]|[0-9]{1,4})$/', $__rawLinka)) {
+    $selLinka = ctype_alpha($__rawLinka) ? strtoupper($__rawLinka) : $__rawLinka;
+}
+
+// Je vybraná linka přeložená do EN? Pokud ne, EN stránka se nebude indexovat
+// a na CZ stránce nenabízíme EN hreflang (jinak by Google dostal CZ obsah jako EN).
+$enReady = true;
+if ($selLinka !== null) {
+    $enReady = line_has_en_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null, $selLinka);
+}
+
 $__host = $_SERVER['HTTP_HOST'] ?? 'tomaskrupicka.cz';
 $__req  = $_SERVER['REQUEST_URI'] ?? '';
 if ($__req !== '') {
-    $canonical = 'https://' . $__host . preg_replace('/\?.*/', '', $__req);
+    $__path = preg_replace('/\?.*/', '', $__req);
 } else {
     $__b = isset($appBasePath) ? rtrim((string)$appBasePath, '/') : '';
-    $canonical = 'https://' . $__host . ($__b === '' ? '/' : $__b . '/');
+    $__path = $__b === '' ? '/' : $__b . '/';
 }
+// Sestaví absolutní URL pro daný jazyk (cz = výchozí, bez ?ja). Pro canonical i hreflang.
+$__seoUrl = static function (string $langCode) use ($__host, $__path, $selLinka): string {
+    $q = [];
+    if ($selLinka !== null) $q['linka'] = $selLinka;
+    if ($langCode !== 'cz')  $q['ja']    = $langCode;
+    return 'https://' . $__host . $__path . ($q ? '?' . http_build_query($q) : '');
+};
+// Canonical per linka i jazyk: každá kombinace má vlastní URL, ne duplicitu homepage.
+$canonical = $__seoUrl($l);
 
 $esc = static function ($s) {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 };
+
+// Per-linka <title> a popis (jinak obecné). Název trasy z routes.json (jen aktivní linky).
+$pageTitle = $lang['titulekstranky'];
+$pageDesc  = $lang['popisstranky'];
+if ($selLinka !== null) {
+    $__routeName = line_route_longname($selLinka);
+    $__linkaLbl  = ($l === 'en' ? 'Line ' : 'Linka ') . $selLinka
+                 . ($__routeName ? ' — ' . $__routeName : '');
+    $pageTitle = $__linkaLbl . ' | ' . ($lang['hlavninadpis'] ?? 'Liberecké linky');
+    $pageDesc  = $l === 'en'
+        ? $__linkaLbl . ": overview, history, driver's view and local geography of Liberec public transit."
+        : $__linkaLbl . ": přehled, historie, pohled řidiče a místopis liberecké MHD.";
+}
 ?>
 <!DOCTYPE html>
 <html lang="<?= htmlspecialchars($l, ENT_QUOTES, 'UTF-8') ?>">
@@ -43,25 +79,39 @@ $esc = static function ($s) {
   <?php endif; ?>
 
   <meta charset="UTF-8">
-  <title><?= htmlspecialchars($lang['titulekstranky'], ENT_QUOTES, 'UTF-8') ?></title>
-  <meta name="description" content="<?= htmlspecialchars($lang['popisstranky'], ENT_QUOTES, 'UTF-8') ?>">
+  <title><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></title>
+  <meta name="description" content="<?= htmlspecialchars($pageDesc, ENT_QUOTES, 'UTF-8') ?>">
   <meta name="author" content="Tomáš Krupička (https://tomaskrupicka.cz)">
   <link rel="icon" href="<?= htmlspecialchars($faviconHref, ENT_QUOTES, 'UTF-8') ?>" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<?php if ($l === 'en' && !$enReady): ?>
+  <meta name="robots" content="noindex,follow">
+<?php endif; ?>
   <link rel="canonical" href="<?= $esc($canonical) ?>">
+  <?php
+  // hreflang alternativy – ať se jazykové verze indexují samostatně (cz = x-default).
+  // EN alternativu vynecháme u linky, která ještě nemá anglický překlad.
+  $__hreflangMap = ['cz' => 'cs', 'en' => 'en'];
+  foreach ($jazyky as $__code => $__x) {
+      if ($__code === 'en' && !$enReady) continue;
+      $__hl = $__hreflangMap[$__code] ?? $__code;
+      echo '  <link rel="alternate" hreflang="' . $esc($__hl) . '" href="' . $esc($__seoUrl($__code)) . "\">\n";
+  }
+  ?>
+  <link rel="alternate" hreflang="x-default" href="<?= $esc($__seoUrl('cz')) ?>">
   <?php $__ogImg = 'https://' . $__host . ($__appBase === '' ? '' : $__appBase) . '/mapa-assets/og-mapa.jpg'; ?>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Liberecké linky">
   <meta property="og:locale" content="<?= $l === 'en' ? 'en_US' : 'cs_CZ' ?>">
-  <meta property="og:title" content="<?= $esc($lang['titulekstranky'] ?? 'Liberecké linky') ?>">
-  <meta property="og:description" content="<?= $esc($lang['popisstranky'] ?? '') ?>">
+  <meta property="og:title" content="<?= $esc($pageTitle) ?>">
+  <meta property="og:description" content="<?= $esc($pageDesc) ?>">
   <meta property="og:url" content="<?= $esc($canonical) ?>">
   <meta property="og:image" content="<?= $esc($__ogImg) ?>">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
   <!-- Schema.org -->
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"<?= $esc($lang['titulekstranky'] ?? 'Liberecké linky') ?>","description":"<?= $esc($lang['popisstranky'] ?? '') ?>","url":"<?= $esc($canonical) ?>","inLanguage":"<?= $l === 'en' ? 'en' : 'cs' ?>"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"<?= $esc($pageTitle) ?>","description":"<?= $esc($pageDesc) ?>","url":"<?= $esc($canonical) ?>","inLanguage":"<?= $l === 'en' ? 'en' : 'cs' ?>"}</script>
   <!-- CSS + ikony -->
   <link rel="stylesheet" href="css/css.css<?= av('css/css.css') ?>" type="text/css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
