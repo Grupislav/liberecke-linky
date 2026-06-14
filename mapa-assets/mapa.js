@@ -129,6 +129,7 @@
     drawStops();
     addLegacyRoutes(legacy, legacyShapes);   // linky mimo provoz (geometrie z legacy-shapes.json)
     applyZOrder();             // pořadí vrstev dle kategorie (tramvaje navrchu … mimo provoz dole)
+    refreshRouteStyles();      // výchozí stav (šedá síť) hned po načtení, ne až při první akci
     buildRouteList();
     buildStopList();
     bindUI();
