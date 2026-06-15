@@ -13,7 +13,8 @@
   var LEGACY_STOPS = (window.MAPA && window.MAPA.legacyStops) || {};  // linka mimo provoz -> [názvy z DB]
   var ZPRIO = (window.MAPA && window.MAPA.tilePriority) || {};
   var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
-  var DATA = BASE + "/mapa-assets/data/";
+  var SNAP = (window.MAPA && window.MAPA.snapshot) || false;   // historický snapshot (bez JŘ)
+  var DATA = (window.MAPA && window.MAPA.dataDir) || (BASE + "/mapa-assets/data/");
 
   // barva linky podle dlaždic (z DB); fallback na barvu z GTFS
   function rcolor(shortName, fallback) {
@@ -114,6 +115,7 @@
 
   // ── inicializace ─────────────────────────────────────────────────
   function init(shapes, meta, legacy, legacyShapes, history) {
+    if (SNAP) colorLines = true;   // snapshot = rovnou barevná síť (žádné „provozní vs. ostatní")
     routes.forEach(function (r) { routeById[r.id] = r; routeByShort[r.short_name] = r; });
     stops.forEach(function (s, i) { stopById[s.id] = s; stopByName[norm(s.name)] = s; stopIndexById[s.id] = i; });
     processHistory(history);
@@ -136,7 +138,8 @@
     buildStopList();
     bindUI();
     applyDeepLink();
-    loadTimetable();           // jízdní řád (vozidla + odjezdy) – až po vykreslení mapy
+    if (SNAP) addMapToggles();   // snapshot: jen přepínač „Barevné linky" (bez JŘ/vozidel)
+    else loadTimetable();        // živá mapa: jízdní řád (vozidla + odjezdy)
 
     if (meta && meta.valid_from && elMeta) {
       elMeta.textContent = fmtDate(meta.valid_from) + " – " + fmtDate(meta.valid_to);
@@ -341,13 +344,14 @@
       onAdd: function () {
         var div = L.DomUtil.create("div", "leaflet-bar ms-toggles");
         div.innerHTML =
-          '<label><input type="checkbox" data-t="veh"' + (vehOn ? " checked" : "") + "> " +
-          esc(T.vehicles || "Vozidla") + "</label>" +
+          (SNAP ? "" :   // ve snapshotu nejsou vozidla (žádný JŘ)
+            '<label><input type="checkbox" data-t="veh"' + (vehOn ? " checked" : "") + "> " +
+            esc(T.vehicles || "Vozidla") + "</label>") +
           '<label><input type="checkbox" data-t="col"' + (colorLines ? " checked" : "") + "> " +
           esc(T.colorLines || "Barevné linky") + "</label>";
         L.DomEvent.disableClickPropagation(div);
         var veh = div.querySelector('[data-t="veh"]');
-        veh.addEventListener("change", function () {
+        if (veh) veh.addEventListener("change", function () {
           vehOn = veh.checked;
           if (vehOn) { if (!map.hasLayer(vehLayer)) vehLayer.addTo(map); refreshVehicles(); }
           else { vehLayer.clearLayers(); if (map.hasLayer(vehLayer)) map.removeLayer(vehLayer); }

@@ -23,8 +23,9 @@ AddDefaultCharset UTF-8
   ExpiresDefault "access plus 1 hour"
 </IfModule>
 
-# Pretty URL pro mapu: /mapa -> mapa.php
+# Pretty URL pro mapu: /mapa -> mapa.php ; /mapa/<rok> -> historický snapshot sítě
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteRule ^mapa/([0-9]{4})/?$ mapa.php?rok=$1 [L,QSA]
   RewriteRule ^mapa/?$ mapa.php [L]
 </IfModule>

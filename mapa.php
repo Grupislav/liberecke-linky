@@ -69,6 +69,18 @@ $jsLang = [
     'tripSchedule' => $lang['mapa_jr_spoje']       ?? 'Jízdní řád spoje',
 ];
 
+// ── Historický snapshot sítě ────────────────────────────────────────────
+// /mapa/<rok> → ?rok=YYYY (rewrite). Existuje-li mapa-assets/data/<rok>/, jede
+// statický snapshot: bez DB (barvy/kategorie zapečené v datech) a bez JŘ.
+$snapRok    = (isset($_GET['rok']) && preg_match('/^[0-9]{4}$/', (string)$_GET['rok'])) ? (string)$_GET['rok'] : '';
+$isSnapshot = $snapRok !== '' && is_dir(__DIR__ . "/mapa-assets/data/$snapRok");
+if ($snapRok !== '' && !$isSnapshot) { http_response_code(404); }
+$dataSub = $isSnapshot ? "mapa-assets/data/$snapRok/" : "mapa-assets/data/";
+
+// DB-odvozené hodnoty (barvy/kategorie/legacy/aliasy/legenda) – jen pro živou mapu.
+$tileColors = $tilePriority = $tileCats = $legacyStops = $lineAliases = $legend = [];
+$hasHistoric = false;
+if (!$isSnapshot) {
 // Kategorie linek z DB (stejný dotaz jako dlaždice, sdílený přes fce.php).
 // Z kódu kategorie odvodíme barvu (shodnou s dlaždicemi) i pořadí vrstev.
 // Při nedostupné DB zůstanou pole prázdná → mapa spadne zpět na GTFS.
@@ -121,6 +133,7 @@ if ($legacyRaw) {
 if ($hasHistoric) {
     $legend[] = ['color' => $catColors['historicke'] ?? '#991f00', 'label' => $lang['mapa_kat_historicke'] ?? 'Historické'];
 }
+}  // konec if (!$isSnapshot)
 ?>
 <!DOCTYPE html>
 <html lang="<?= $esc($l) ?>">
@@ -136,7 +149,13 @@ if ($hasHistoric) {
   <?php endif; ?>
 
   <meta charset="UTF-8">
-  <title><?= $esc($lang['mapa_titulek'] ?? 'Mapa linek MHD Liberec a Jablonec n. N. | Liberecké linky') ?></title>
+  <?php
+  $__title = $isSnapshot
+      ? sprintf($lang['mapa_snap_titulek'] ?? 'Síť MHD Liberec %s | Liberecké linky', $snapRok)
+      : ($lang['mapa_titulek'] ?? 'Mapa linek MHD Liberec a Jablonec n. N. | Liberecké linky');
+  ?>
+  <title><?= $esc($__title) ?></title>
+  <?php if ($isSnapshot): ?><meta name="robots" content="noindex"><?php endif; ?>
   <meta name="description" content="<?= $esc($lang['mapa_popis'] ?? 'Interaktivní mapa linek a zastávek MHD v Liberci a Jablonci nad Nisou nad otevřenými daty (GTFS).') ?>">
   <meta name="author" content="Tomáš Krupička (https://tomaskrupicka.cz)">
   <link rel="icon" href="<?= $esc($faviconHref) ?>" type="image/png">
@@ -220,6 +239,12 @@ if ($hasHistoric) {
           aria-label="<?= $esc($lang['mapa_zobrazit_panel'] ?? 'Zobrazit panel') ?>">
     <span aria-hidden="true">&#9776;</span> <?= $esc($lang['mapa_panel'] ?? 'Panel') ?>
   </button>
+  <?php if ($isSnapshot): ?>
+  <div class="ms-snapbadge">
+    <?= $esc(sprintf($lang['mapa_snap_badge'] ?? 'Historická síť %s', $snapRok)) ?>
+    · <a href="<?= $esc($asset('mapa') . ($l !== 'cz' ? '?ja=' . rawurlencode($l) : '')) ?>"><?= $esc($lang['mapa_snap_live'] ?? 'živá mapa') ?></a>
+  </div>
+  <?php endif; ?>
   <aside id="mapa-sidebar" aria-label="<?= $esc($lang['mapa_linky'] ?? 'Linky') ?>">
     <div class="ms-modes" role="tablist">
       <button type="button" data-mode="lines" class="ms-mode is-on"><?= $esc($lang['mapa_linky'] ?? 'Linky') ?></button>
@@ -240,8 +265,10 @@ if ($hasHistoric) {
         <button type="button" data-filter="all" class="ms-chip is-on"><?= $esc($jsLang['all']) ?></button>
         <button type="button" data-filter="tram" class="ms-chip"><?= $esc($jsLang['tram']) ?></button>
         <button type="button" data-filter="bus" class="ms-chip"><?= $esc($jsLang['bus']) ?></button>
+        <?php if (!$isSnapshot): // mimo provoz / historické nemají v ročním snímku smysl ?>
         <button type="button" data-filter="legacy" class="ms-chip"><?= $esc($jsLang['legacy']) ?></button>
         <button type="button" data-filter="historicke" class="ms-chip"><?= $esc($jsLang['historic']) ?></button>
+        <?php endif; ?>
       </div>
       <ul id="ms-routes" class="ms-routes"></ul>
       <ul id="ms-stops" class="ms-routes" hidden></ul>
@@ -250,7 +277,7 @@ if ($hasHistoric) {
     <div class="ms-foot">
       <span id="ms-meta"></span>
       <span class="ms-src">Data: <a href="https://www.dpmlj.cz/opendata" target="_blank" rel="noopener">DPMLJ a.s.</a></span>
-      <span class="ms-note"><?= $esc($lang['mapa_pozn_poloha'] ?? '') ?></span>
+      <?php if (!$isSnapshot): ?><span class="ms-note"><?= $esc($lang['mapa_pozn_poloha'] ?? '') ?></span><?php endif; ?>
     </div>
   </aside>
 
@@ -279,7 +306,10 @@ if ($hasHistoric) {
 <script>
   window.MAPA = {
     base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>,
-    v:    <?= json_encode(@filemtime(__DIR__ . '/mapa-assets/data/meta.json') ?: 0) ?>,
+    dataDir: <?= json_encode(($__appBase === '' ? '' : $__appBase) . '/' . $dataSub, JSON_UNESCAPED_SLASHES) ?>,
+    snapshot: <?= json_encode($isSnapshot) ?>,
+    rok:  <?= json_encode($snapRok, JSON_UNESCAPED_SLASHES) ?>,
+    v:    <?= json_encode(@filemtime(__DIR__ . '/' . $dataSub . 'meta.json') ?: 0) ?>,
     ja:   <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>,
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tileCats: <?= json_encode($tileCats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
