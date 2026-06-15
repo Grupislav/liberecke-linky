@@ -403,7 +403,8 @@
     var n = hourCount > 10 ? Math.min(hourCount, 20) : Math.max(hourCount, 5);
     n = Math.min(n, all.length);
     var rows = all.slice(0, n).map(function (d) {
-      var color = d.tr.m === "tram" ? "#cc2900" : "#007db3";
+      var rr = routeByShort[d.tr.r];   // plná barevná paleta dle kategorie (ne jen tram/bus)
+      var color = rr ? routeColor(rr) : (d.tr.m === "tram" ? "#cc2900" : "#007db3");
       return '<li class="ms-dep"><span class="ms-dep-time">' + fmtTime(d.sec) + "</span>" +
              '<span class="ms-badge" style="background:' + color + '">' + esc(d.tr.r) + "</span>" +
              '<span class="ms-dep-head">' + esc(d.tr.h) + "</span></li>";
@@ -682,11 +683,17 @@
   // ── zastávky ─────────────────────────────────────────────────────
   function drawStops() {
     stops.forEach(function (s) {
+      // neviditelný větší terč pro snazší klik/tap (hlavně mobil); přidán první → vespod
+      var hit = L.circleMarker([s.lat, s.lon], { radius: 10, stroke: false, fill: true, fillOpacity: 0 });
+      hit.on("click", function () { focusStop(s.id); });
+      hit.bindTooltip(s.name, { direction: "top" });
+      hit.addTo(stopLayer);
+
       var m = L.circleMarker([s.lat, s.lon], stopStyle(false));
       m.on("click", function () { focusStop(s.id); });
       m.bindTooltip(s.name, { direction: "top" });
       stopMarker[s.id] = m;
-      m.addTo(stopLayer);
+      m.addTo(stopLayer);   // viditelná tečka navrch (kvůli hoveru/tooltipu a stylu)
     });
   }
 

@@ -83,12 +83,12 @@
       return null;
     }
 
-    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById);
+    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById, resolveTarget);
     if (stopLists.length) renderStopLists(routes, stopById, resolveTarget);
   });
 
   // ── náhledy trasy ──────────────────────────────────────────────────
-  function renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById) {
+  function renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById, resolveTarget) {
     var feats = ((shapesGeo && shapesGeo.features) || []).filter(function (f) {
       return f.geometry && f.geometry.coordinates && f.geometry.coordinates.length;
     });
@@ -112,6 +112,9 @@
         var name = (e && typeof e === "object") ? e.name : e;
         var st = stopByName[norm(name)];
         if (st && st.lon != null) return { c: [st.lon, st.lat], name: st.name };
+        // přejmenované / variantní názvy → dnešní zastávka (kvuli spárování s hoverem v seznamu)
+        var tgt = resolveTarget && resolveTarget(name);
+        if (tgt) { var ts = stopByName[norm(tgt)]; if (ts && ts.lon != null) return { c: [ts.lon, ts.lat], name: ts.name }; }
         if (e && typeof e === "object" && e.lat != null && e.lon != null) return { c: [e.lon, e.lat], name: name };
         return null;
       }).filter(Boolean);
@@ -182,7 +185,9 @@
     if (!li) return;
     clearPreviewHover(svg);
     if (!on) return;
-    var c = byName[norm(li.textContent)];
+    // párovací klíč: dnešní (GTFS) název z data-sn, jinak fallback na text položky
+    var key = li.getAttribute("data-sn") || norm(li.textContent);
+    var c = byName[key];
     if (!c) return;
     c.classList.add("lmp-stop-hi");
     var x = +c.getAttribute("cx"), y = +c.getAttribute("cy");
@@ -192,8 +197,10 @@
     t.setAttribute("y", (y + 3.5).toFixed(1));
     if (x > W * 0.66) { t.setAttribute("x", (x - 6).toFixed(1)); t.setAttribute("text-anchor", "end"); }
     else { t.setAttribute("x", (x + 6).toFixed(1)); }
+    // popisek ukaž tak, jak je v seznamu (může se lišit od GTFS názvu – přejmenované)
+    var label = (li.textContent || "").trim();
     var title = c.querySelector("title");
-    t.textContent = title ? title.textContent : "";
+    t.textContent = label || (title ? title.textContent : "");
     svg.appendChild(t);
   }
 
@@ -208,7 +215,8 @@
         var target = resolveTarget(raw);
         if (target) {
           var href = BASE + "/mapa?zastavka=" + encodeURIComponent(target) + (JA ? "&ja=" + encodeURIComponent(JA) : "");
-          return "<li><a class='ls-stop' href=\"" + esc(href) + "\">" + esc(raw) + "</a></li>";
+          // data-sn = dnešní (GTFS) název → spáruje hover v náhledu i u přejmenovaných/variantních názvů
+          return "<li data-sn=\"" + esc(norm(target)) + "\"><a class='ls-stop' href=\"" + esc(href) + "\">" + esc(raw) + "</a></li>";
         }
         return "<li>" + esc(raw) + "</li>";
       }).join("") + "</ul>";

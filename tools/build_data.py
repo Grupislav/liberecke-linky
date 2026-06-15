@@ -421,8 +421,10 @@ def main():
         if not ds:
             route_stop_list[rid] = []
             continue
-        if len(ds) >= 2 and set(ds[0][1]) != set(ds[1][1]):
-            # asymetrické směry → dva seznamy + sjednocení pro highlight na mapě
+        if len(ds) >= 2 and ds[0][1] != ds[1][1]:
+            # dva směry s odlišným sledem zastávek → dva seznamy + sjednocení pro
+            # highlight na mapě. Liší se i pouhým obrácením pořadí (typicky tramvaje,
+            # kde oba směry sdílí rodičovské stanice), aby měly přepínač směru taky.
             route_dirs[rid] = [
                 {"headsign": ds[0][2], "stops": ds[0][1]},
                 {"headsign": ds[1][2], "stops": ds[1][1]},
@@ -433,7 +435,7 @@ def main():
                     seen.add(s); union.append(s)
             route_stop_list[rid] = union
         else:
-            # symetrické / jednosměrné (okružní) → jeden seznam (nejúplnější směr)
+            # jednosměrné (okružní) / oba směry shodné → jeden seznam (nejúplnější směr)
             route_stop_list[rid] = max(ds, key=lambda x: len(x[1]))[1]
 
     # ---- shapes -------------------------------------------------------
