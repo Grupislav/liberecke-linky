@@ -19,7 +19,7 @@ function keep_params(array $extra = []): string {
 // Vybraná linka z URL (stejná validace jako v tabech) – pro canonical i <title>.
 $selLinka = null;
 $__rawLinka = trim((string)($_GET['linka'] ?? ''));
-if ($__rawLinka !== '' && preg_match('/^(?:[A-Za-z]|[0-9]{1,4})$/', $__rawLinka)) {
+if ($__rawLinka !== '' && preg_match('/^[\p{L}\p{N}\x{267F}]{1,6}$/u', $__rawLinka)) {
     $selLinka = ctype_alpha($__rawLinka) ? strtoupper($__rawLinka) : $__rawLinka;
 }
 

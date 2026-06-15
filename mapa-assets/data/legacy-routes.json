@@ -345,5 +345,29 @@
       "Stráž n. Nis. Neumannova",
       "ZŠ Jabloňová"
     ]
+  },
+  {
+    "short_name": "999",
+    "type": "bus",
+    "long_name": "FÜGNEROVA - BABYLON - RYBNÍČEK",
+    "stops": [
+      "Fügnerova",
+      "Babylon",
+      "Rybníček"
+    ]
+  },
+  {
+    "short_name": "♿BUS",
+    "type": "bus",
+    "long_name": "META VESEC - ZELENÉ ÚDOLÍ - Sokolská most - KOLOSEUM PAVLOVICE",
+    "stops": [
+      "Vesec U Střediska",
+      "Zelené Údolí",
+      "Krejčího",
+      "Fügnerova",
+      "Sokolská most",
+      "U Dvora",
+      "Koloseum"
+    ]
   }
 ]

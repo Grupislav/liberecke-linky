@@ -33,7 +33,12 @@ jobs:
 
       - name: Stáhni a rozbal GTFS
         run: |
-          curl -sL --fail -o gtfs.zip http://www.dpmlj.cz/gtfs.zip
+          # robustní stahování – DPMLJ server občas utne spojení (curl exit 56)
+          curl -sL --fail --retry 5 --retry-all-errors --retry-delay 15 \
+               --connect-timeout 30 --max-time 600 \
+               -o gtfs.zip http://www.dpmlj.cz/gtfs.zip
+          # ověř, že je to validní ZIP, než pokračuju
+          unzip -tq gtfs.zip
           unzip -o -q gtfs.zip -d gtfs
 
       - name: Přegeneruj data

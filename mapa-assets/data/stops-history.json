@@ -27,7 +27,8 @@
     "Muzeum-Galerie Lázně": "Muzeum - Galerie Lázně",
     "Ulice 5. května": "Ulice 5.května",
     "Stráž n.N. Neumannova": "Stráž n. Nis. Neumannova",
-    "Růžodol I.": "Růžodol I"
+    "Růžodol I.": "Růžodol I",
+    "META VESEC": "Vesec U Střediska"
   },
   "vanished": [
     { "name": "Sved", "lat": 50.7594961, "lon": 15.0281303 },
@@ -35,6 +36,8 @@
     { "name": "Areál Vesec", "lat": 50.7300661, "lon": 15.0700481 },
     { "name": "Seniorů", "lat": 50.7514567, "lon": 15.0762064 },
     { "name": "Krajní", "lat": 50.7516025, "lon": 15.0796608 },
-    { "name": "Ořechová", "lat": 50.7508625, "lon": 15.0784539 }
+    { "name": "Ořechová", "lat": 50.7508625, "lon": 15.0784539 },
+    { "name": "Sokolská most", "lat": 50.7711003, "lon": 15.0587075 },
+    { "name": "Koloseum", "lat": 50.7807614, "lon": 15.0498025 }
   ]
 }

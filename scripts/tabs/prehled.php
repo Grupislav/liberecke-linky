@@ -15,7 +15,7 @@ if (!isset($_GET['linka']) || trim((string)$_GET['linka']) === '') {
 $linkaRaw = isset($_GET['linka']) ? trim((string)$_GET['linka']) : '';
 
 // dovolíme A–Z (1 znak) nebo čísla 1–4 číslice
-if (!preg_match('/^(?:[A-Za-z]|[0-9]{1,4})$/', $linkaRaw)) {
+if (!preg_match('/^[\p{L}\p{N}\x{267F}]{1,6}$/u', $linkaRaw)) {
     echo "<p>{$lang['zalozkanedostupna']}</p>";
     return;
 }
