@@ -158,33 +158,44 @@ _PDF_BAD = ('platí od', 'platí pro', 'platí pouze', 'linka čís', 'linka č'
             'bezbariér', 'nízkopodlaž', 'neoznačen', 'znamení', 'jede ', 'jízdy', 'e-mail', 'tel:',
             'tel.', 'www', '@', 'počet', 'směr', 'seznam zast', 'platnost', 'obslu', 'nejede',
             'provoz', 'přestup', 'náhradní', 'zajiš', 'zajížd', 'spoje', 'spoj ', 'sloupec',
-            'historick', 'pracovní', 'v zastávce', 'ostatní', 'do zast', 'minut')
+            'historick', 'pracovní', 'v zastávce', 'ostatní', 'do zast', 'minut',
+            'jízdenk', 'lib25', 'lib36', 'lib na', 'na číslo', 'pošlete', 'zprávu', 've tvaru',
+            'zdarma', 'výlukov', 'skeleton', 'projekt', 'statutár', 'platném', 'nařízením', '©',
+            'odj', 'přj', 'jízdní řád', 'v pdf', 'pdf', 'zastávk', 'objíž',
+            't0', 'tq', 'ex,', '6 o', 'p 6', 'émem')   # font smetí z rozbitých PDF
 def _pdf_is_stop(l):
     if len(l) < 2 or len(l) > 34 or ':' in l: return False
     if l.count(' - ') >= 2: return False                  # hlavička trasy (A - B - C)
     if re.search(r'\d+\.\s*\d+\.', l): return False        # datum (od 26.10. do…)
+    if re.search(r'\dg', l): return False                  # časový token s markerem (34gA, 02g…)
     ll = l.lower()
     if any(b in ll for b in _PDF_BAD): return False
     if re.fullmatch(r'[\d,\s.]+', l): return False
-    if re.fullmatch(r'[axAXWEX$+*()\s.]{1,5}', l): return False
+    if re.fullmatch(r'[axhAXH WEX$+*()\s.•]{1,5}', l): return False   # markery a/x/h, •
     return bool(re.search(r'[A-Za-zÁ-Žá-ž]', l))
 def _pdf_clean(l):
-    l = re.sub(r'^(?:[ax]\s+|[ax](?=[A-ZÁ-Ž]))', '', l)   # prefixový marker a/x
-    l = re.sub(r'\s+[ax]$', '', l)                          # sufixový marker „ a" / „ x"
-    l = re.sub(r'(?:\s+\d|\.\d)$', '', l)                   # nalepená zóna „ 1" / „.1"
+    l = re.sub(r'^(?:[hax]+\s+|[hax]+(?=[A-ZÁ-Ž]))', '', l)  # prefix marker h/a/x (i kombinace hx, xa)
+    l = re.sub(r'\s+[hax]$', '', l)                          # sufixový marker „ a"/„ x"/„ h"
+    l = re.sub(r'(?:\s+\d|\.\d)$', '', l)                    # nalepená zóna „ 1" / „.1"
     return l.strip()
-def _pdf_page_stops(txt):
-    lines = [l.strip() for l in txt.split("\n")]
-    hi = next((k for k, l in enumerate(lines) if 'zastáv' in l.lower()), None)
-    if hi is None: return []
+def _pdf_collect(lines, start):
     out = []
-    for l in lines[hi + 1:]:
+    for l in lines[start:]:
         if not l: continue
-        if re.fullmatch(r'(0\d|1\d|2[0-3])', l): break        # hodinový blok
+        if l == "•" or re.fullmatch(r'\d{1,2}:\d{2}', l) or re.fullmatch(r'(0\d|1\d|2[0-3])', l):
+            break                                        # • / čas HH:MM / hodinový blok = konec sledu
         if _pdf_is_stop(l):
             nm = _pdf_clean(l)
             if nm: out.append(nm)
     return out
+def _pdf_page_stops(txt):
+    # zkus od shora (nový formát 2021 = sled nahoře) i od hlavičky „Zastávky" (starší
+    # formát = sled až za časovou maticí); vrať delší (validnější) výsledek.
+    lines = [l.strip() for l in txt.split("\n")]
+    hi = next((k for k, l in enumerate(lines) if 'zastáv' in l.lower()), None)
+    a = _pdf_collect(lines, 0)
+    b = _pdf_collect(lines, hi + 1) if hi is not None else []
+    return a if len(a) >= len(b) else b
 def extract_pdf_stops(path):
     best = []
     for pg in fitz.open(path):
@@ -429,26 +440,39 @@ def select_pdf_for_year(rok):
     ref = (rok, 12, 31)
     chosen = {}
     for ln, cs in by.items():
-        le = sorted(c for c in cs if c[0] <= ref)
+        le = sorted((c for c in cs if c[0] <= ref), reverse=True)   # nejnovější první
         if le:
-            chosen[ln] = le[-1]                                  # (date, file)
+            chosen[ln] = le                                          # [(date, file), …]
     return chosen
 
 
-def build_2011():
-    chosen = select_pdf_for_year(2011)
+def build_pdf_year(rok):
+    """Snapshot libovolného roku z PDF JŘ (2008+); 2001 jede z HTML přes build_2001.
+    U každé linky bere nejnovější JŘ ≤ rok; když z něj nic nevyleze (rozbitý font),
+    spadne na starší."""
+    rok = int(rok)
+    chosen = select_pdf_for_year(rok)
     TRAMS = {"2", "3", "5", "11"}
     lines_raw = {}
     for ln in sorted(chosen, key=lambda x: (len(x), x)):
-        d, f = chosen[ln]
-        stops = extract_pdf_stops(os.path.join(ROOT, "jr", f))
-        if not stops:
-            print(f"  ⚠ {ln}: 0 zastávek z {f} – vynecháno"); continue
-        src = "jr/" + f + (" ⚠STARÉ %d" % d[0] if d[0] < 2009 else "")
-        lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus", "src": src, "stops": stops}
-    finalize("2011", lines_raw)
+        picked = None
+        for d, f in chosen[ln]:
+            stops = extract_pdf_stops(os.path.join(ROOT, "jr", f))
+            if len(stops) >= 2:                    # rozbité PDF (font smetí) dají 0 → fallback na starší
+                picked = (d, f, stops); break
+        if not picked:
+            print(f"  ⚠ {ln}: nepodařilo se vytáhnout zastávky – vynecháno"); continue
+        d, f, stops = picked
+        old = " ⚠STARÉ %d" % d[0] if d[0] < rok - 2 else ""
+        lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus", "src": "jr/" + f + old, "stops": stops}
+    finalize(str(rok), lines_raw)
 
 
 if __name__ == "__main__":
     rok = sys.argv[1] if len(sys.argv) > 1 else "2001"
-    {"2001": build_2001, "2011": build_2011}.get(rok, build_2001)()
+    if rok == "2001":
+        build_2001()
+    elif re.fullmatch(r"\d{4}", rok):
+        build_pdf_year(rok)
+    else:
+        sys.exit("Neznámý rok: %s (použij YYYY)" % rok)
