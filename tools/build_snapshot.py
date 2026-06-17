@@ -105,6 +105,8 @@ def make_resolver(overrides=None):
     def resolve(raw):
         o = overrides.get(raw)                       # ruční korektura přebíjí auto
         if o:
+            if o.get("skip"):                        # extrakční smetí → vyřadit ze sledu
+                return {"match": None, "lat": None, "lon": None, "src": "skip", "skip": True}
             if o.get("lat") is not None and o.get("lon") is not None:
                 return {"match": o.get("match") or raw, "lat": o["lat"], "lon": o["lon"], "src": "ruční"}
             m = o.get("match")                        # vyplněn jen dnešní název → dohledej souřadnice
@@ -127,8 +129,8 @@ def make_resolver(overrides=None):
 def row(raw, resolve):
     r = {"raw": raw}; r.update(resolve(raw)); return r
 
-# ── seed tramvají z dnešních dat ─────────────────────────────────────────────
-def tram_seed(resolve):
+# ── seed tramvají z dnešních dat (surové názvy, resolve proběhne ve finalize) ─
+def tram_seed():
     routes = json.load(open(os.path.join(DATA, "routes.json"), encoding="utf-8"))
     stops = json.load(open(os.path.join(DATA, "stops.json"), encoding="utf-8"))
     byid = {s["id"]: s for s in stops}
@@ -138,18 +140,57 @@ def tram_seed(resolve):
         return [byid[i]["name"] for i in (r["stops"] if r else []) if i in byid]
     out = {}
     for ln in ("2", "5", "11"):
-        out[ln] = {"type": "tram", "src": "seed-dnešní-" + ln,
-                   "stops": [row(n, resolve) for n in names_of(ln)]}
-    # X3 = dnešní 3, úsek Kubelíkova–Horní Hanychov
-    three = names_of("3")
+        out[ln] = {"type": "tram", "src": "seed-dnešní-" + ln, "stops": names_of(ln)}
+    three = names_of("3")                              # X3 = dnešní 3, úsek Kubelíkova–Horní Hanychov
     try:
         a = three.index("Kubelíkova"); b = three.index("Horní Hanychov")
         seg = three[min(a, b):max(a, b) + 1]
     except ValueError:
         seg = three
-    out["X3"] = {"type": "tram", "src": "seed-dnešní-3 (úsek Kubelíkova–Horní Hanychov, zkontrolovat)",
-                 "stops": [row(n, resolve) for n in seg]}
+    out["X3"] = {"type": "tram", "src": "seed-dnešní-3 (úsek Kubelíkova–Horní Hanychov, zkontrolovat)", "stops": seg}
     return out
+
+
+# ── extrakce sledu zastávek z PDF JŘ (formát DPMLJ, 2008–2011) ────────────────
+import fitz  # PyMuPDF
+_PDF_BAD = ('platí od', 'platí pro', 'platí pouze', 'linka čís', 'linka č', 'linku', 'na lince',
+            'tarif', 'sms', 'zóna', 'ukončení', 'dopravce', 'informace', 'zpracov', 'bezbarier',
+            'bezbariér', 'nízkopodlaž', 'neoznačen', 'znamení', 'jede ', 'jízdy', 'e-mail', 'tel:',
+            'tel.', 'www', '@', 'počet', 'směr', 'seznam zast', 'platnost', 'obslu', 'nejede',
+            'provoz', 'přestup', 'náhradní', 'zajiš', 'zajížd', 'spoje', 'spoj ', 'sloupec',
+            'historick', 'pracovní', 'v zastávce', 'ostatní', 'do zast', 'minut')
+def _pdf_is_stop(l):
+    if len(l) < 2 or len(l) > 34 or ':' in l: return False
+    if l.count(' - ') >= 2: return False                  # hlavička trasy (A - B - C)
+    if re.search(r'\d+\.\s*\d+\.', l): return False        # datum (od 26.10. do…)
+    ll = l.lower()
+    if any(b in ll for b in _PDF_BAD): return False
+    if re.fullmatch(r'[\d,\s.]+', l): return False
+    if re.fullmatch(r'[axAXWEX$+*()\s.]{1,5}', l): return False
+    return bool(re.search(r'[A-Za-zÁ-Žá-ž]', l))
+def _pdf_clean(l):
+    l = re.sub(r'^(?:[ax]\s+|[ax](?=[A-ZÁ-Ž]))', '', l)   # prefixový marker a/x
+    l = re.sub(r'\s+[ax]$', '', l)                          # sufixový marker „ a" / „ x"
+    l = re.sub(r'(?:\s+\d|\.\d)$', '', l)                   # nalepená zóna „ 1" / „.1"
+    return l.strip()
+def _pdf_page_stops(txt):
+    lines = [l.strip() for l in txt.split("\n")]
+    hi = next((k for k, l in enumerate(lines) if 'zastáv' in l.lower()), None)
+    if hi is None: return []
+    out = []
+    for l in lines[hi + 1:]:
+        if not l: continue
+        if re.fullmatch(r'(0\d|1\d|2[0-3])', l): break        # hodinový blok
+        if _pdf_is_stop(l):
+            nm = _pdf_clean(l)
+            if nm: out.append(nm)
+    return out
+def extract_pdf_stops(path):
+    best = []
+    for pg in fitz.open(path):
+        s = _pdf_page_stops(pg.get_text())
+        if len(s) > len(best): best = s
+    return best
 
 # ── geometrie: sešití po síti GTFS úseků (jako legacy), jinak rovná čára ──────
 def load_gtfs_stitcher():
@@ -281,6 +322,8 @@ def emit_snapshot_data(linky, rok):
             if r["lat"] is None:
                 continue
             st = ref(r)
+            if ids and ids[-1] == st["id"]:          # slij sousední duplicitu (varianty zápisu téže zast.)
+                continue
             ids.append(st["id"]); seq.append(st["name"]); geompts.append((r["match"], r["lon"], r["lat"]))
             if short not in st["routes"]:
                 st["routes"].append(short)
@@ -301,44 +344,29 @@ def emit_snapshot_data(linky, rok):
     w("stops.json", [stops[k] for k in order])
     w("routes.json", routes)
     w("shapes.json", {"type": "FeatureCollection", "features": feats})
-    w("meta.json", {"rok": rok, "counts": {"routes": len(routes), "stops": len(order)}})
+    w("meta.json", {"rok": int(rok), "counts": {"routes": len(routes), "stops": len(order)}})
     return len(order), len(routes)
 
 
-# ── hlavní ───────────────────────────────────────────────────────────────────
-def build_2001():
+# ── společný finalizér: resolve názvů, mezisoubor, overrides, zápis dat ───────
+def finalize(rok, lines_raw):
+    """lines_raw = {short: {"type","src","long_name"?,"stops":[raw_name,...]}} (v pořadí vkládání)."""
     devdir = os.path.join(ROOT, "dev"); os.makedirs(devdir, exist_ok=True)
-    ovpath = os.path.join(devdir, "snapshot-2001-overrides.json")
+    ovpath = os.path.join(devdir, "snapshot-%s-overrides.json" % rok)
     overrides = json.load(open(ovpath, encoding="utf-8")) if os.path.exists(ovpath) else {}
     resolve, _ = make_resolver(overrides)
-    jr = os.path.join(ROOT, "jr", "2001")
-    # bus linky: vyber soubor směru 'tam' (t) nebo bez t/z
-    by_line = {}
-    for f in os.listdir(jr):
-        if not f.lower().endswith((".htm", ".html")) or f.startswith("Seznam"):
-            continue
-        m = re.match(r'(\d+)\s*([tz]?)', f)
-        if not m:
-            continue
-        ln, d = m.group(1), m.group(2)
-        if d == "z":
-            continue
-        by_line.setdefault(ln, f)            # t nebo bez směru
 
     linky = {}
-    for ln in sorted(by_line, key=lambda x: (len(x), x)):
-        html = open(os.path.join(jr, by_line[ln]), encoding="utf-8").read()
-        stops = extract_stops(html)
-        linky[ln] = {"type": "bus", "src": "jr/2001/" + by_line[ln],
-                     "stops": [row(s, resolve) for s in stops]}
+    for short, info in lines_raw.items():
+        rows = [row(s, resolve) for s in info["stops"]]
+        rows = [r for r in rows if not r.get("skip")]      # vyřaď smetí označené skip
+        linky[short] = {"type": info["type"], "src": info.get("src", ""),
+                        "long_name": info.get("long_name"), "stops": rows}
 
-    linky.update(tram_seed(resolve))
+    json.dump({"rok": rok, "linky": linky},
+              open(os.path.join(devdir, "snapshot-%s.json" % rok), "w", encoding="utf-8"),
+              ensure_ascii=False, indent=1)
 
-    out = {"rok": 2001, "linky": linky}
-    path = os.path.join(devdir, "snapshot-2001.json")
-    json.dump(out, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-
-    # doplň stub do overrides souboru pro nespárované unikátní názvy (bez přepsání vyplněných)
     unmatched = sorted({s["raw"] for v in linky.values() for s in v["stops"] if s["match"] is None})
     added = 0
     for raw in unmatched:
@@ -347,21 +375,80 @@ def build_2001():
     json.dump(dict(sorted(overrides.items())), open(ovpath, "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
 
-    # statistika
-    tot = sum(len(v["stops"]) for v in linky.values())
-    nmiss = sum(1 for v in linky.values() for s in v["stops"] if s["match"] is None)
     from collections import Counter
+    nmiss = sum(1 for v in linky.values() for s in v["stops"] if s["match"] is None)
     src = Counter(s["src"] for v in linky.values() for s in v["stops"])
-    print(f"linky: {len(linky)} | výskytů: {tot} | nespárováno: {nmiss} | unikátů k vyplnění: {len(unmatched)}")
+    tot = sum(len(v["stops"]) for v in linky.values())
+    print(f"[{rok}] linky: {len(linky)} | výskytů: {tot} | nespárováno: {nmiss} | unikátů k vyplnění: {len(unmatched)}")
     print("zdroje souřadnic:", dict(src))
-    print(f"mezisoubor:  dev/snapshot-2001.json (generovaný)")
-    print(f"k vyplnění:  dev/snapshot-2001-overrides.json ({added} nových stubů, celkem {len(overrides)})")
-
+    print(f"mezisoubor:  dev/snapshot-{rok}.json")
+    print(f"k vyplnění:  dev/snapshot-{rok}-overrides.json ({added} nových stubů, celkem {len(overrides)})")
     if nmiss == 0:
-        ns, nr = emit_snapshot_data(linky, 2001)
-        print(f"\n✓ data snapshotu zapsána: mapa-assets/data/2001/ ({nr} linek, {ns} zastávek)")
+        ns, nr = emit_snapshot_data(linky, rok)
+        print(f"\n✓ data: mapa-assets/data/{rok}/ ({nr} linek, {ns} zastávek)")
     else:
-        print(f"\n⚠ {nmiss} nespárováno – data snapshotu NEzapsána (nejdřív dořešit overrides).")
+        print(f"\n⚠ {nmiss} nespárováno – data NEzapsána (nejdřív dořeš overrides).")
+    return nmiss
+
+
+def build_2001():
+    jr = os.path.join(ROOT, "jr", "2001")
+    by_line = {}
+    for f in os.listdir(jr):
+        if not f.lower().endswith((".htm", ".html")) or f.startswith("Seznam"):
+            continue
+        m = re.match(r'(\d+)\s*([tz]?)', f)
+        if not m or m.group(2) == "z":
+            continue
+        by_line.setdefault(m.group(1), f)
+    lines_raw = {}
+    for ln in sorted(by_line, key=lambda x: (len(x), x)):       # busy seřazené (stejné pořadí jako dřív)
+        lines_raw[ln] = {"type": "bus", "src": "jr/2001/" + by_line[ln],
+                         "stops": extract_stops(open(os.path.join(jr, by_line[ln]), encoding="utf-8").read())}
+    lines_raw.update(tram_seed())                               # pak tramvaje 2,5,11,X3
+    finalize("2001", lines_raw)
+
+
+def select_pdf_for_year(rok):
+    """U každé linky vyber JŘ (PDF) s platností nejbližší ≤ konec roku (datum v názvu)."""
+    import collections as _c
+    by = _c.defaultdict(list)
+    for f in os.listdir(os.path.join(ROOT, "jr")):
+        if not f.lower().endswith(".pdf"):
+            continue
+        m = re.match(r'(\d{1,4})', f[:-4])
+        if not m:
+            continue
+        dm = re.search(r'(\d{1,2})\.\s*(\d{1,2})\.\s*((?:19|20)\d{2})', f)
+        if dm:
+            d = (int(dm.group(3)), int(dm.group(2)), int(dm.group(1)))
+        else:
+            y = re.search(r'((?:19|20)\d{2})', f); d = (int(y.group(1)), 1, 1) if y else None
+        if d:
+            by[m.group(1)].append((d, f))
+    ref = (rok, 12, 31)
+    chosen = {}
+    for ln, cs in by.items():
+        le = sorted(c for c in cs if c[0] <= ref)
+        if le:
+            chosen[ln] = le[-1]                                  # (date, file)
+    return chosen
+
+
+def build_2011():
+    chosen = select_pdf_for_year(2011)
+    TRAMS = {"2", "3", "5", "11"}
+    lines_raw = {}
+    for ln in sorted(chosen, key=lambda x: (len(x), x)):
+        d, f = chosen[ln]
+        stops = extract_pdf_stops(os.path.join(ROOT, "jr", f))
+        if not stops:
+            print(f"  ⚠ {ln}: 0 zastávek z {f} – vynecháno"); continue
+        src = "jr/" + f + (" ⚠STARÉ %d" % d[0] if d[0] < 2009 else "")
+        lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus", "src": src, "stops": stops}
+    finalize("2011", lines_raw)
+
 
 if __name__ == "__main__":
-    build_2001()
+    rok = sys.argv[1] if len(sys.argv) > 1 else "2001"
+    {"2001": build_2001, "2011": build_2011}.get(rok, build_2001)()
