@@ -54,7 +54,12 @@ jobs:
             exit 1
           fi
           ls -l gtfs.zip
-          unzip -tq gtfs.zip            # ověř validní ZIP
+          # ověř, že to je ZIP a ne chybová odpověď proxy (PK = magic ZIP)
+          if [ "$(head -c2 gtfs.zip)" != "PK" ]; then
+            echo "::error::Stažený soubor není ZIP – obsah odpovědi (proxy):"
+            head -c 2000 gtfs.zip; echo
+            exit 1
+          fi
           unzip -o -q gtfs.zip -d gtfs
 
       - name: Přegeneruj data
