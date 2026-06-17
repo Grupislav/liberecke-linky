@@ -33,12 +33,24 @@ jobs:
 
       - name: Stáhni a rozbal GTFS
         run: |
-          # robustní stahování – DPMLJ server občas utne spojení (curl exit 56)
-          curl -sL --fail --retry 5 --retry-all-errors --retry-delay 15 \
-               --connect-timeout 30 --max-time 600 \
-               -o gtfs.zip http://www.dpmlj.cz/gtfs.zip
-          # ověř, že je to validní ZIP, než pokračuju
-          unzip -tq gtfs.zip
+          # GitHub runnery padají na curl exit 56 (Failure receiving data) vůči
+          # starému serveru DPMLJ – typicky IPv6/HTTP-2 problém. Vynutíme proto
+          # IPv4 + HTTP/1.1 + běžný User-Agent + https napřímo, s několika pokusy.
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+          ok=
+          for i in 1 2 3 4 5; do
+            if curl -4 --http1.1 -A "$UA" -sSL --fail \
+                    --connect-timeout 30 --max-time 600 \
+                    -o gtfs.zip https://www.dpmlj.cz/gtfs.zip; then ok=1; break; fi
+            echo "::warning::stažení GTFS – pokus $i selhal, čekám 20 s"; sleep 20
+          done
+          if [ -z "$ok" ]; then
+            echo "::error::Stažení GTFS selhalo. Diagnostika (curl -v):"
+            curl -4 --http1.1 -A "$UA" -v --max-time 60 -o /dev/null https://www.dpmlj.cz/gtfs.zip || true
+            exit 1
+          fi
+          ls -l gtfs.zip
+          unzip -tq gtfs.zip            # ověř validní ZIP
           unzip -o -q gtfs.zip -d gtfs
 
       - name: Přegeneruj data
