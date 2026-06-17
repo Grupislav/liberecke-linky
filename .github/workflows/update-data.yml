@@ -32,21 +32,25 @@ jobs:
           python-version: '3.x'
 
       - name: Stáhni a rozbal GTFS
+        env:
+          # URL proxy na produkčním (českém) serveru – GitHub runner na DPMLJ
+          # přímo nedosáhne (blokace IP). Např. https://…/liberecke-linky/gtfs-proxy.php?key=TOKEN
+          PROXY: ${{ secrets.GTFS_PROXY_URL }}
         run: |
-          # GitHub runnery padají na curl exit 56 (Failure receiving data) vůči
-          # starému serveru DPMLJ – typicky IPv6/HTTP-2 problém. Vynutíme proto
-          # IPv4 + HTTP/1.1 + běžný User-Agent + https napřímo, s několika pokusy.
           UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36"
+          URL="$PROXY"
+          if [ -z "$URL" ]; then
+            echo "::warning::GTFS_PROXY_URL není nastaveno – zkouším přímo DPMLJ (z GitHubu obvykle selže)."
+            URL="http://www.dpmlj.cz/gtfs.zip"
+          fi
           ok=
           for i in 1 2 3 4 5; do
             if curl -4 --http1.1 -A "$UA" -sSL --fail \
-                    --connect-timeout 30 --max-time 600 \
-                    -o gtfs.zip https://www.dpmlj.cz/gtfs.zip; then ok=1; break; fi
+                    --connect-timeout 30 --max-time 600 -o gtfs.zip "$URL"; then ok=1; break; fi
             echo "::warning::stažení GTFS – pokus $i selhal, čekám 20 s"; sleep 20
           done
           if [ -z "$ok" ]; then
-            echo "::error::Stažení GTFS selhalo. Diagnostika (curl -v):"
-            curl -4 --http1.1 -A "$UA" -v --max-time 60 -o /dev/null https://www.dpmlj.cz/gtfs.zip || true
+            echo "::error::Stažení GTFS selhalo (URL: ${URL%%\?*})."
             exit 1
           fi
           ls -l gtfs.zip

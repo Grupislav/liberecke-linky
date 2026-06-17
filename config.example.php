@@ -21,3 +21,10 @@ $l = 'cz';
  * GA4 Measurement ID (např. G-XXXXXXXX). Prázdný řetězec = Google Analytics se nevloží.
  */
 $googleAnalyticsMeasurementId = '';
+
+/**
+ * Volitelný token pro gtfs-proxy.php (stahování GTFS feedu přes tenhle server,
+ * protože GitHub Actions na DPMLJ nedosáhne). Prázdné = bez ochrany.
+ * Když nastavíš, dej stejnou hodnotu do secretu GTFS_PROXY_URL jako ?key=…
+ */
+$gtfsProxyToken = '';
