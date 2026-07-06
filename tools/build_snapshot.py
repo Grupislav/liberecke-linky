@@ -52,6 +52,9 @@ def extract_stops(html):
     out = []
     for td in re.findall(r'<td[^>]*>(.*?)</td>', html, re.S | re.I):
         c = cell_clean(td)
+        mm = re.match(r'^Zastávka\s*(?:min|:)\s+(.+)$', c)   # 1. zast. nalepená na hlavičku „Zastávka min NÁZEV"
+        if mm:
+            c = mm.group(1)
         c = RAW_FIX.get(c, c)
         if namelike(c) and (not out or out[-1] != c):
             out.append(c)
@@ -489,6 +492,10 @@ def build_2001(meta_extra=None, write_shapes=True):
                     seqs.append(s)
         if not seqs:
             continue
+        app = LINE_APPEND.get(("2001", ln))                   # prodloužení jen na některých spojích
+        if app:
+            if 0 in app and len(seqs) >= 1: seqs[0] = seqs[0] + app[0]
+            if 1 in app and len(seqs) >= 2: seqs[1] = app[1] + seqs[1]
         lines_raw[ln] = {"type": "bus", "src": "jr/2001/" + (files.get("t") or files.get("z")),
                          "dirs": seqs}
     finalize("2001", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
@@ -585,6 +592,17 @@ def extra_lines(rok):
 LINE_STOP_FIX = {
     ("2011", "11"): {"Zelené Údolí": "Jablonec n.N. Zelené Údolí"},
     ("2001", "12"): {"Polní": "Stračí"},   # „Polní" tehdy = dnešní Stračí (Polní neexistovala)
+}
+
+# Prodloužení tras, co v daném roce jezdila jen na některých spojích (v JŘ jen v poznámkách);
+# zastávky převzaté z dnešních linek. Klíč (rok, linka) → {index směru: [zastávky]}; směr 0
+# se připojí na KONEC, směr 1 na ZAČÁTEK (opačný směr). 2001/24 do Radčic (tam Janův most,
+# zpět U Lípy), 2001/26 do Stráže n.N.
+LINE_APPEND = {
+    ("2001", "24"): {0: ["Obzor", "Janův most", "Radčice rozcestí", "Jedlová", "Radčice"],
+                     1: ["Radčice", "Jedlová", "Radčice rozcestí", "U Lípy", "U Radčického potoka"]},
+    ("2001", "26"): {0: ["Na Vršku", "Stráž nad Nisou"],
+                     1: ["Stráž nad Nisou", "Na Vršku"]},
 }
 
 
