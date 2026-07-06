@@ -607,6 +607,11 @@ def extra_lines(rok):
 LINE_STOP_FIX = {
     ("2011", "11"): {"Zelené Údolí": "Jablonec n.N. Zelené Údolí"},
     ("2001", "12"): {"Polní": "Stračí"},   # „Polní" tehdy = dnešní Stračí (Polní neexistovala)
+    ("1995", "12"): {"Polní": "Stračí"},
+    ("1995", "1"): {"Pekárny": "Staré Pekárny"},   # tramvajové Pekárny (Hanychov) = dnešní Staré Pekárny
+    ("1995", "2"): {"Pekárny": "Staré Pekárny"},
+    ("1995", "3"): {"Pekárny": "Staré Pekárny"},
+    ("1995", "22"): {"ČESKÉ MLÁDEŽE": "Malodoubská"},   # dobové České mládeže (Hanychov) = dnešní Malodoubská
 }
 
 # Prodloužení tras, co v daném roce jezdila jen na některých spojích (v JŘ jen v poznámkách);
