@@ -113,6 +113,7 @@ if ($routesJsonRaw) {
 // (vlastní barva/priorita). Řešeno automaticky z routes.json, ne z DB – výlukové
 // linky se v GTFS objevují/mizí podle uzavírek.
 foreach (array_keys($mapShorts) as $short) {
+    $short = (string)$short;   // PHP normalizuje číselné klíče na int → přetypovat zpět
     if ($short !== '' && ($short[0] === 'X' || $short[0] === 'x')) {
         if (isset($catColors['vylukova'])) $tileColors[$short] = $catColors['vylukova'];
         if (isset($catPrio['vylukova']))   $tilePriority[$short] = $catPrio['vylukova'];
