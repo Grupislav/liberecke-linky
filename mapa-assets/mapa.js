@@ -1035,10 +1035,12 @@
         radius: 13, color: "#c0392b", weight: 3.5,
         fillColor: "#c0392b", fillOpacity: 0.2, interactive: false
       }).addTo(map);
+      stopPin.bindTooltip("", { direction: "top" });   // pro zaniklé zast. (nemají vlastní marker)
     } else {
       stopPin.setLatLng(ll);
       if (!map.hasLayer(stopPin)) stopPin.addTo(map);
     }
+    stopPin.setTooltipContent(s.name);
     if (stopPin.bringToFront) stopPin.bringToFront();
   }
 
@@ -1048,6 +1050,9 @@
     setStopPin(on ? sid : focusedStopId);
     var m = stopMarker[sid];               // ukaž i název zastávky (hover v seznamu)
     if (m) { if (on) m.openTooltip(); else m.closeTooltip(); }
+    else if (stopPin) {                    // zaniklé zastávky nemají marker → název přes špendlík
+      if (on) stopPin.openTooltip(); else stopPin.closeTooltip();
+    }
   }
 
   // ── přepínání panelu detail / browse ─────────────────────────────

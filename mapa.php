@@ -133,6 +133,14 @@ if ($legacyRaw) {
 if ($hasHistoric) {
     $legend[] = ['color' => $catColors['historicke'] ?? '#991f00', 'label' => $lang['mapa_kat_historicke'] ?? 'Historické'];
 }
+// deduplikace legendy (kategorie historické může přijít z DB i z legacy-routes)
+$seenLeg = [];
+$legend = array_values(array_filter($legend, static function ($it) use (&$seenLeg) {
+    $k = $it['color'] . '|' . $it['label'];
+    if (isset($seenLeg[$k])) return false;
+    $seenLeg[$k] = true;
+    return true;
+}));
 }  // konec if (!$isSnapshot)
 ?>
 <!DOCTYPE html>
