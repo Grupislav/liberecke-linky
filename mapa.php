@@ -107,6 +107,18 @@ foreach (fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? 
     $lbl = $lang['mapa_katsg_' . $kod] ?? '';
     if ($lbl !== '') $tileCats[$short] = $lbl;
 }
+// Snapshot: kategoriové výjimky z meta.json (cat_override). Historicky provozní linka,
+// která je dnes v DB „mimo provoz" (šedá), dostane svou dobovou kategorii – např.
+// noční linka 90 v roce 2011. Přebíjí DB kategorii.
+if ($isSnapshot && !empty($snapMeta['cat_override']) && is_array($snapMeta['cat_override'])) {
+    foreach ($snapMeta['cat_override'] as $short => $kod) {
+        $short = (string)$short;
+        if (isset($catColors[$kod])) $tileColors[$short] = $catColors[$kod];
+        if (isset($catPrio[$kod]))   $tilePriority[$short] = $catPrio[$kod];
+        $lbl = $lang['mapa_katsg_' . $kod] ?? '';
+        if ($lbl !== '') $tileCats[$short] = $lbl;
+    }
+}
 
 // Linky mimo provoz (seznamy zastávek z DB) + jejich aliasy – jen živá mapa.
 $legacyStops = $lineAliases = [];

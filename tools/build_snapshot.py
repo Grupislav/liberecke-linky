@@ -127,6 +127,8 @@ def make_resolver(overrides=None):
     return resolve, stops
 
 def row(raw, resolve):
+    if isinstance(raw, dict):        # {"raw": zobrazený název, "as": co resolvovat} – stejný název jinde v síti
+        r = {"raw": raw["raw"]}; r.update(resolve(raw["as"])); return r
     r = {"raw": raw}; r.update(resolve(raw)); return r
 
 # ── seed tramvají z dnešních dat (surové názvy, resolve proběhne ve finalize) ─
@@ -554,18 +556,20 @@ def extra_lines(rok):
                         "dirs": [seg]}} if seg else {}
     if rok == "2011":                                       # výluka Fügnerova–výhybna: X5 i X11
         seg = today_line_segment("11", "Fügnerova", "Vratislavice n.N. výhybna")
-        if not seg:
+        seg = [s for s in seg if s not in ("Sídliště Nové Vratislavice", "Pivovarská")]  # neobsluhovaly se
+        if len(seg) < 2:
             return {}
-        return {x: {"type": "bus", "src": "úsek dnešní 11 (Fügnerova–výhybna)",
+        return {x: {"type": "bus", "src": "úsek dnešní 11 (Fügnerova–výhybna, bez Síd.N.Vr./Pivovarská)",
                     "long_name": "Fügnerova – Vratislavice n.N. výhybna (výluka)", "dirs": [seg]}
                 for x in ("X5", "X11")}
     return {}
 
 
-# Per-(rok, linka) přejmenování surového názvu zastávky (kde je stejný název ve víc
-# lokalitách a v dané lince patří jinam). Přebíjí se před resolve.
+# Per-(rok, linka): zobrazený název zastávky ponech, ale resolvuj (souřadnice/dedup)
+# na jinou zastávku téhož názvu v síti. 2011: linka 11 měla „Zelené Údolí", které
+# fyzicky odpovídá jablonecké zastávce (v síti byly 2 stejnojmenné).
 LINE_STOP_FIX = {
-    ("2011", "11"): {"Zelené Údolí": "Jablonec n.N. Zelené Údolí"},   # jablonecká větev, ne liberecké ZÚ
+    ("2011", "11"): {"Zelené Údolí": "Jablonec n.N. Zelené Údolí"},
 }
 
 
@@ -587,22 +591,25 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
         dirs = extract_pdf_dirs(os.path.join(folder, files[ln]))
         if not any(dirs):
             print(f"  ⚠ {ln}: sled zastávek nevytažen – vynecháno"); continue
-        fmap = LINE_STOP_FIX.get((str(rok), ln))            # per-linku přejmenování surových názvů
+        fmap = LINE_STOP_FIX.get((str(rok), ln))            # per-linku: zobrazený název ponech, resolvuj jinam
         if fmap:
-            dirs = [[fmap.get(s, s) for s in d] for d in dirs]
+            dirs = [[({"raw": s, "as": fmap[s]} if s in fmap else s) for s in d] for d in dirs]
         lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus",
                          "src": "jr/%s/%s" % (rok, files[ln]), "dirs": dirs}
     lines_raw.update(extra_lines(rok))                      # injektované výlukové linky (X5/X11…)
     finalize(str(rok), lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
-# rok (= název složky/URL) → datum stavu sítě (když snapshot reflektuje konkrétní den).
-# 2022 = stav k 1. 1. 2022 (JŘ platné od 12. 12. 2021), zdroj jr/2022/.
-SNAP_DATE = {"2022": "2022-01-01", "2011": "2011-11-14"}
+# rok (= název složky/URL) → meta_extra snapshotu. „date" = den stavu sítě; „cat_override"
+# = přebití DB kategorie linky (historicky provozní linka, dnes v DB „mimo provoz").
+SNAP_META = {
+    "2022": {"date": "2022-01-01"},
+    "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
+}
 
 if __name__ == "__main__":
     rok = sys.argv[1] if len(sys.argv) > 1 else "2001"
-    meta_extra = {"date": SNAP_DATE[rok]} if rok in SNAP_DATE else None
+    meta_extra = SNAP_META.get(rok)
     has_folder = re.fullmatch(r"\d{4}", rok) and rok != "2001" and \
         os.path.isdir(os.path.join(ROOT, "jr", rok)) and \
         any(f.lower().endswith(".pdf") for f in os.listdir(os.path.join(ROOT, "jr", rok)))
