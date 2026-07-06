@@ -366,12 +366,20 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
             route["directions"] = [{"headsign": (o[1][-1] if o[1] else ""), "stops": o[0]} for o in outdirs]
         routes.append(route)
         if write_shapes:
-            coords, straights = route_geometry(prim_geo, stitch)
-            straight_tot += straights
-            if len(coords) >= 2:
+            # asymetrická linka → vykresli oba směry (jednosměrné úseky, závleky);
+            # symetrická → stačí jeden (druhý je jen opačné pořadí téže trasy).
+            asym = len(outdirs) >= 2 and set(outdirs[0][0]) != set(outdirs[1][0])
+            draw = outdirs if asym else outdirs[:1]
+            lines_geo = []
+            for _ids, _seq, _geo in draw:
+                coords, straights = route_geometry(_geo, stitch)
+                straight_tot += straights
+                if len(coords) >= 2:
+                    lines_geo.append(coords)
+            if lines_geo:
                 feats.append({"type": "Feature",
                               "properties": {"id": "r-" + short, "short_name": short, "color": col},
-                              "geometry": {"type": "MultiLineString", "coordinates": [coords]}})
+                              "geometry": {"type": "MultiLineString", "coordinates": lines_geo}})
     if write_shapes:
         print(f"rovných úseků celkem (mimo síť): {straight_tot}")
 
@@ -520,10 +528,10 @@ def x11_stops():
     return seq[min(a, b):max(a, b) + 1]
 
 
-def build_year_folder(rok, meta_extra=None):
+def build_year_folder(rok, meta_extra=None, write_shapes=False):
     """Snapshot z ručně kurátorované složky jr/<rok>/ (1 PDF = 1 linka; jen provozní linky
-    roku). Obě strany PDF = oba směry. Geometrie se NEpřepisuje (write_shapes=False) – řeší se
-    zvlášť, aby se do zamrzlého snapshotu nezanesly momentální objížďky."""
+    roku). Obě strany PDF = oba směry. write_shapes=False → geometrie se NEpřepisuje (řeší se
+    zvlášť kvůli momentálním objížďkám ve feedu); True → přesešije nad staženým gtfs/."""
     folder = os.path.join(ROOT, "jr", str(rok))
     TRAMS = {"2", "3", "5", "11"}
     files = {}
@@ -545,7 +553,7 @@ def build_year_folder(rok, meta_extra=None):
         lines_raw["X11"] = {"type": "tram", "src": "segment dnešní 11 (výhybna–Jablonec)",
                             "long_name": "Vratislavice n.N. výhybna – Jablonec n.N., Tyršovy sady",
                             "dirs": [xs]}
-    finalize(str(rok), lines_raw, write_shapes=False, meta_extra=meta_extra)
+    finalize(str(rok), lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
 # rok (= název složky/URL) → datum stavu sítě (když snapshot reflektuje konkrétní den).
