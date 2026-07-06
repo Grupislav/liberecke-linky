@@ -164,7 +164,7 @@ _PDF_BAD = ('platí od', 'platí pro', 'platí pouze', 'linka čís', 'linka č'
             'odj', 'přj', 'jízdní řád', 'v pdf', 'pdf', 'zastávk', 'objíž',
             't0', 'tq', 'ex,', '6 o', 'p 6', 'émem')   # font smetí z rozbitých PDF
 def _pdf_is_stop(l):
-    if len(l) < 2 or len(l) > 34 or ':' in l: return False
+    if len(l) < 2 or len(l) > 34 or ':' in l or re.search(r'[$#%]', l): return False  # font smetí (D$%, X#,)
     if l.count(' - ') >= 2: return False                  # hlavička trasy (A - B - C)
     if re.search(r'\d+\.\s*\d+\.', l): return False        # datum (od 26.10. do…)
     if re.search(r'\dg', l): return False                  # časový token s markerem (34gA, 02g…)
@@ -177,13 +177,16 @@ def _pdf_clean(l):
     l = re.sub(r'^(?:[hax]+\s+|[hax]+(?=[A-ZÁ-Ž]))', '', l)  # prefix marker h/a/x (i kombinace hx, xa)
     l = re.sub(r'\s+[hax]$', '', l)                          # sufixový marker „ a"/„ x"/„ h"
     l = re.sub(r'(?:\s+\d|\.\d)$', '', l)                    # nalepená zóna „ 1" / „.1"
+    l = re.sub(r'(?<=[A-Za-zÁ-Žá-ž])[12]$', '', l)           # zóna nalepená bez mezery („údolí1")
     return l.strip()
 def _pdf_collect(lines, start):
     out = []
     for l in lines[start:]:
         if not l: continue
-        if l == "•" or re.fullmatch(r'\d{1,2}:\d{2}', l) or re.fullmatch(r'(0\d|1\d|2[0-3])', l):
-            break                                        # • / čas HH:MM / hodinový blok = konec sledu
+        ll = l.lower()
+        if (l == "•" or re.fullmatch(r'\d{1,2}:\d{2}', l) or re.fullmatch(r'(0\d|1\d|2[0-3])', l)
+                or ll.startswith('upozorn') or ll.startswith('poznám') or 'vysvětlivk' in ll):
+            break                                        # • / čas / hodina / začátek poznámek = konec sledu
         if _pdf_is_stop(l):
             nm = _pdf_clean(l)
             if nm: out.append(nm)
@@ -548,17 +551,18 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
             print(f"  ⚠ {ln}: sled zastávek nevytažen – vynecháno"); continue
         lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus",
                          "src": "jr/%s/%s" % (rok, files[ln]), "dirs": dirs}
-    xs = x11_stops()                                        # X11 – doplněná výluková linka
-    if xs:
-        lines_raw["X11"] = {"type": "tram", "src": "segment dnešní 11 (výhybna–Jablonec)",
-                            "long_name": "Vratislavice n.N. výhybna – Jablonec n.N., Tyršovy sady",
-                            "dirs": [xs]}
+    if str(rok) == "2022":                                  # X11 = výluka platná jen k 1.1.2022
+        xs = x11_stops()
+        if xs:
+            lines_raw["X11"] = {"type": "tram", "src": "segment dnešní 11 (výhybna–Jablonec)",
+                                "long_name": "Vratislavice n.N. výhybna – Jablonec n.N., Tyršovy sady",
+                                "dirs": [xs]}
     finalize(str(rok), lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
 # rok (= název složky/URL) → datum stavu sítě (když snapshot reflektuje konkrétní den).
 # 2022 = stav k 1. 1. 2022 (JŘ platné od 12. 12. 2021), zdroj jr/2022/.
-SNAP_DATE = {"2022": "2022-01-01"}
+SNAP_DATE = {"2022": "2022-01-01", "2011": "2011-11-14"}
 
 if __name__ == "__main__":
     rok = sys.argv[1] if len(sys.argv) > 1 else "2001"
