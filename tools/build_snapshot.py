@@ -206,12 +206,23 @@ def extract_pdf_stops(path):
         if len(s) > len(best): best = s
     return best
 
+def _collapse_repeat(seq, key=lambda x: x):
+    """Sled celý zopakovaný N× (víc­stránkový JŘ slepený za sebe) → jeden cyklus.
+    Nedotkne se legitimního tam-a-zpět (to není celý-sled-krát-k)."""
+    n = len(seq)
+    for k in (5, 4, 3, 2):
+        if n % k == 0:
+            p = n // k
+            if all(key(seq[i]) == key(seq[i % p]) for i in range(n)):
+                return seq[:p]
+    return seq
+
 def extract_pdf_dirs(path):
     """Sledy zastávek po směrech. DPMLJ PDF 2021 mají 1 stranu = 1 směr (druhá
     strana = opačný směr). Vrací [ [stop,…], … ] – distinktní sledy (loop = 1)."""
     dirs = []
     for pg in fitz.open(path):
-        s = _pdf_page_stops(pg.get_text())
+        s = _collapse_repeat(_pdf_page_stops(pg.get_text()))
         if len(s) >= 2 and s not in dirs:
             dirs.append(s)
     return dirs or [[]]
@@ -415,6 +426,7 @@ def finalize(rok, lines_raw, write_shapes=True, meta_extra=None):
         for d in raw_dirs:
             rows = [row(s, resolve) for s in d]
             rows = [r for r in rows if not r.get("skip")]  # vyřaď smetí označené skip
+            rows = _collapse_repeat(rows, key=lambda r: r.get("match") or r.get("raw"))  # až po skipu (hlavičky mezi kopiemi)
             res_dirs.append(rows)
         linky[short] = {"type": info["type"], "src": info.get("src", ""),
                         "long_name": info.get("long_name"), "dirs": res_dirs}
@@ -514,21 +526,47 @@ def build_pdf_year(rok):
     finalize(str(rok), lines_raw)
 
 
-def x11_stops():
-    """X11 (výluková, JŘ nemáme): segment dnešní linky 11 Vratislavice výhybna–Jablonec.
-    Stejné zastávky jako dnešní 11 v tomto úseku → surové názvy z dnešních dat."""
+def today_line_segment(short, a_name, b_name):
+    """Úsek dnešní linky mezi dvěma zastávkami (surové názvy z dnešních dat) – pro
+    injektované výlukové linky, jimž nemáme JŘ (stejné zastávky jako dnešní linka)."""
     routes = json.load(open(os.path.join(DATA, "routes.json"), encoding="utf-8"))
     stops = json.load(open(os.path.join(DATA, "stops.json"), encoding="utf-8"))
     byid = {s["id"]: s["name"] for s in stops}
-    l11 = next((r for r in routes if str(r.get("short_name")) == "11"), None)
-    if not l11:
+    r = next((x for x in routes if str(x.get("short_name")) == short), None)
+    if not r:
         return []
-    seq = [byid[i] for i in l11["stops"] if i in byid]
+    seq = [byid[i] for i in r["stops"] if i in byid]
     try:
-        a = seq.index("Vratislavice n.N. výhybna"); b = seq.index("Jablonec n.N., Tyršovy sady")
+        a = seq.index(a_name); b = seq.index(b_name)
     except ValueError:
         return []
     return seq[min(a, b):max(a, b) + 1]
+
+
+# Injektované linky bez JŘ (výluky) po jednotlivých snapshotech. Zastávky = úsek
+# dnešní linky; X-prefix je automaticky obarví jako výlukové.
+def extra_lines(rok):
+    rok = str(rok)
+    if rok == "2022":                                       # X11 = výluka k 1.1.2022 (výhybna–Jablonec)
+        seg = today_line_segment("11", "Vratislavice n.N. výhybna", "Jablonec n.N., Tyršovy sady")
+        return {"X11": {"type": "tram", "src": "úsek dnešní 11 (výhybna–Jablonec)",
+                        "long_name": "Vratislavice n.N. výhybna – Jablonec n.N., Tyršovy sady",
+                        "dirs": [seg]}} if seg else {}
+    if rok == "2011":                                       # výluka Fügnerova–výhybna: X5 i X11
+        seg = today_line_segment("11", "Fügnerova", "Vratislavice n.N. výhybna")
+        if not seg:
+            return {}
+        return {x: {"type": "bus", "src": "úsek dnešní 11 (Fügnerova–výhybna)",
+                    "long_name": "Fügnerova – Vratislavice n.N. výhybna (výluka)", "dirs": [seg]}
+                for x in ("X5", "X11")}
+    return {}
+
+
+# Per-(rok, linka) přejmenování surového názvu zastávky (kde je stejný název ve víc
+# lokalitách a v dané lince patří jinam). Přebíjí se před resolve.
+LINE_STOP_FIX = {
+    ("2011", "11"): {"Zelené Údolí": "Jablonec n.N. Zelené Údolí"},   # jablonecká větev, ne liberecké ZÚ
+}
 
 
 def build_year_folder(rok, meta_extra=None, write_shapes=False):
@@ -549,14 +587,12 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
         dirs = extract_pdf_dirs(os.path.join(folder, files[ln]))
         if not any(dirs):
             print(f"  ⚠ {ln}: sled zastávek nevytažen – vynecháno"); continue
+        fmap = LINE_STOP_FIX.get((str(rok), ln))            # per-linku přejmenování surových názvů
+        if fmap:
+            dirs = [[fmap.get(s, s) for s in d] for d in dirs]
         lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus",
                          "src": "jr/%s/%s" % (rok, files[ln]), "dirs": dirs}
-    if str(rok) == "2022":                                  # X11 = výluka platná jen k 1.1.2022
-        xs = x11_stops()
-        if xs:
-            lines_raw["X11"] = {"type": "tram", "src": "segment dnešní 11 (výhybna–Jablonec)",
-                                "long_name": "Vratislavice n.N. výhybna – Jablonec n.N., Tyršovy sady",
-                                "dirs": [xs]}
+    lines_raw.update(extra_lines(rok))                      # injektované výlukové linky (X5/X11…)
     finalize(str(rok), lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
