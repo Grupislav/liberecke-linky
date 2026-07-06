@@ -78,6 +78,22 @@ $isSnapshot = $snapRok !== '' && is_dir(__DIR__ . "/mapa-assets/data/$snapRok");
 if ($snapRok !== '' && !$isSnapshot) { http_response_code(404); }
 $dataSub = $isSnapshot ? "mapa-assets/data/$snapRok/" : "mapa-assets/data/";
 
+// Popisek snapshotu: když meta.json udává konkrétní datum stavu sítě (např. složka
+// 2022 = stav k 1. 1. 2022), zobraz datum; jinak jen rok. URL/složka je <rok>.
+$snapLabel = $snapRok;
+if ($isSnapshot) {
+    $snapMeta = json_decode(@file_get_contents(__DIR__ . '/' . $dataSub . 'meta.json'), true) ?: [];
+    if (!empty($snapMeta['date']) && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $snapMeta['date'], $dm)) {
+        $d = (int)$dm[3]; $mo = (int)$dm[2]; $y = $dm[1];
+        if ($l === 'en') {
+            $__mon = [1=>'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            $snapLabel = 'as of ' . $__mon[$mo] . ' ' . $d . ', ' . $y;
+        } else {
+            $snapLabel = 'k ' . $d . '. ' . $mo . '. ' . $y;
+        }
+    }
+}
+
 // Kategoriové barvy/priorita/labely z DB (stejná paleta jako živá mapa) – platí
 // i pro snapshot, aby měl stejné barvy a legendu. Klíčováno číslem linky, takže
 // se použije na kteroukoli linku daného roku, co dnes existuje. Bez DB zůstanou
@@ -169,7 +185,7 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
   <meta charset="UTF-8">
   <?php
   $__title = $isSnapshot
-      ? sprintf($lang['mapa_snap_titulek'] ?? 'Síť MHD Liberec %s | Liberecké linky', $snapRok)
+      ? sprintf($lang['mapa_snap_titulek'] ?? 'Síť MHD Liberec %s | Liberecké linky', $snapLabel)
       : ($lang['mapa_titulek'] ?? 'Mapa linek MHD Liberec a Jablonec n. N. | Liberecké linky');
   ?>
   <title><?= $esc($__title) ?></title>
@@ -259,7 +275,7 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
   </button>
   <?php if ($isSnapshot): ?>
   <div class="ms-snapbadge">
-    <?= $esc(sprintf($lang['mapa_snap_badge'] ?? 'Historická síť %s', $snapRok)) ?>
+    <?= $esc(sprintf($lang['mapa_snap_badge'] ?? 'Historická síť %s', $snapLabel)) ?>
     · <a href="<?= $esc($asset('mapa') . ($l !== 'cz' ? '?ja=' . rawurlencode($l) : '')) ?>"><?= $esc($lang['mapa_snap_live'] ?? 'živá mapa') ?></a>
   </div>
   <?php endif; ?>

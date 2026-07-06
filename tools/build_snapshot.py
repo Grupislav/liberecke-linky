@@ -154,7 +154,7 @@ def tram_seed():
 # ── extrakce sledu zastávek z PDF JŘ (formát DPMLJ, 2008–2011) ────────────────
 import fitz  # PyMuPDF
 _PDF_BAD = ('platí od', 'platí pro', 'platí pouze', 'linka čís', 'linka č', 'linku', 'na lince',
-            'tarif', 'sms', 'zóna', 'ukončení', 'dopravce', 'informace', 'zpracov', 'bezbarier',
+            'tarif', 'sms', 'ukončení', 'dopravce', 'informace', 'zpracov', 'bezbarier',
             'bezbariér', 'nízkopodlaž', 'neoznačen', 'znamení', 'jede ', 'jízdy', 'e-mail', 'tel:',
             'tel.', 'www', '@', 'počet', 'směr', 'seznam zast', 'platnost', 'obslu', 'nejede',
             'provoz', 'přestup', 'náhradní', 'zajiš', 'zajížd', 'spoje', 'spoj ', 'sloupec',
@@ -202,6 +202,16 @@ def extract_pdf_stops(path):
         s = _pdf_page_stops(pg.get_text())
         if len(s) > len(best): best = s
     return best
+
+def extract_pdf_dirs(path):
+    """Sledy zastávek po směrech. DPMLJ PDF 2021 mají 1 stranu = 1 směr (druhá
+    strana = opačný směr). Vrací [ [stop,…], … ] – distinktní sledy (loop = 1)."""
+    dirs = []
+    for pg in fitz.open(path):
+        s = _pdf_page_stops(pg.get_text())
+        if len(s) >= 2 and s not in dirs:
+            dirs.append(s)
+    return dirs or [[]]
 
 # ── geometrie: sešití po síti GTFS úseků (jako legacy), jinak rovná čára ──────
 def load_gtfs_stitcher():
@@ -305,63 +315,83 @@ def route_geometry(pts, stitch):
 
 
 # ── zápis datových souborů snapshotu (mapa-assets/data/<rok>/) ───────────────
-def emit_snapshot_data(linky, rok):
+def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
     today = {r["short_name"]: r for r in json.load(open(os.path.join(DATA, "routes.json"), encoding="utf-8"))}
     def color_for(short, typ):
-        if short in today and today[short].get("color"):
-            return today[short]["color"]
+        base = short[1:] if short[:1] in ("X", "x") and short[1:] in today else short  # X11 zdědí barvu 11
+        if base in today and today[base].get("color"):
+            return today[base]["color"]
         if typ == "tram":
             return "#cc2900"
         return "hsl(%d, 65%%, 45%%)" % (sum(ord(c) for c in short) * 47 % 360)  # deterministické
 
     stops, order = {}, []          # dedup podle resolvovaného (match) názvu = fyzická zastávka
-    def ref(rowdict):
+    def ref(rowdict, short):
         key = rowdict["match"]
         if key not in stops:
             name = re.sub(r'^x(?=[A-ZÁ-Ž])', '', rowdict["raw"]).strip()  # 2001 název (bez „x" na znamení)
             stops[key] = {"id": len(order) + 1, "name": name, "lat": rowdict["lat"], "lon": rowdict["lon"], "routes": []}
             order.append(key)
+        if short not in stops[key]["routes"]:
+            stops[key]["routes"].append(short)
         return stops[key]
 
-    stitch = load_gtfs_stitcher()
-    print("geometrie:", "sešití po síti GTFS" if stitch else "rovné spojnice (gtfs/ chybí)")
-
-    routes, feats, straight_tot = [], [], 0
-    for short, info in linky.items():
+    def dir_ids(rows, short):
         ids, seq, geompts = [], [], []
-        for r in info["stops"]:
+        for r in rows:
             if r["lat"] is None:
                 continue
-            st = ref(r)
+            st = ref(r, short)
             if ids and ids[-1] == st["id"]:          # slij sousední duplicitu (varianty zápisu téže zast.)
                 continue
             ids.append(st["id"]); seq.append(st["name"]); geompts.append((r["match"], r["lon"], r["lat"]))
-            if short not in st["routes"]:
-                st["routes"].append(short)
+        return ids, seq, geompts
+
+    stitch = load_gtfs_stitcher() if write_shapes else None
+    if write_shapes:
+        print("geometrie:", "sešití po síti GTFS" if stitch else "rovné spojnice (gtfs/ chybí)")
+
+    routes, feats, straight_tot = [], [], 0
+    for short, info in linky.items():
+        dirs = info.get("dirs") or [info.get("stops", [])]
+        outdirs = [dir_ids(d, short) for d in dirs]           # [(ids, seq, geompts), …]
+        outdirs = [o for o in outdirs if o[0]] or [([], [], [])]
+        prim_ids, prim_seq, prim_geo = outdirs[0]
         col = color_for(short, info["type"])
-        derived = (seq[0] + " – " + seq[-1]) if seq else ""
-        routes.append({"id": "r-" + short, "short_name": short, "long_name": info.get("long_name") or derived,
-                       "type": info["type"], "color": col, "stops": ids})
-        coords, straights = route_geometry(geompts, stitch)
-        straight_tot += straights
-        if len(coords) >= 2:
-            feats.append({"type": "Feature",
-                          "properties": {"id": "r-" + short, "short_name": short, "color": col},
-                          "geometry": {"type": "MultiLineString", "coordinates": [coords]}})
-    print(f"rovných úseků celkem (mimo síť): {straight_tot}")
+        derived = (prim_seq[0] + " – " + prim_seq[-1]) if prim_seq else ""
+        route = {"id": "r-" + short, "short_name": short, "long_name": info.get("long_name") or derived,
+                 "type": info["type"], "color": col, "stops": prim_ids}
+        # dva různé směry (jiná množina zastávek = jednosměrné/závleky) → přepínač směru
+        if len(outdirs) >= 2 and set(outdirs[0][0]) != set(outdirs[1][0]):
+            route["directions"] = [{"headsign": (o[1][-1] if o[1] else ""), "stops": o[0]} for o in outdirs]
+        routes.append(route)
+        if write_shapes:
+            coords, straights = route_geometry(prim_geo, stitch)
+            straight_tot += straights
+            if len(coords) >= 2:
+                feats.append({"type": "Feature",
+                              "properties": {"id": "r-" + short, "short_name": short, "color": col},
+                              "geometry": {"type": "MultiLineString", "coordinates": [coords]}})
+    if write_shapes:
+        print(f"rovných úseků celkem (mimo síť): {straight_tot}")
 
     out = os.path.join(DATA, str(rok)); os.makedirs(out, exist_ok=True)
     w = lambda fn, obj: json.dump(obj, open(os.path.join(out, fn), "w", encoding="utf-8"), ensure_ascii=False)
     w("stops.json", [stops[k] for k in order])
     w("routes.json", routes)
-    w("shapes.json", {"type": "FeatureCollection", "features": feats})
-    w("meta.json", {"rok": int(rok), "counts": {"routes": len(routes), "stops": len(order)}})
+    if write_shapes:
+        w("shapes.json", {"type": "FeatureCollection", "features": feats})
+    meta = {"rok": int(rok), "counts": {"routes": len(routes), "stops": len(order)}}
+    if meta_extra:
+        meta.update(meta_extra)
+    w("meta.json", meta)
     return len(order), len(routes)
 
 
 # ── společný finalizér: resolve názvů, mezisoubor, overrides, zápis dat ───────
-def finalize(rok, lines_raw):
-    """lines_raw = {short: {"type","src","long_name"?,"stops":[raw_name,...]}} (v pořadí vkládání)."""
+def finalize(rok, lines_raw, write_shapes=True, meta_extra=None):
+    """lines_raw = {short: {"type","src","long_name"?, "stops":[raw,...] NEBO "dirs":[[raw,...],…]}}.
+    „dirs" = sledy po směrech (PDF 2021: strana = směr); jinak jeden „stops"."""
     devdir = os.path.join(ROOT, "dev"); os.makedirs(devdir, exist_ok=True)
     ovpath = os.path.join(devdir, "snapshot-%s-overrides.json" % rok)
     overrides = json.load(open(ovpath, encoding="utf-8")) if os.path.exists(ovpath) else {}
@@ -369,16 +399,21 @@ def finalize(rok, lines_raw):
 
     linky = {}
     for short, info in lines_raw.items():
-        rows = [row(s, resolve) for s in info["stops"]]
-        rows = [r for r in rows if not r.get("skip")]      # vyřaď smetí označené skip
+        raw_dirs = info.get("dirs") or [info.get("stops", [])]
+        res_dirs = []
+        for d in raw_dirs:
+            rows = [row(s, resolve) for s in d]
+            rows = [r for r in rows if not r.get("skip")]  # vyřaď smetí označené skip
+            res_dirs.append(rows)
         linky[short] = {"type": info["type"], "src": info.get("src", ""),
-                        "long_name": info.get("long_name"), "stops": rows}
+                        "long_name": info.get("long_name"), "dirs": res_dirs}
 
+    allrows = lambda: [s for v in linky.values() for d in v["dirs"] for s in d]
     json.dump({"rok": rok, "linky": linky},
               open(os.path.join(devdir, "snapshot-%s.json" % rok), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
 
-    unmatched = sorted({s["raw"] for v in linky.values() for s in v["stops"] if s["match"] is None})
+    unmatched = sorted({s["raw"] for s in allrows() if s["match"] is None})
     added = 0
     for raw in unmatched:
         if raw not in overrides:
@@ -387,15 +422,15 @@ def finalize(rok, lines_raw):
               ensure_ascii=False, indent=1)
 
     from collections import Counter
-    nmiss = sum(1 for v in linky.values() for s in v["stops"] if s["match"] is None)
-    src = Counter(s["src"] for v in linky.values() for s in v["stops"])
-    tot = sum(len(v["stops"]) for v in linky.values())
+    nmiss = sum(1 for s in allrows() if s["match"] is None)
+    src = Counter(s["src"] for s in allrows())
+    tot = len(allrows())
     print(f"[{rok}] linky: {len(linky)} | výskytů: {tot} | nespárováno: {nmiss} | unikátů k vyplnění: {len(unmatched)}")
     print("zdroje souřadnic:", dict(src))
     print(f"mezisoubor:  dev/snapshot-{rok}.json")
     print(f"k vyplnění:  dev/snapshot-{rok}-overrides.json ({added} nových stubů, celkem {len(overrides)})")
     if nmiss == 0:
-        ns, nr = emit_snapshot_data(linky, rok)
+        ns, nr = emit_snapshot_data(linky, rok, write_shapes=write_shapes, meta_extra=meta_extra)
         print(f"\n✓ data: mapa-assets/data/{rok}/ ({nr} linek, {ns} zastávek)")
     else:
         print(f"\n⚠ {nmiss} nespárováno – data NEzapsána (nejdřív dořeš overrides).")
@@ -468,10 +503,65 @@ def build_pdf_year(rok):
     finalize(str(rok), lines_raw)
 
 
+def x11_stops():
+    """X11 (výluková, JŘ nemáme): segment dnešní linky 11 Vratislavice výhybna–Jablonec.
+    Stejné zastávky jako dnešní 11 v tomto úseku → surové názvy z dnešních dat."""
+    routes = json.load(open(os.path.join(DATA, "routes.json"), encoding="utf-8"))
+    stops = json.load(open(os.path.join(DATA, "stops.json"), encoding="utf-8"))
+    byid = {s["id"]: s["name"] for s in stops}
+    l11 = next((r for r in routes if str(r.get("short_name")) == "11"), None)
+    if not l11:
+        return []
+    seq = [byid[i] for i in l11["stops"] if i in byid]
+    try:
+        a = seq.index("Vratislavice n.N. výhybna"); b = seq.index("Jablonec n.N., Tyršovy sady")
+    except ValueError:
+        return []
+    return seq[min(a, b):max(a, b) + 1]
+
+
+def build_year_folder(rok, meta_extra=None):
+    """Snapshot z ručně kurátorované složky jr/<rok>/ (1 PDF = 1 linka; jen provozní linky
+    roku). Obě strany PDF = oba směry. Geometrie se NEpřepisuje (write_shapes=False) – řeší se
+    zvlášť, aby se do zamrzlého snapshotu nezanesly momentální objížďky."""
+    folder = os.path.join(ROOT, "jr", str(rok))
+    TRAMS = {"2", "3", "5", "11"}
+    files = {}
+    for f in sorted(os.listdir(folder)):
+        if not f.lower().endswith(".pdf"):
+            continue
+        m = re.match(r'(\d+)', f)
+        if m:
+            files.setdefault(m.group(1), f)                 # 1 soubor na linku
+    lines_raw = {}
+    for ln in sorted(files, key=lambda x: (len(x), x)):
+        dirs = extract_pdf_dirs(os.path.join(folder, files[ln]))
+        if not any(dirs):
+            print(f"  ⚠ {ln}: sled zastávek nevytažen – vynecháno"); continue
+        lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus",
+                         "src": "jr/%s/%s" % (rok, files[ln]), "dirs": dirs}
+    xs = x11_stops()                                        # X11 – doplněná výluková linka
+    if xs:
+        lines_raw["X11"] = {"type": "tram", "src": "segment dnešní 11 (výhybna–Jablonec)",
+                            "long_name": "Vratislavice n.N. výhybna – Jablonec n.N., Tyršovy sady",
+                            "dirs": [xs]}
+    finalize(str(rok), lines_raw, write_shapes=False, meta_extra=meta_extra)
+
+
+# rok (= název složky/URL) → datum stavu sítě (když snapshot reflektuje konkrétní den).
+# 2022 = stav k 1. 1. 2022 (JŘ platné od 12. 12. 2021), zdroj jr/2022/.
+SNAP_DATE = {"2022": "2022-01-01"}
+
 if __name__ == "__main__":
     rok = sys.argv[1] if len(sys.argv) > 1 else "2001"
+    meta_extra = {"date": SNAP_DATE[rok]} if rok in SNAP_DATE else None
+    has_folder = re.fullmatch(r"\d{4}", rok) and rok != "2001" and \
+        os.path.isdir(os.path.join(ROOT, "jr", rok)) and \
+        any(f.lower().endswith(".pdf") for f in os.listdir(os.path.join(ROOT, "jr", rok)))
     if rok == "2001":
         build_2001()
+    elif has_folder:
+        build_year_folder(rok, meta_extra=meta_extra)
     elif re.fullmatch(r"\d{4}", rok):
         build_pdf_year(rok)
     else:
