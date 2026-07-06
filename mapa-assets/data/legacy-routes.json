@@ -303,37 +303,6 @@
     ]
   },
   {
-    "short_name": "4",
-    "type": "tram",
-    "category": "historicke",
-    "long_name": "VIADUKT - FÜGNEROVA - VRATISLAVICE NAD NISOU, výhybna - JABLONEC NAD NISOU, Tyršovy sady",
-    "stops": [
-      "Viadukt",
-      "Nádraží",
-      "Rybníček",
-      "Fügnerova",
-      "Mlýnská",
-      "Textilana",
-      "U Lomu",
-      "Nová Ruda",
-      "Sídliště Nové Vratislavice",
-      "Pivovarská",
-      "Lékárna",
-      "Vratislavice n.N. kostel",
-      "Vratislavice n.N. výhybna",
-      "Vratislavická kyselka",
-      "Za Tratí",
-      "Proseč n.N. pošta",
-      "U Šamotky",
-      "Nový Svět",
-      "Jablonec n.N. Zelené Údolí",
-      "Měnírna",
-      "Brandl",
-      "Liberecká",
-      "Jablonec n.N., Tyršovy sady"
-    ]
-  },
-  {
     "short_name": "50",
     "type": "bus",
     "long_name": "U VĚŽE - Růžodol I. - RŮŽODOL MLÝN - ZŠ JABLOŇOVÁ",
