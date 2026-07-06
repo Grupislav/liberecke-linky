@@ -13,7 +13,14 @@ Re-run after every monthly GTFS update (from the repo root):
 Then review the regenerated mapa-assets/data/*.json and commit them.
 (gtfs/ and gtfs.zip are gitignored – only the generated JSON is deployed.)
 """
-import csv, json, os, collections, colorsys
+import csv, json, os, collections, colorsys, io, sys
+
+# UTF-8 stdout – jinak by výpis názvů linek se znaky mimo ASCII (např. „♿BUS")
+# spadl na Windows konzoli (cp1250).
+try:
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+except Exception:
+    pass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GTFS = os.path.join(ROOT, "gtfs")
@@ -190,6 +197,17 @@ def build_legacy_shapes(trips, stop_times, shapes_raw, station_of, stations):
         key = " ".join(s.get("stop_name", "").strip().lower().split())
         name_to_station.setdefault(key, sid)
 
+    # zaniklé zastávky (se souřadnicemi) ze stops-history.json – aby legacy linky,
+    # které jimi vedou (např. ♿BUS přes Koloseum/Sokolská most), nepřišly o úsek.
+    vanished_coords = {}
+    try:
+        _h = json.load(open(os.path.join(OUT, "stops-history.json"), encoding="utf-8"))
+        for _v in _h.get("vanished", []):
+            if _v.get("lat") is not None and _v.get("lon") is not None:
+                vanished_coords[" ".join(str(_v["name"]).strip().lower().split())] = (float(_v["lon"]), float(_v["lat"]))
+    except Exception:
+        pass
+
     def resolve(entry):
         if isinstance(entry, dict):
             key = " ".join(str(entry.get("name", "")).strip().lower().split())
@@ -197,9 +215,11 @@ def build_legacy_shapes(trips, stop_times, shapes_raw, station_of, stations):
                 return ("s", name_to_station[key])
             if entry.get("lat") is not None and entry.get("lon") is not None:
                 return ("c", (float(entry["lon"]), float(entry["lat"])))
-            return None
+            return ("c", vanished_coords[key]) if key in vanished_coords else None
         key = " ".join(str(entry).strip().lower().split())
-        return ("s", name_to_station[key]) if key in name_to_station else None
+        if key in name_to_station:
+            return ("s", name_to_station[key])
+        return ("c", vanished_coords[key]) if key in vanished_coords else None
 
     def lonlat(r):
         if r[0] == "s":
