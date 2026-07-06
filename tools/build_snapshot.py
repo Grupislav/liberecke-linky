@@ -424,6 +424,10 @@ def finalize(rok, lines_raw, write_shapes=True, meta_extra=None):
     linky = {}
     for short, info in lines_raw.items():
         raw_dirs = info.get("dirs") or [info.get("stops", [])]
+        fmap = LINE_STOP_FIX.get((str(rok), short))         # per-linku: název ponech, resolvuj jinam
+        if fmap:
+            raw_dirs = [[({"raw": s, "as": fmap[s]} if (isinstance(s, str) and s in fmap) else s)
+                         for s in d] for d in raw_dirs]
         res_dirs = []
         for d in raw_dirs:
             rows = [row(s, resolve) for s in d]
@@ -462,22 +466,32 @@ def finalize(rok, lines_raw, write_shapes=True, meta_extra=None):
     return nmiss
 
 
-def build_2001():
+def build_2001(meta_extra=None, write_shapes=True):
     jr = os.path.join(ROOT, "jr", "2001")
-    by_line = {}
+    by_line = {}                                               # {linka: {"t": soubor, "z": soubor}}
     for f in os.listdir(jr):
         if not f.lower().endswith((".htm", ".html")) or f.startswith("Seznam"):
             continue
         m = re.match(r'(\d+)\s*([tz]?)', f)
-        if not m or m.group(2) == "z":
+        if not m:
             continue
-        by_line.setdefault(m.group(1), f)
+        by_line.setdefault(m.group(1), {}).setdefault(m.group(2) or "t", f)
     lines_raw = {}
-    for ln in sorted(by_line, key=lambda x: (len(x), x)):       # busy seřazené (stejné pořadí jako dřív)
-        lines_raw[ln] = {"type": "bus", "src": "jr/2001/" + by_line[ln],
-                         "stops": extract_stops(open(os.path.join(jr, by_line[ln]), encoding="utf-8").read())}
-    lines_raw.update(tram_seed())                               # pak tramvaje 2,5,11,X3
-    finalize("2001", lines_raw)
+    lines_raw.update(tram_seed())                              # tramvaje 2,5,11,X3 první (nad busy)
+    for ln in sorted(by_line, key=lambda x: (len(x), x)):
+        files = by_line[ln]
+        seqs = []
+        for d in ("t", "z"):                                   # tam, pak zpět = dva směry
+            if d in files:
+                html = open(os.path.join(jr, files[d]), encoding="utf-8", errors="replace").read()
+                s = extract_stops(html)
+                if len(s) >= 2:
+                    seqs.append(s)
+        if not seqs:
+            continue
+        lines_raw[ln] = {"type": "bus", "src": "jr/2001/" + (files.get("t") or files.get("z")),
+                         "dirs": seqs}
+    finalize("2001", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
 def select_pdf_for_year(rok):
@@ -570,6 +584,7 @@ def extra_lines(rok):
 # fyzicky odpovídá jablonecké zastávce (v síti byly 2 stejnojmenné).
 LINE_STOP_FIX = {
     ("2011", "11"): {"Zelené Údolí": "Jablonec n.N. Zelené Údolí"},
+    ("2001", "12"): {"Polní": "Stračí"},   # „Polní" tehdy = dnešní Stračí (Polní neexistovala)
 }
 
 
@@ -591,9 +606,6 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
         dirs = extract_pdf_dirs(os.path.join(folder, files[ln]))
         if not any(dirs):
             print(f"  ⚠ {ln}: sled zastávek nevytažen – vynecháno"); continue
-        fmap = LINE_STOP_FIX.get((str(rok), ln))            # per-linku: zobrazený název ponech, resolvuj jinam
-        if fmap:
-            dirs = [[({"raw": s, "as": fmap[s]} if s in fmap else s) for s in d] for d in dirs]
         lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus",
                          "src": "jr/%s/%s" % (rok, files[ln]), "dirs": dirs}
     lines_raw.update(extra_lines(rok))                      # injektované výlukové linky (X5/X11…)
@@ -605,6 +617,7 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
 SNAP_META = {
     "2022": {"date": "2022-01-01"},
     "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
+    "2001": {"cat_override": {"301": "autobusy"}},                     # 301 dnes „mimo provoz" → tehdy bus
 }
 
 if __name__ == "__main__":
@@ -614,7 +627,7 @@ if __name__ == "__main__":
         os.path.isdir(os.path.join(ROOT, "jr", rok)) and \
         any(f.lower().endswith(".pdf") for f in os.listdir(os.path.join(ROOT, "jr", rok)))
     if rok == "2001":
-        build_2001()
+        build_2001(meta_extra=meta_extra)
     elif has_folder:
         build_year_folder(rok, meta_extra=meta_extra)
     elif re.fullmatch(r"\d{4}", rok):
