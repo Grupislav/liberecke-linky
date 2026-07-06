@@ -79,6 +79,7 @@ function url_with_params(array $override): string {
  */
 function line_category_colors(): array {
     return [
+        'vylukova'   => '#e8590c',   // výlukové (linky s číslem začínajícím na X)
         'tramvaje'   => '#cc2900',
         'autobusy'   => '#007db3',
         'nocni'      => '#000000',
@@ -108,6 +109,7 @@ function line_map_aliases(): array {
  */
 function line_category_priority(): array {
     return [
+        'vylukova'   => 0,   // výlukové úplně navrchu
         'tramvaje'   => 1,
         'autobusy'   => 2,
         'pracovni'   => 3,   // pracovní pod autobusy

@@ -109,6 +109,17 @@ if ($routesJsonRaw) {
         if (isset($rj['short_name'])) $mapShorts[(string)$rj['short_name']] = true;
     }
 }
+// Výlukové linky: číslo začínající na „X" (X2, X3, …) → kategorie „vylukova"
+// (vlastní barva/priorita). Řešeno automaticky z routes.json, ne z DB – výlukové
+// linky se v GTFS objevují/mizí podle uzavírek.
+foreach (array_keys($mapShorts) as $short) {
+    if ($short !== '' && ($short[0] === 'X' || $short[0] === 'x')) {
+        if (isset($catColors['vylukova'])) $tileColors[$short] = $catColors['vylukova'];
+        if (isset($catPrio['vylukova']))   $tilePriority[$short] = $catPrio['vylukova'];
+        $lbl = $lang['mapa_katsg_vylukova'] ?? '';
+        if ($lbl !== '') $tileCats[$short] = $lbl;
+    }
+}
 $presentHex = [];
 foreach ($tileColors as $short => $hex) {
     if (isset($mapShorts[$short])) $presentHex[$hex] = true;

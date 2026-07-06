@@ -710,10 +710,18 @@
     };
   }
 
+  // výluková linka = číslo začíná na X (X2, X3…) – řeší i barvu/pořadí přes DB kategorii
+  function isVyluka(r) {
+    var s = (r.short_name || "").charAt(0);
+    return s === "X" || s === "x";
+  }
+
   // ── seznam linek v panelu ────────────────────────────────────────
   function buildRouteList() {
     elRoutes.innerHTML = "";
-    routes.forEach(function (r) {
+    // výlukové úplně nahoře, zbytek v pořadí z routes.json (stabilní)
+    var ordered = routes.slice().sort(function (a, b) { return (isVyluka(b) ? 1 : 0) - (isVyluka(a) ? 1 : 0); });
+    ordered.forEach(function (r) {
       var li = document.createElement("li");
       li.dataset.id = r.id;
       li.dataset.type = r.type;

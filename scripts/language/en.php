@@ -91,6 +91,7 @@ $lang['mapa_jr_spoje']         = 'Trip schedule';
 
 // line-category legend on the map (labels for typy_linek categories)
 $lang['mapa_legenda']        = 'Line categories';
+$lang['mapa_kat_vylukova']   = 'Replacement';
 $lang['mapa_kat_tramvaje']   = 'Trams';
 $lang['mapa_kat_autobusy']   = 'Buses';
 $lang['mapa_kat_nocni']      = 'Night';
@@ -100,6 +101,7 @@ $lang['mapa_kat_nakupni']    = 'Commercial';
 $lang['mapa_kat_historicke'] = 'Historical';
 
 // singular category names for the route title in the Overview ("Category number: route")
+$lang['mapa_katsg_vylukova']   = 'Replacement line';
 $lang['mapa_katsg_tramvaje']   = 'Tram';
 $lang['mapa_katsg_autobusy']   = 'Bus';
 $lang['mapa_katsg_nocni']      = 'Night line';

@@ -91,6 +91,7 @@ $lang['mapa_jr_spoje']         = 'Jízdní řád spoje';
 
 // legenda kategorií linek na mapě (popisky ke kategoriím v typy_linek)
 $lang['mapa_legenda']        = 'Kategorie linek';
+$lang['mapa_kat_vylukova']   = 'Výlukové';
 $lang['mapa_kat_tramvaje']   = 'Tramvaje';
 $lang['mapa_kat_autobusy']   = 'Autobusy';
 $lang['mapa_kat_nocni']      = 'Noční';
@@ -100,6 +101,7 @@ $lang['mapa_kat_nakupni']    = 'Komerční';
 $lang['mapa_kat_historicke'] = 'Historické';
 
 // singulární názvy kategorií pro nadpis linky v přehledu ("Kategorie číslo: trasa")
+$lang['mapa_katsg_vylukova']   = 'Výluková linka';
 $lang['mapa_katsg_tramvaje']   = 'Tramvaj';
 $lang['mapa_katsg_autobusy']   = 'Autobus';
 $lang['mapa_katsg_nocni']      = 'Noční linka';
