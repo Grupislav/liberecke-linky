@@ -115,7 +115,6 @@
 
   // ── inicializace ─────────────────────────────────────────────────
   function init(shapes, meta, legacy, legacyShapes, history) {
-    if (SNAP) colorLines = true;   // snapshot = rovnou barevná síť (žádné „provozní vs. ostatní")
     routes.forEach(function (r) { routeById[r.id] = r; routeByShort[r.short_name] = r; });
     stops.forEach(function (s, i) { stopById[s.id] = s; stopByName[norm(s.name)] = s; stopIndexById[s.id] = i; });
     processHistory(history);

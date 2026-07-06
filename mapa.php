@@ -71,24 +71,20 @@ $jsLang = [
 
 // ── Historický snapshot sítě ────────────────────────────────────────────
 // /mapa/<rok> → ?rok=YYYY (rewrite). Existuje-li mapa-assets/data/<rok>/, jede
-// statický snapshot: bez DB (barvy/kategorie zapečené v datech) a bez JŘ.
+// snapshot roku: data z data/<rok>/, bez JŘ (vozidla/odjezdy) a bez legacy linek;
+// kategoriové barvy + legendu ale bere z DB stejně jako živá mapa.
 $snapRok    = (isset($_GET['rok']) && preg_match('/^[0-9]{4}$/', (string)$_GET['rok'])) ? (string)$_GET['rok'] : '';
 $isSnapshot = $snapRok !== '' && is_dir(__DIR__ . "/mapa-assets/data/$snapRok");
 if ($snapRok !== '' && !$isSnapshot) { http_response_code(404); }
 $dataSub = $isSnapshot ? "mapa-assets/data/$snapRok/" : "mapa-assets/data/";
 
-// DB-odvozené hodnoty (barvy/kategorie/legacy/aliasy/legenda) – jen pro živou mapu.
-$tileColors = $tilePriority = $tileCats = $legacyStops = $lineAliases = $legend = [];
-$hasHistoric = false;
-if (!$isSnapshot) {
-// Kategorie linek z DB (stejný dotaz jako dlaždice, sdílený přes fce.php).
-// Z kódu kategorie odvodíme barvu (shodnou s dlaždicemi) i pořadí vrstev.
-// Při nedostupné DB zůstanou pole prázdná → mapa spadne zpět na GTFS.
+// Kategoriové barvy/priorita/labely z DB (stejná paleta jako živá mapa) – platí
+// i pro snapshot, aby měl stejné barvy a legendu. Klíčováno číslem linky, takže
+// se použije na kteroukoli linku daného roku, co dnes existuje. Bez DB zůstanou
+// pole prázdná → spadne se na barvy zapečené v routes.json.
 $catColors = line_category_colors();
 $catPrio   = line_category_priority();
-$tileColors = [];
-$tilePriority = [];
-$tileCats = [];   // linka -> název kategorie (singular) pro nadpis detailu na mapě
+$tileColors = $tilePriority = $tileCats = [];
 foreach (fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null) as $short => $kod) {
     if (isset($catColors[$kod])) $tileColors[$short] = $catColors[$kod];
     if (isset($catPrio[$kod]))   $tilePriority[$short] = $catPrio[$kod];
@@ -96,17 +92,18 @@ foreach (fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? 
     if ($lbl !== '') $tileCats[$short] = $lbl;
 }
 
-// seznam zastávek linek mimo provoz (z DB) – pro detail na mapě
-$legacyStops = fetch_legacy_stop_lists_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null);
+// Linky mimo provoz (seznamy zastávek z DB) + jejich aliasy – jen živá mapa.
+$legacyStops = $lineAliases = [];
+if (!$isSnapshot) {
+    $legacyStops = fetch_legacy_stop_lists_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null);
+    $lineAliases = line_map_aliases();
+}
 
-// aliasy linek trvale mimo provoz -> existující trasa (161->16, 301->30, …)
-$lineAliases = line_map_aliases();
-
-// Legenda kategorií = kategorie, jejichž barvu má aspoň jedna linka reálně
-// zobrazená na mapě (průnik DB ∩ routes.json). Bez dalšího dotazu.
+// Legenda kategorií = kategorie, jejichž barvu má aspoň jedna linka aktuálního
+// pohledu (průnik DB ∩ routes.json živé mapy / snapshotu daného roku).
 $legend = [];
 $mapShorts = [];
-$routesJsonRaw = @file_get_contents(__DIR__ . '/mapa-assets/data/routes.json');
+$routesJsonRaw = @file_get_contents(__DIR__ . '/' . $dataSub . 'routes.json');
 if ($routesJsonRaw) {
     foreach (json_decode($routesJsonRaw, true) ?: [] as $rj) {
         if (isset($rj['short_name'])) $mapShorts[(string)$rj['short_name']] = true;
@@ -122,16 +119,18 @@ foreach ($catColors as $kod => $hex) {
         $legend[] = ['color' => $hex, 'label' => $lang['mapa_kat_' . $kod] ?? $kod];
     }
 }
-// historické legacy linky (z legacy-routes.json) – vlastní položka legendy
-$legacyRaw = @file_get_contents(__DIR__ . '/mapa-assets/data/legacy-routes.json');
+// historické legacy linky (z legacy-routes.json) – vlastní položka; jen živá mapa
 $hasHistoric = false;
-if ($legacyRaw) {
-    foreach (json_decode($legacyRaw, true) ?: [] as $lr) {
-        if (($lr['category'] ?? '') === 'historicke') { $hasHistoric = true; break; }
+if (!$isSnapshot) {
+    $legacyRaw = @file_get_contents(__DIR__ . '/mapa-assets/data/legacy-routes.json');
+    if ($legacyRaw) {
+        foreach (json_decode($legacyRaw, true) ?: [] as $lr) {
+            if (($lr['category'] ?? '') === 'historicke') { $hasHistoric = true; break; }
+        }
     }
-}
-if ($hasHistoric) {
-    $legend[] = ['color' => $catColors['historicke'] ?? '#991f00', 'label' => $lang['mapa_kat_historicke'] ?? 'Historické'];
+    if ($hasHistoric) {
+        $legend[] = ['color' => $catColors['historicke'] ?? '#991f00', 'label' => $lang['mapa_kat_historicke'] ?? 'Historické'];
+    }
 }
 // deduplikace legendy (kategorie historické může přijít z DB i z legacy-routes)
 $seenLeg = [];
@@ -141,7 +140,6 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
     $seenLeg[$k] = true;
     return true;
 }));
-}  // konec if (!$isSnapshot)
 ?>
 <!DOCTYPE html>
 <html lang="<?= $esc($l) ?>">
