@@ -501,6 +501,21 @@ def build_2001(meta_extra=None, write_shapes=True):
     finalize("2001", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
+def build_1995(meta_extra=None, write_shapes=True):
+    """Snapshot 1995 z ručně přepsaných skenů (dev/snapshot-1995-source.json – skeny nemají
+    textovou vrstvu, přepsáno vizuálně). Formát: {"lines": {linka: {"type","dirs":[[stop,…],…]}}}."""
+    src = json.load(open(os.path.join(ROOT, "dev", "snapshot-1995-source.json"), encoding="utf-8"))
+    trams = set(src.get("trams", []))
+    lines = src["lines"]
+    order = sorted(lines, key=lambda x: (x not in trams, len(x), x))   # tramvaje první, pak busy
+    lines_raw = {}
+    for ln in order:
+        info = lines[ln]
+        lines_raw[ln] = {"type": info.get("type") or ("tram" if ln in trams else "bus"),
+                         "src": "jr/1995 (sken)", "dirs": info["dirs"]}
+    finalize("1995", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
+
+
 def select_pdf_for_year(rok):
     """U každé linky vyber JŘ (PDF) s platností nejbližší ≤ konec roku (datum v názvu)."""
     import collections as _c
@@ -636,16 +651,19 @@ SNAP_META = {
     "2022": {"date": "2022-01-01"},
     "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
     "2001": {"cat_override": {"301": "autobusy"}},                     # 301 dnes „mimo provoz" → tehdy bus
+    "1995": {"date": "1995-01-01"},
 }
 
 if __name__ == "__main__":
     rok = sys.argv[1] if len(sys.argv) > 1 else "2001"
     meta_extra = SNAP_META.get(rok)
-    has_folder = re.fullmatch(r"\d{4}", rok) and rok != "2001" and \
+    has_folder = re.fullmatch(r"\d{4}", rok) and rok not in ("2001", "1995") and \
         os.path.isdir(os.path.join(ROOT, "jr", rok)) and \
         any(f.lower().endswith(".pdf") for f in os.listdir(os.path.join(ROOT, "jr", rok)))
     if rok == "2001":
         build_2001(meta_extra=meta_extra)
+    elif rok == "1995":                                    # skeny → ruční přepis (dev/snapshot-1995-source.json)
+        build_1995(meta_extra=meta_extra)
     elif has_folder:
         build_year_folder(rok, meta_extra=meta_extra)
     elif re.fullmatch(r"\d{4}", rok):
