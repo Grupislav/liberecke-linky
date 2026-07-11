@@ -311,11 +311,19 @@ def load_gtfs_stitcher():
             out.extend(line[1:] if out and line and out[-1] == line[0] else line)
         return out
 
+    def direct(a, b):
+        """Jen PŘÍMÝ úsek mezi dvěma zastávkami (skutečná trasa MHD), bez multi-hopu.
+        Multi-hop Dijkstra po zastávkách dělá u historických linek nesmysly (objede to
+        přes zastávky jiné linky) – od toho je uliční router."""
+        if (a, b) in seg: return seg[(a, b)][1]
+        if (b, a) in seg: return list(reversed(seg[(b, a)][1]))
+        return None
+
     nrm = lambda x: " ".join(str(x or "").strip().lower().split())
     name2st = {}
     for sid, s in stations.items():
         name2st.setdefault(nrm(s["stop_name"]), sid)
-    return (lambda name: name2st.get(nrm(name))), shortest
+    return (lambda name: name2st.get(nrm(name))), shortest, direct
 
 
 def load_street_router():
@@ -373,22 +381,50 @@ def load_street_router():
     return street
 
 
-def route_geometry(pts, stitch):
-    """pts = [(match_name, lon, lat), …] → polyline; mezi GTFS zastávkami sešije
-    po síti, jinak rovná čára. Vrací ([ [lon,lat],… ], počet_rovných_úseků)."""
+def _polylen(g):
+    """Délka polyline [(lon,lat), …] v metrech."""
+    import math as _m
+    if not g or len(g) < 2:
+        return 0.0
+    return sum(_m.hypot((a[0]-b[0]) * 111000 * _m.cos(_m.radians(a[1])), (a[1]-b[1]) * 111000)
+               for a, b in zip(g, g[1:]))
+
+
+def route_geometry(pts, stitch, street=None):
+    """pts = [(match_name, lon, lat), …] → polyline. Priorita úseku mezi dvěma zastávkami:
+      1) PŘÍMÝ úsek MHD (skutečná trasa, kterou dnes linka jezdí) – nejpřesnější,
+      2) …ale je-li >1,3× delší než uliční nejkratší cesta, jde nejspíš o OBJÍŽĎKU → ulice,
+      3) ULIČNÍ ROUTER, když přímý úsek neexistuje (dnes tudy nic nejezdí),
+      4) rovná čára (nouzově).
+    Multi-hop Dijkstra po zastávkách se ZÁMĚRNĚ nepoužívá – objížděl to přes zastávky jiných
+    linek (2022/17: 3116 m místo 610 m vzdušně). Vrací ([ [lon,lat],… ], počet_rovných)."""
     if not pts:
         return [], 0
     poly = [[round(pts[0][1], 5), round(pts[0][2], 5)]]
     straights = 0
-    resolve, shortest = stitch if stitch else (None, None)
+    resolve, _shortest, direct = stitch if stitch else (None, None, None)
     for i in range(len(pts) - 1):
-        na, _, _ = pts[i]; nb, lo_b, la_b = pts[i + 1]
+        na, lo_a, la_a = pts[i]; nb, lo_b, la_b = pts[i + 1]
         geom = None
         if stitch:
             sa, sb = resolve(na), resolve(nb)
             if sa and sb:
-                geom = shortest(sa, sb)
-        if geom:
+                geom = direct(sa, sb)
+        sgeom = street((la_a, lo_a), (la_b, lo_b)) if street else None
+        if sgeom and len(sgeom) > 1:
+            # router vede mezi nejbližšími uzly grafu – napoj trasu na SKUTEČNÉ zastávky,
+            # a leží-li zastávka daleko od ulic pokrytých MHD, uliční trasa nedává smysl
+            ga = _polylen([[lo_a, la_a], sgeom[0]])
+            gb = _polylen([sgeom[-1], [lo_b, la_b]])
+            if ga > 250 or gb > 250:
+                sgeom = None                   # zastávka mimo uliční síť → radši rovná čára
+            else:
+                sgeom = [[lo_a, la_a]] + list(sgeom) + [[lo_b, la_b]]
+        if geom and sgeom and _polylen(geom) > 1.3 * _polylen(sgeom):
+            geom = sgeom                       # přímý úsek podezřele dlouhý → objížďka, ber ulice
+        if not geom:
+            geom = sgeom
+        if geom and len(geom) > 1:
             for lo, la in geom:
                 p = [round(lo, 5), round(la, 5)]
                 if poly[-1] != p: poly.append(p)
@@ -432,8 +468,10 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
         return ids, seq, geompts
 
     stitch = load_gtfs_stitcher() if write_shapes else None
+    street = load_street_router() if write_shapes else None
     if write_shapes:
-        print("geometrie:", "sešití po síti GTFS" if stitch else "rovné spojnice (gtfs/ chybí)")
+        print("geometrie:", "přímé úseky MHD + uliční router" if (stitch and street)
+              else ("sešití po síti GTFS" if stitch else "rovné spojnice (gtfs/ chybí)"))
 
     routes, feats, straight_tot = [], [], 0
     for short, info in linky.items():
@@ -456,7 +494,7 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
             draw = outdirs if asym else outdirs[:1]
             lines_geo = []
             for _ids, _seq, _geo in draw:
-                coords, straights = route_geometry(_geo, stitch)
+                coords, straights = route_geometry(_geo, stitch, street)
                 straight_tot += straights
                 if len(coords) >= 2:
                     lines_geo.append(coords)
