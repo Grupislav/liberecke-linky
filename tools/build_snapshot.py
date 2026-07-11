@@ -574,8 +574,9 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
         derived = (prim_seq[0] + " – " + prim_seq[-1]) if prim_seq else ""
         route = {"id": "r-" + short, "short_name": short, "long_name": info.get("long_name") or derived,
                  "type": info["type"], "color": col, "stops": prim_ids}
-        # dva různé směry (jiná množina zastávek = jednosměrné/závleky) → přepínač směru
-        if len(outdirs) >= 2 and set(outdirs[0][0]) != set(outdirs[1][0]):
+        # Přepínač směru dostane linka, jejíž směry se liší SLEDEM zastávek – tedy i když jde
+        # jen o obrácené pořadí téže trasy (stejně to dělá živá mapa, build_data.py).
+        if len(outdirs) >= 2 and outdirs[0][0] != outdirs[1][0]:
             route["directions"] = [{"headsign": (o[1][-1] if o[1] else ""), "stops": o[0]} for o in outdirs]
         routes.append(route)
         if write_shapes:
@@ -819,6 +820,26 @@ LINE_APPEND = {
                      1: ["Stráž nad Nisou", "Na Vršku"]},
 }
 
+# Linky, jejichž JŘ uvádí jen JEDEN směr, ačkoli jezdí tam i zpět: kyvadlové linky
+# k obchodním centrům (500 Fügnerova–OC Nisa, 600 Fügnerova–Globus–Bauhaus) mají
+# jednosloupcový jízdní řád = jen odjezdy směrem „tam". Sled zastávek proto vezmeme
+# z DNEŠNÍCH dat (routes.json) – trasa je od té doby stejná.
+LINE_DIRS_TODAY = {
+    ("2022", "500"),
+    ("2022", "600"),
+}
+
+
+def today_dirs(ln):
+    """Směry linky ln podle dnešních dat (mapa-assets/data/) → [[zastávka, …], …]."""
+    names = {s["id"]: s["name"] for s in json.load(open(os.path.join(DATA, "stops.json"), encoding="utf-8"))}
+    for r in json.load(open(os.path.join(DATA, "routes.json"), encoding="utf-8")):
+        if r["short_name"] != ln:
+            continue
+        dirs = r.get("directions") or [{"stops": r["stops"]}]
+        return [[names[i] for i in d["stops"] if i in names] for d in dirs]
+    return None
+
 
 def build_year_folder(rok, meta_extra=None, write_shapes=False):
     """Snapshot z ručně kurátorované složky jr/<rok>/ (1 PDF = 1 linka; jen provozní linky
@@ -838,6 +859,12 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
         dirs = extract_pdf_dirs(os.path.join(folder, files[ln]))
         if not any(dirs):
             print(f"  ⚠ {ln}: sled zastávek nevytažen – vynecháno"); continue
+        if (str(rok), ln) in LINE_DIRS_TODAY:                  # JŘ má jen směr „tam" (viz LINE_DIRS_TODAY)
+            td = today_dirs(ln)
+            if td and len(td) >= 2:
+                dirs = td
+            else:
+                print(f"  ⚠ {ln}: dnešní směry nenalezeny – zůstává jen směr z JŘ")
         lines_raw[ln] = {"type": "tram" if ln in TRAMS else "bus",
                          "src": "jr/%s/%s" % (rok, files[ln]), "dirs": dirs}
     lines_raw.update(extra_lines(rok))                      # injektované výlukové linky (X5/X11…)
