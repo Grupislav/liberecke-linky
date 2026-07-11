@@ -59,11 +59,12 @@ def extract_stops(html):
         c = RAW_FIX.get(c, c)
         if namelike(c) and (not out or out[-1] != c):
             out.append(c)
-    # Hlavička říká, KDE vývěska visí (odtud se počítají minuty) – to nemusí být první
-    # zastávka trasy. U 20/25 je to Fügnerova uprostřed trasy a slepé předřazení dělalo
-    # skok „Fügnerova → Ruprechtice". Předřadit jen tehdy, když v seznamu ještě není
-    # (tam hlavička opravdu nese 1. zastávku, kterou tabulka v buňce nemá).
-    if head and namelike(head) and head not in out:
+    # Hlavička říká, KDE vývěska visí (odtud se počítají minuty). Bývá to 1. zastávka trasy,
+    # kterou tabulka jinak nemá (je v <th>, ne v <td>) – ale NE vždy:
+    #   • 20/25: Fügnerova je uprostřed trasy (linka začíná v Ruprechticích) → nepředřazovat,
+    #     slepé předřazení dělalo skok „Fügnerova → Ruprechtice";
+    #   • 34/35: Hypernova je na KONCI – to je okružní linka, která se tam vrací → předřadit.
+    if head and namelike(head) and (head not in out or head == out[-1]):
         out.insert(0, head)
     return out
 
