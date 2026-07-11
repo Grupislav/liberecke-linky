@@ -16,7 +16,7 @@ ZDROJE (vše už v repu):
 Tramvaje 2001 nemají JŘ → seed z dnešních (2,5,11); X3 = dnešní 3 ořezaná na
 úsek Kubelíkova–Horní Hanychov. Odlišnosti dořeší ruční korektura.
 """
-import os, re, json, io, sys
+import os, re, json, io, sys, collections
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,15 +49,22 @@ def namelike(c):
     return True
 
 def extract_stops(html):
-    out = []
+    out, head = [], None
     for td in re.findall(r'<td[^>]*>(.*?)</td>', html, re.S | re.I):
         c = cell_clean(td)
-        mm = re.match(r'^Zastávka\s*(?:min|:)\s+(.+)$', c)   # 1. zast. nalepená na hlavičku „Zastávka min NÁZEV"
+        mm = re.match(r'^Zastávka\s*(?:min|:)\s+(.+)$', c)   # hlavička „Zastávka: NÁZEV"
         if mm:
-            c = mm.group(1)
+            head = RAW_FIX.get(mm.group(1), mm.group(1))
+            continue
         c = RAW_FIX.get(c, c)
         if namelike(c) and (not out or out[-1] != c):
             out.append(c)
+    # Hlavička říká, KDE vývěska visí (odtud se počítají minuty) – to nemusí být první
+    # zastávka trasy. U 20/25 je to Fügnerova uprostřed trasy a slepé předřazení dělalo
+    # skok „Fügnerova → Ruprechtice". Předřadit jen tehdy, když v seznamu ještě není
+    # (tam hlavička opravdu nese 1. zastávku, kterou tabulka v buňce nemá).
+    if head and namelike(head) and head not in out:
+        out.insert(0, head)
     return out
 
 # ── resolve názvu zastávky na dnešní souřadnice ──────────────────────────────
@@ -570,11 +577,24 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
             return "#cc2900"
         return "hsl(%d, 65%%, 45%%)" % (sum(ord(c) for c in short) * 47 % 360)  # deterministické
 
+    disp = lambda raw: re.sub(r'^x(?=[A-ZÁ-Ž])', '', raw).strip()      # „x" = na znamení, nezobrazovat
+
+    # Jedna fyzická zastávka = jeden název, ale předlohy ji píšou různě. Ber ten, který v JŘ
+    # daného roku PŘEVAŽUJE – ne ten, co ji náhodou založil první (linky se zpracovávají
+    # tramvajemi napřed, takže 1995 ukazovalo centrální uzel jako „LIBEREC MHD" z tramvaje 5,
+    # ačkoli 22 z 25 výskytů říká „FÜGNEROVA MHD").
+    tally = collections.defaultdict(collections.Counter)
+    for _s, _i in linky.items():
+        for _rows in (_i.get("dirs") or [_i.get("stops", [])]):
+            for _r in _rows:
+                if _r.get("lat") is not None:
+                    tally[_r["match"]][disp(_r["raw"])] += 1
+
     stops, order = {}, []          # dedup podle resolvovaného (match) názvu = fyzická zastávka
     def ref(rowdict, short):
         key = rowdict["match"]
         if key not in stops:
-            name = re.sub(r'^x(?=[A-ZÁ-Ž])', '', rowdict["raw"]).strip()  # 2001 název (bez „x" na znamení)
+            name = tally[key].most_common(1)[0][0] if tally.get(key) else disp(rowdict["raw"])
             stops[key] = {"id": len(order) + 1, "name": name, "lat": rowdict["lat"], "lon": rowdict["lon"], "routes": []}
             order.append(key)
         if short not in stops[key]["routes"]:
@@ -725,8 +745,17 @@ def build_2001(meta_extra=None, write_shapes=True):
         if app:
             if 0 in app and len(seqs) >= 1: seqs[0] = seqs[0] + app[0]
             if 1 in app and len(seqs) >= 2: seqs[1] = app[1] + seqs[1]
+        add = LINE_DIR_ADD.get(("2001", ln))                  # směr, který v předloze chybí
+        if add and len(seqs) == 1:
+            seqs.append(add)
         lines_raw[ln] = {"type": "bus", "src": "jr/2001/" + (files.get("t") or files.get("z")),
                          "dirs": seqs}
+    # JŘ, které jsou jen sken/foto (bez textové vrstvy) → ručně přepsané; přebijí seed i HTML
+    man = os.path.join(ROOT, "dev", "snapshot-2001-source.json")
+    if os.path.exists(man):
+        src = json.load(open(man, encoding="utf-8"))
+        for ln, d in src["lines"].items():
+            lines_raw[ln] = {"type": d["type"], "src": d.get("src", man), "dirs": d["dirs"]}
     finalize("2001", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
@@ -848,11 +877,24 @@ LINE_STOP_FIX = {
 # zastávky převzaté z dnešních linek. Klíč (rok, linka) → {index směru: [zastávky]}; směr 0
 # se připojí na KONEC, směr 1 na ZAČÁTEK (opačný směr). 2001/24 do Radčic (tam Janův most,
 # zpět U Lípy), 2001/26 do Stráže n.N.
+# POZOR: názvy musí být DOBOVÉ (jako ve zdrojovém JŘ), ne dnešní. Zastávka se dedupuje podle
+# resolvované polohy a zobrazí se pod názvem té linky, která ji založila první – dnešní název
+# tu tedy přebije dobový i u linek, které mají zdroj v pořádku (2001/28 má „Rozcestí", ale
+# ukazovalo se „Radčice rozcestí" z tohohle seznamu; 2001/26 má „Radčice Tex.").
 LINE_APPEND = {
-    ("2001", "24"): {0: ["Obzor", "Janův most", "Radčice rozcestí", "Jedlová", "Radčice"],
-                     1: ["Radčice", "Jedlová", "Radčice rozcestí", "U Lípy", "U Radčického potoka"]},
+    ("2001", "24"): {0: ["xObzor", "Janův Most", "xRozcestí", "xJedlová", "RADČICE"],
+                     1: ["RADČICE", "xJedlová", "xRozcestí", "U Lípy", "Radčice Tex."]},
     ("2001", "26"): {0: ["Na Vršku", "Stráž nad Nisou"],
                      1: ["Stráž nad Nisou", "Na Vršku"]},
+}
+
+# Směr, který ve zdrojovém JŘ chybí (jednosměrná předloha), ale linka jezdila tam i zpět.
+# Dobové názvy. 2001/28: zpáteční trasa vedla jako dnes – z Radčic přes U Lípy a Radčice Tex.
+# (= dnešní U Radčického potoka), tedy NE zpátky přes Janův Most.
+LINE_DIR_ADD = {
+    ("2001", "28"): ["RADČICE", "xJedlová", "xRozcestí", "U Lípy", "Radčice Tex.", "PAVLOVICE LITES",
+                     "xRetex", "xStráž lákárna", "xStráž SARÉ", "RŮŽODOL Mlýn", "Růžodol I.",
+                     "Dožínkova", "Sokolská", "Šaldovo nám.", "FÜGNEROVA"],
 }
 
 # Linky, jejichž JŘ uvádí jen JEDEN směr, ačkoli jezdí tam i zpět: kyvadlové linky
