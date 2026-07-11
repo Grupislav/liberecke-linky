@@ -656,7 +656,7 @@ SNAP_META = {
     "2022": {"date": "2022-01-01"},
     "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
     "2001": {"cat_override": {"301": "autobusy"}},                     # 301 dnes „mimo provoz" → tehdy bus
-    "1995": {"date": "1995-01-01"},
+    "1995": {"date": "1995-01-01", "cat_override": {"1": "tramvaje"}},   # 1 tehdy běžná tramvaj (dnes v DB historická)
 }
 
 if __name__ == "__main__":
