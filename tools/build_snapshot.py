@@ -316,13 +316,13 @@ def load_gtfs_stitcher():
         Multi-hop Dijkstra po zastávkách dělá u historických linek nesmysly (objede to
         přes zastávky jiné linky) – od toho je uliční router.
 
-        Když existují oba směry, vezme ten LÍP ZAKRESLENÝ (víc bodů): jde o tutéž ulici,
-        ale GTFS má některé směry jen hrubě. Např. Šaldovo náměstí → Sokolská má 2 body
-        (rovná čára přes 423 m), kdežto opačný směr 17 bodů se skutečným tvarem."""
-        cands = []
-        if (a, b) in seg: cands.append(seg[(a, b)][1])
-        if (b, a) in seg: cands.append(list(reversed(seg[(b, a)][1])))
-        return max(cands, key=len) if cands else None
+        Bere DOPŘEDNÝ směr; opačný jen když dopředný neexistuje. Opačný směr NELZE brát
+        jen proto, že má víc bodů: u JEDNOSMĚREK vede tam a zpět po JINÝCH ulicích
+        (Šaldovo↔Sokolská: 266 m stranou; napříč sítí 131 takových úseků) a kreslila by
+        se linka po špatné ulici. Hrubě zakreslený dopředný směr řeší uliční router."""
+        if (a, b) in seg: return seg[(a, b)][1]
+        if (b, a) in seg: return list(reversed(seg[(b, a)][1]))
+        return None
 
     nrm = lambda x: " ".join(str(x or "").strip().lower().split())
     name2st = {}
@@ -395,6 +395,16 @@ def _polylen(g):
                for a, b in zip(g, g[1:]))
 
 
+def _path_dist(f, g):
+    """Jak daleko leží trasa g od trasy f (max ze vzdáleností bodů g k nejbližšímu bodu f).
+    Malé = tatáž ulice; velké = jiná ulice (typicky druhá polovina jednosměrného páru)."""
+    import math as _m
+    if not f or not g:
+        return 1e9
+    d = lambda p, q: _m.hypot((p[0]-q[0]) * 111000 * _m.cos(_m.radians(p[1])), (p[1]-q[1]) * 111000)
+    return max(min(d(p, q) for q in f) for p in g)
+
+
 def _max_dev(g, a, b):
     """Největší vzdálenost bodu trasy g od spojnice a–b (v metrech). Malé „vyboulení" = trasa
     kopíruje spojnici (reálná ulice); velké = router se vydal pryč od cíle (objíždí špatně)."""
@@ -454,6 +464,18 @@ def route_geometry(pts, stitch, street=None):
                 sgeom = [[lo_a, la_a]] + list(sgeom) + [[lo_b, la_b]]
         if geom and sgeom and _polylen(geom) > 1.3 * _polylen(sgeom):
             geom = sgeom                       # přímý úsek podezřele dlouhý → objížďka, ber ulice
+        elif geom and sgeom and _polylen(geom) > 150:
+            # GTFS má některé úseky zakreslené jen hrubě (Šaldovo→Sokolská: 2 body na 423 m
+            # = rovná čára bez tvaru). Uliční router má tutéž ulici z jiných shapes s detailem.
+            # Podmínka „není delší" zaručí, že jde opravdu o tutéž trasu, jen s víc body –
+            # ne o objížďku po jiných ulicích.
+            # POZOR: uliční graf je obousměrný a nezná jednosměrky – u jednosměrného páru
+            # najde tu DRUHOU ulici (Šaldovo→Sokolská: 265 m stranou). Proto musí uliční
+            # trasa ležet na TÉŽE ulici jako přímý úsek (_path_dist).
+            dens = len(geom) / (_polylen(geom) / 100.0)          # bodů na 100 m
+            if dens < 1.5 and _polylen(sgeom) <= 1.4 * _polylen(geom) \
+                    and _path_dist(geom, sgeom) < 40:
+                geom = sgeom
         if not geom:
             geom = sgeom
         if geom and len(geom) > 1:
