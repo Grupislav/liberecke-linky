@@ -94,6 +94,24 @@ if ($isSnapshot) {
     }
 }
 
+// Dostupné snapshoty pro rozbalovátko v menu: každá složka mapa-assets/data/<rok>/.
+// Nový rok se objeví sám, jakmile se nasadí jeho data – nikde se neregistruje.
+$snapRoky = [];
+foreach ((array)@scandir(__DIR__ . '/mapa-assets/data') as $__d) {
+    if (preg_match('/^[0-9]{4}$/', (string)$__d) && is_dir(__DIR__ . "/mapa-assets/data/$__d")) {
+        $snapRoky[] = (string)$__d;
+    }
+}
+rsort($snapRoky, SORT_STRING);          // nejnovější nahoře
+
+// Odkazy v menu musí zahodit „rok" z aktuální URL – keep_params ho jinak přenese a
+// „Živá mapa" i položky rozbalovátka by uvázly na roce, na kterém právě stojíme
+// (rewrite přidává ?rok=<cíl> přes QSA, ale PHP by vzalo to poslední = původní rok).
+$navHref = static function (string $path) use ($asset, $l): string {
+    $p = $_GET; unset($p['rok']); $p['ja'] = $l;
+    return $asset($path) . '?' . http_build_query($p);
+};
+
 // Kategoriové barvy/priorita/labely z DB (stejná paleta jako živá mapa) – platí
 // i pro snapshot, aby měl stejné barvy a legendu. Klíčováno číslem linky, takže
 // se použije na kteroukoli linku daného roku, co dnes existuje. Bez DB zůstanou
@@ -249,11 +267,22 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
 <div class="roztahovak-modry">
   <div class="hlavicka container">
     <div id="nadpis">
-      <h1><a class="nadpis-home" href="<?= $esc($asset('') . keep_params(['ja' => $l]) . '#prehled') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1>
+      <h1><a class="nadpis-home" href="<?= $esc($navHref('') . '#prehled') ?>"><?= $esc($lang['hlavninadpis']) ?></a></h1>
       <span class="nadpis-sep">|</span>
       <span class="nadpis-switch">
-        <a href="<?= $esc($asset('') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['prehled_nav'] ?? $lang['prehled']) ?></a>
-        <a class="current" href="<?= $esc($asset('mapa') . keep_params(['ja' => $l])) ?>"><?= $esc($lang['mapa_nav'] ?? 'Interaktivní mapa') ?></a>
+        <a href="<?= $esc($navHref('')) ?>"><?= $esc($lang['prehled_nav'] ?? $lang['prehled']) ?></a>
+        <a<?= $isSnapshot ? '' : ' class="current"' ?> href="<?= $esc($navHref('mapa')) ?>"><?= $esc($lang['mapa_nav'] ?? 'Interaktivní mapa') ?></a>
+        <?php if ($snapRoky): ?>
+        <details class="nadpis-drop<?= $isSnapshot ? ' is-current' : '' ?>">
+          <summary><?= $esc($isSnapshot ? $snapRok : ($lang['mapa_snap_nav'] ?? 'Historie')) ?></summary>
+          <ul>
+            <?php foreach ($snapRoky as $__r): ?>
+            <li><a<?= $__r === $snapRok ? ' class="current"' : '' ?>
+                  href="<?= $esc($navHref('mapa/' . $__r)) ?>"><?= $esc($__r) ?></a></li>
+            <?php endforeach; ?>
+          </ul>
+        </details>
+        <?php endif; ?>
       </span>
     </div>
     <div id="menu">

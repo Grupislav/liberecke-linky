@@ -54,6 +54,7 @@ $lang['mapa_zobrazit_panel'] = 'Zobrazit panel';
 $lang['mapa_snap_titulek']   = 'Síť MHD Liberec %s | Liberecké linky';
 $lang['mapa_snap_badge']     = 'Historická síť %s';
 $lang['mapa_snap_live']      = 'živá mapa';
+$lang['mapa_snap_nav']       = 'Historie';
 $lang['mapa_hledat_linku']   = 'Hledat linku…';
 $lang['mapa_hledat_zastavku'] = 'Hledat zastávku…';
 $lang['mapa_tram']           = 'Tramvaje';

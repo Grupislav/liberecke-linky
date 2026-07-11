@@ -54,6 +54,7 @@ $lang['mapa_zobrazit_panel'] = 'Show panel';
 $lang['mapa_snap_titulek']   = 'Liberec transit network %s | Liberecké linky';
 $lang['mapa_snap_badge']     = 'Historical network %s';
 $lang['mapa_snap_live']      = 'live map';
+$lang['mapa_snap_nav']       = 'History';
 $lang['mapa_hledat_linku']   = 'Search a route…';
 $lang['mapa_hledat_zastavku'] = 'Search a stop…';
 $lang['mapa_tram']           = 'Trams';
