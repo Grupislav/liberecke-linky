@@ -596,7 +596,9 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
     today = {r["short_name"]: r for r in json.load(open(os.path.join(DATA, "routes.json"), encoding="utf-8"))}
     def color_for(short, typ):
         base = short[1:] if short[:1] in ("X", "x") and short[1:] in today else short  # X11 zdědí barvu 11
-        if base in today and today[base].get("color"):
+        # Barvu dnešní linky zdědí jen linka STEJNÉHO typu – jinak by se 1972/2 (autobus)
+        # obarvila červeně podle dnešní tramvaje č. 2.
+        if base in today and today[base].get("color") and today[base].get("type") == typ:
             return today[base]["color"]
         if typ == "tram":
             return "#cc2900"
@@ -996,7 +998,8 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
 SNAP_META = {
     "1972": {"date": "1972-05-29",                      # „Platí od 29. května 1972" (busové JŘ)
              "cat_override": {"1": "tramvaje", "3": "tramvaje", "4": "tramvaje",
-                              "5": "tramvaje", "11": "tramvaje"}},
+                              "5": "tramvaje", "11": "tramvaje",
+                              "2": "autobusy"}},        # dnešní dvojka je tramvaj, tehdy to byl bus
     "2022": {"date": "2022-01-01"},
     "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
     "2001": {"date": "2001-01-01",
