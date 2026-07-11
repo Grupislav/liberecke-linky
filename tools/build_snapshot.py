@@ -891,7 +891,10 @@ LINE_STOP_FIX = {
     ("1995", "2"): {"Pekárny": "Staré Pekárny"},
     # dobové „České mládeže" (Hanychov) = dnešní Malodoubská (tram 3 i bus 22)
     ("1995", "3"): {"Pekárny": "Staré Pekárny", "České mládeže": "Malodoubská"},
-    ("1995", "22"): {"ČESKÉ MLÁDEŽE": "Malodoubská"},
+    # 22 jezdila k DNEŠNÍ zastávce České mládeže – na rozdíl od tramvaje 3, kde je to Malodoubská
+    ("1995", "22"): {"ČESKÉ MLÁDEŽE": "České mládeže"},
+    ("1995", "20"): {"Garáže ČSAD": "Doubská"},        # jinde (34/35, 2001) je to dnešní poloha
+    ("1995", "28"): {"Lékárna": "Stráž n. Nis. Neumannova"},   # jinde (5/11) je to Lékárna ve Vratislavicích
 }
 
 # Prodloužení tras, co v daném roce jezdila jen na některých spojích (v JŘ jen v poznámkách);
