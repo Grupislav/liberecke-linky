@@ -85,6 +85,16 @@ def expand_abbr(s):
         out = out.replace(a, b)
     return re.sub(r'\s+', ' ', out).strip()
 
+# ── overrides (dev/snapshot-<rok>-overrides.json) ────────────────────────────
+# Klíč = dobový surový název zastávky. KONVENCE: každý override nese OBOJÍ –
+#   {"match": "<dnešní název>", "lat": …, "lon": …}
+# „match" slouží jen k sešití geometrie (stitcher hledá zastávku v dnešní GTFS síti
+# podle jména); „lat/lon" jsou pojistka polohy. Proč obojí: objížďka může zastávku
+# dočasně VYHODIT Z FEEDU (stalo se u „Ulice 5. května"/„Průmyslová škola") – pak by
+# build na samotném „match" spadl, nebo hůř: tiše se přemapovalo vedle. Se souřadnicemi
+# build jede, poloha je přesná, a až se zastávka do feedu vrátí, geometrie se sešije sama.
+# Zobrazený název je vždy dobový (emit bere raw), override mění jen polohu/geometrii.
+# Dál: {"skip": true} = smetí z extrakce.
 def make_resolver(overrides=None):
     overrides = overrides or {}
     stops = json.load(open(os.path.join(DATA, "stops.json"), encoding="utf-8"))
