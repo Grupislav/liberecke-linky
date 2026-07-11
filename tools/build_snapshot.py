@@ -610,8 +610,9 @@ LINE_STOP_FIX = {
     ("1995", "12"): {"Polní": "Stračí"},
     ("1995", "1"): {"Pekárny": "Staré Pekárny"},   # tramvajové Pekárny (Hanychov) = dnešní Staré Pekárny
     ("1995", "2"): {"Pekárny": "Staré Pekárny"},
-    ("1995", "3"): {"Pekárny": "Staré Pekárny"},
-    ("1995", "22"): {"ČESKÉ MLÁDEŽE": "Malodoubská"},   # dobové České mládeže (Hanychov) = dnešní Malodoubská
+    # dobové „České mládeže" (Hanychov) = dnešní Malodoubská (tram 3 i bus 22)
+    ("1995", "3"): {"Pekárny": "Staré Pekárny", "České mládeže": "Malodoubská"},
+    ("1995", "22"): {"ČESKÉ MLÁDEŽE": "Malodoubská"},
 }
 
 # Prodloužení tras, co v daném roce jezdila jen na některých spojích (v JŘ jen v poznámkách);
