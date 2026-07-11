@@ -314,10 +314,15 @@ def load_gtfs_stitcher():
     def direct(a, b):
         """Jen PŘÍMÝ úsek mezi dvěma zastávkami (skutečná trasa MHD), bez multi-hopu.
         Multi-hop Dijkstra po zastávkách dělá u historických linek nesmysly (objede to
-        přes zastávky jiné linky) – od toho je uliční router."""
-        if (a, b) in seg: return seg[(a, b)][1]
-        if (b, a) in seg: return list(reversed(seg[(b, a)][1]))
-        return None
+        přes zastávky jiné linky) – od toho je uliční router.
+
+        Když existují oba směry, vezme ten LÍP ZAKRESLENÝ (víc bodů): jde o tutéž ulici,
+        ale GTFS má některé směry jen hrubě. Např. Šaldovo náměstí → Sokolská má 2 body
+        (rovná čára přes 423 m), kdežto opačný směr 17 bodů se skutečným tvarem."""
+        cands = []
+        if (a, b) in seg: cands.append(seg[(a, b)][1])
+        if (b, a) in seg: cands.append(list(reversed(seg[(b, a)][1])))
+        return max(cands, key=len) if cands else None
 
     nrm = lambda x: " ".join(str(x or "").strip().lower().split())
     name2st = {}
