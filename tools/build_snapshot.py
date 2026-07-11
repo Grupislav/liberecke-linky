@@ -446,8 +446,29 @@ def _max_dev(g, a, b):
 # se po opravě metriky (viz load_street_router) sešije správně uličním routerem.
 GEOM_OMIT = set()
 
+# PRŮJEZDNÍ BODY: trasa vedla přes zastávku, ale nestavěla tam → v seznamu zastávek se
+# neobjeví, geometrie ji ale musí obejít přes ni. Bez toho zbyde rovná čára (dnes ten úsek
+# nikdo nejezdí, takže přímý úsek MHD neexistuje a uliční router mezi krajními zastávkami
+# nabízí objížďku). Klíč (rok, linka) → {(od, do): [průjezdní, …]}; vše match názvy.
+GEOM_VIA = {
+    ("2011", "17"): {("Ulice 28.října", "Aréna"): ["Herbenova"]},
+    ("2011", "55"): {("Ruprechtice síd.", "ZŠ Vrchlického"): ["Hlávkova"]},
+    ("2011", "56"): {("U Lomu", "Školní"): ["Vojtěšská"]},   # opačný směr přes Vojtěšskou staví
+}
 
-def route_geometry(pts, stitch, street=None):
+_TODAY_POS = None
+
+
+def today_pos(name):
+    """Poloha dnešní zastávky podle názvu → (lon, lat), nebo None."""
+    global _TODAY_POS
+    if _TODAY_POS is None:
+        _TODAY_POS = {s["name"]: (s["lon"], s["lat"])
+                      for s in json.load(open(os.path.join(DATA, "stops.json"), encoding="utf-8"))}
+    return _TODAY_POS.get(name)
+
+
+def route_geometry(pts, stitch, street=None, via=None):
     """pts = [(match_name, lon, lat), …] → polyline. Priorita úseku mezi dvěma zastávkami:
       1) PŘÍMÝ úsek MHD (skutečná trasa, kterou dnes linka jezdí) – nejpřesnější,
       2) …ale je-li >1,3× delší než uliční nejkratší cesta, jde nejspíš o OBJÍŽĎKU → ulice,
@@ -458,6 +479,17 @@ def route_geometry(pts, stitch, street=None):
     Vrací (SEZNAM polyline, počet_rovných) – trasa se může přerušit, viz GEOM_OMIT."""
     if not pts:
         return [], 0
+    if via:                                    # zastávky, kterými trasa jen projížděla (GEOM_VIA)
+        exp = [pts[0]]
+        for a, b in zip(pts, pts[1:]):
+            for v in via.get((a[0], b[0]), ()):
+                p = today_pos(v)
+                if p:
+                    exp.append((v, p[0], p[1]))
+                else:
+                    print(f"  ⚠ průjezdní bod „{v}“ není v dnešních zastávkách – vynechán")
+            exp.append(b)
+        pts = exp
     polys = []
     poly = [[round(pts[0][1], 5), round(pts[0][2], 5)]]
     straights = 0
@@ -488,13 +520,15 @@ def route_geometry(pts, stitch, street=None):
             bulge = _max_dev(sgeom, [lo_a, la_a], [lo_b, la_b])    # jak daleko se trasa vzdálí od spojnice
             if ga > 250 or gb > 250:
                 sgeom = None                   # zastávka mimo uliční síť → radši rovná čára
-            elif not geom and crow > 100 and (bulge > 0.6 * crow or _polylen(sgeom) > 1.9 * crow):
+            elif not geom and crow > 100 and (bulge > 0.6 * crow or _polylen(sgeom) > 2.2 * crow):
                 sgeom = None                   # Přímý úsek MHD neexistuje (tu ulici dnes nikdo nejezdí)
                                                # a uliční trasa buď míří pryč od cíle (vyboulení), nebo
                                                # je nesmyslně dlouhá → router objíždí po jiných ulicích.
                                                # Rovná čára je poctivější aproximace.
-                                               #  2022/15 Šaldovo–Poliklinika: šlo na sever (417 m vzdušně)
-                                               #  2022/21 Poliklinika–Školní:  2886 m na 1395 m (2,1×)
+                                               #  15 Šaldovo–Poliklinika: na sever, 3,3× (vyboulení 1,5×)
+                                               #  21 Poliklinika–Školní:  2886 m na 911 m = 3,2×
+                                               # Limit 2,2× (ne 1,9×): 17 Babylon–Zimní stadion objíždí
+                                               # jednosměrkami přes Nákladní a Košickou = poctivých 2,06×.
             else:
                 sgeom = [[lo_a, la_a]] + list(sgeom) + [[lo_b, la_b]]
         if geom and sgeom and _polylen(geom) > 1.3 * _polylen(sgeom):
@@ -585,8 +619,9 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
             asym = len(outdirs) >= 2 and set(outdirs[0][0]) != set(outdirs[1][0])
             draw = outdirs if asym else outdirs[:1]
             lines_geo = []
+            via = GEOM_VIA.get((str(rok), short))
             for _ids, _seq, _geo in draw:
-                polys, straights = route_geometry(_geo, stitch, street)
+                polys, straights = route_geometry(_geo, stitch, street, via=via)
                 straight_tot += straights
                 lines_geo.extend(p for p in polys if len(p) >= 2)
             if lines_geo:
