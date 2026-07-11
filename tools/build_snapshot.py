@@ -274,6 +274,14 @@ def load_gtfs_stitcher():
         st_by_trip[st["trip_id"]].append((int(st["stop_sequence"]), st["stop_id"], d))
     for k in st_by_trip: st_by_trip[k].sort()
 
+    # poloha stanic – k ověření, že výřez shape opravdu spojuje obě zastávky
+    import math as _mm
+    _d = lambda p, q: _mm.hypot((p[0]-q[0]) * 111000 * _mm.cos(_mm.radians(p[1])), (p[1]-q[1]) * 111000)
+    st_pos = {}
+    for sid, s in stations.items():
+        try: st_pos[sid] = (float(s["stop_lon"]), float(s["stop_lat"]))
+        except (KeyError, TypeError, ValueError): pass
+
     seg = {}
     for tid, seq in st_by_trip.items():
         pts = shp.get(trip_shape.get(tid))
@@ -284,6 +292,13 @@ def load_gtfs_stitcher():
             if a == b or d2 <= d1: continue
             line = [(lo, la) for _, lo, la, d in pts if d1 - 1 <= d <= d2 + 1]
             if len(line) < 2: continue
+            # U ČÁSTI SPOJŮ jsou shape_dist_traveled rozbité → výřez nesmyslný (Sokolská→
+            # Dožínková: 77 m místo 1334 m, a začínal 1443 m od zastávky). A protože se dál
+            # bere ten NEJKRATŠÍ, takový vadný výřez vždycky vyhrál. Zahodit ty, které
+            # nedosahují k oběma zastávkám.
+            pa, pb = st_pos.get(a), st_pos.get(b)
+            if pa and pb and (_d(line[0], pa) > 120 or _d(line[-1], pb) > 120):
+                continue                       # 120 m: bod shape bývá od zastávky i pár desítek m
             if (a, b) not in seg or (d2 - d1) < seg[(a, b)][0]:
                 seg[(a, b)] = (d2 - d1, line)
     graph = collections.defaultdict(list)
@@ -341,7 +356,10 @@ def load_street_router():
     p = os.path.join(ROOT, "gtfs", "shapes.txt")
     if not os.path.exists(p):
         return None
-    d_m = lambda a, b: _m.hypot((a[0]-b[0]) * 111000 * _m.cos(_m.radians(a[1])), (a[1]-b[1]) * 111000)
+    # POZOR na pořadí: uzly grafu jsou (lat, lon). Dřív se tu cos() počítal ze zeměpisné
+    # DÉLKY místo ŠÍŘKY → východo-západní vzdálenosti nadhodnocené o ~58 % a router
+    # preferoval trasy sever-jih (odtud ty severní okliky).
+    d_m = lambda a, b: _m.hypot((a[1]-b[1]) * 111000 * _m.cos(_m.radians(a[0])), (a[0]-b[0]) * 111000)
     key = lambda la, lo: (round(la, 4), round(lo, 4))      # mřížka ~10 m → sdílené ulice se slijí
     shp = collections.defaultdict(list)
     for r in csv.DictReader(open(p, encoding="utf-8-sig", newline="")):
@@ -423,13 +441,10 @@ def _max_dev(g, a, b):
     return best
 
 
-# Úseky, kde GTFS nabízí jen hrubou rovnou čáru po SPRÁVNÉ jednosměrce a obě alternativy
-# (opačný směr, uliční router) vedou po té DRUHÉ ulici. Rovnou čáru radši vůbec nekreslíme –
-# trasa se v tom místě přeruší. U obousměrně kreslených linek zůstane opačný směr, který je
-# zakreslený správně, takže koridor je na mapě vidět. Dvojice jsou (od, do) podle match názvů.
-GEOM_OMIT = {
-    ("Šaldovo náměstí", "Sokolská"),
-}
+# Úseky, kde je každá dostupná geometrie špatně → raději trasu v tom místě přerušit než
+# kreslit nesmysl. Dvojice jsou (od, do) podle match názvů. Zatím prázdné: Šaldovo→Sokolská
+# se po opravě metriky (viz load_street_router) sešije správně uličním routerem.
+GEOM_OMIT = set()
 
 
 def route_geometry(pts, stitch, street=None):
@@ -458,6 +473,11 @@ def route_geometry(pts, stitch, street=None):
             sa, sb = resolve(na), resolve(nb)
             if sa and sb:
                 geom = direct(sa, sb)
+                if geom is not None and len(geom) <= 2:
+                    geom = None                # 2 body = pouhá spojnice zastávek; GTFS shape tu
+                                               # nenese žádný tvar (Šaldovo→Sokolská: 423 m na 2 body).
+                                               # Ber jako „geometrii nemáme“ → nastoupí uliční router
+                                               # (se svými pojistkami), ne rovná čára přes bloky.
         sgeom = street((la_a, lo_a), (la_b, lo_b)) if street else None
         if sgeom and len(sgeom) > 1:
             # router vede mezi nejbližšími uzly grafu – napoj trasu na SKUTEČNÉ zastávky,
