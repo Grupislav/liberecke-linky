@@ -390,6 +390,24 @@ def _polylen(g):
                for a, b in zip(g, g[1:]))
 
 
+def _max_dev(g, a, b):
+    """Největší vzdálenost bodu trasy g od spojnice a–b (v metrech). Malé „vyboulení" = trasa
+    kopíruje spojnici (reálná ulice); velké = router se vydal pryč od cíle (objíždí špatně)."""
+    import math as _m
+    if not g:
+        return 0.0
+    sc = _m.cos(_m.radians(a[1]))
+    ax, ay = a[0] * sc, a[1]; bx, by = b[0] * sc, b[1]
+    dx, dy = bx - ax, by - ay
+    dd = dx * dx + dy * dy
+    best = 0.0
+    for p in g:
+        px, py = p[0] * sc, p[1]
+        t = 0.0 if dd == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / dd))
+        best = max(best, _m.hypot(px - (ax + t * dx), py - (ay + t * dy)) * 111000)
+    return best
+
+
 def route_geometry(pts, stitch, street=None):
     """pts = [(match_name, lon, lat), …] → polyline. Priorita úseku mezi dvěma zastávkami:
       1) PŘÍMÝ úsek MHD (skutečná trasa, kterou dnes linka jezdí) – nejpřesnější,
@@ -416,8 +434,15 @@ def route_geometry(pts, stitch, street=None):
             # a leží-li zastávka daleko od ulic pokrytých MHD, uliční trasa nedává smysl
             ga = _polylen([[lo_a, la_a], sgeom[0]])
             gb = _polylen([sgeom[-1], [lo_b, la_b]])
+            crow = _polylen([[lo_a, la_a], [lo_b, la_b]])          # vzdušná vzdálenost
+            bulge = _max_dev(sgeom, [lo_a, la_a], [lo_b, la_b])    # jak daleko se trasa vzdálí od spojnice
             if ga > 250 or gb > 250:
                 sgeom = None                   # zastávka mimo uliční síť → radši rovná čára
+            elif not geom and crow > 100 and bulge > 0.6 * crow:
+                sgeom = None                   # trasa se vydá pryč od cíle → router objíždí špatně,
+                                               # protože tu ulici dnes nikdo nejezdí. Rovná čára je
+                                               # poctivější. (2022/15 Šaldovo–Poliklinika: jde na sever,
+                                               # ačkoli Poliklinika je na jihu – 919 m na 417 m vzdušně.)
             else:
                 sgeom = [[lo_a, la_a]] + list(sgeom) + [[lo_b, la_b]]
         if geom and sgeom and _polylen(geom) > 1.3 * _polylen(sgeom):
