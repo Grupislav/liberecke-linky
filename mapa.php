@@ -355,7 +355,17 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
     dataDir: <?= json_encode(($__appBase === '' ? '' : $__appBase) . '/' . $dataSub, JSON_UNESCAPED_SLASHES) ?>,
     snapshot: <?= json_encode($isSnapshot) ?>,
     rok:  <?= json_encode($snapRok, JSON_UNESCAPED_SLASHES) ?>,
-    v:    <?= json_encode(@filemtime(__DIR__ . '/' . $dataSub . 'meta.json') ?: 0) ?>,
+    <?php
+    // Cache-buster: nejnovější čas ZE VŠECH datových souborů. Dřív se bral jen z meta.json –
+    // jenže když se přegeneruje třeba jen shapes.json (a meta zůstane obsahově stejné), FTP
+    // deploy meta nenahraje, čas se nezmění a prohlížeč servíruje starou geometrii z cache.
+    $__v = 0;
+    foreach (['meta.json', 'routes.json', 'stops.json', 'shapes.json', 'timetable.json'] as $__f) {
+        $__t = @filemtime(__DIR__ . '/' . $dataSub . $__f);
+        if ($__t && $__t > $__v) $__v = $__t;
+    }
+    ?>
+    v:    <?= json_encode($__v) ?>,
     ja:   <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>,
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tileCats: <?= json_encode($tileCats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
