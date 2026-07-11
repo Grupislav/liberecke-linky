@@ -788,10 +788,10 @@ def build_2001(meta_extra=None, write_shapes=True):
     finalize("2001", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
-def build_1995(meta_extra=None, write_shapes=True):
-    """Snapshot 1995 z ručně přepsaných skenů (dev/snapshot-1995-source.json – skeny nemají
-    textovou vrstvu, přepsáno vizuálně). Formát: {"lines": {linka: {"type","dirs":[[stop,…],…]}}}."""
-    src = json.load(open(os.path.join(ROOT, "dev", "snapshot-1995-source.json"), encoding="utf-8"))
+def build_scanned(rok, meta_extra=None, write_shapes=True):
+    """Snapshot z ručně přepsaných skenů (dev/snapshot-<rok>-source.json – skeny nemají textovou
+    vrstvu, přepsáno vizuálně). Formát: {"lines": {linka: {"type","dirs":[[stop,…],…]}}}."""
+    src = json.load(open(os.path.join(ROOT, "dev", "snapshot-%s-source.json" % rok), encoding="utf-8"))
     trams = set(src.get("trams", []))
     lines = src["lines"]
     order = sorted(lines, key=lambda x: (x not in trams, len(x), x))   # tramvaje první, pak busy
@@ -799,8 +799,16 @@ def build_1995(meta_extra=None, write_shapes=True):
     for ln in order:
         info = lines[ln]
         lines_raw[ln] = {"type": info.get("type") or ("tram" if ln in trams else "bus"),
-                         "src": "jr/1995 (sken)", "dirs": info["dirs"]}
-    finalize("1995", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
+                         "src": info.get("src", "jr/%s (sken)" % rok), "dirs": info["dirs"]}
+    finalize(str(rok), lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
+
+
+def build_1995(meta_extra=None, write_shapes=True):
+    build_scanned("1995", meta_extra=meta_extra, write_shapes=write_shapes)
+
+
+def build_1972(meta_extra=None, write_shapes=True):
+    build_scanned("1972", meta_extra=meta_extra, write_shapes=write_shapes)
 
 
 def select_pdf_for_year(rok):
@@ -986,6 +994,9 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
 # rok (= název složky/URL) → meta_extra snapshotu. „date" = den stavu sítě; „cat_override"
 # = přebití DB kategorie linky (historicky provozní linka, dnes v DB „mimo provoz").
 SNAP_META = {
+    "1972": {"date": "1972-05-29",                      # „Platí od 29. května 1972" (busové JŘ)
+             "cat_override": {"1": "tramvaje", "3": "tramvaje", "4": "tramvaje",
+                              "5": "tramvaje", "11": "tramvaje"}},
     "2022": {"date": "2022-01-01"},
     "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
     "2001": {"date": "2001-01-01",
