@@ -461,7 +461,23 @@ GEOM_VIA = {
     ("2011", "17"): {("Ulice 28.října", "Aréna"): ["Herbenova"]},
     ("2011", "55"): {("Ruprechtice síd.", "ZŠ Vrchlického"): ["Hlávkova"]},
     ("2011", "56"): {("U Lomu", "Školní"): ["Vojtěšská"]},   # opačný směr přes Vojtěšskou staví
+    # Bezbariérový bus stavěl JEN v zastávkách z JŘ; nácestné body jsou z poznámky „Trasa:"
+    # a slouží už jen k vykreslení trasy.
+    ("2001", "♿BUS"): {
+        ("META VESEC", "Zelené Údolí"): ["Vesec samoobsluha", "Jeřmanická", "Slovanská", "Rochlice"],
+        ("Zelené Údolí", "META VESEC"): ["Rochlice", "Slovanská", "Jeřmanická", "Vesec samoobsluha"],
+        ("Krejčího", "Fügnerova"): ["Dobiášova", "Horní Kopečná", "U Močálu", "Košická"],
+        ("Fügnerova", "Krejčího"): ["Košická", "Horní Kopečná", "Dobiášova"],
+        ("U Dvora", "Koloseum"): ["Dopravní hřiště", "Vrchlického"],
+        ("Koloseum", "U Dvora"): ["Vrchlického", "Dopravní hřiště"],
+    },
 }
+
+# Dobový název fyzické zastávky, když ho nelze zvolit většinou (viz „tally" v emit_snapshot_data).
+# Klíč (rok, match) → zobrazený název. POZOR: zastávka je jedna, takže název platí pro VŠECHNY
+# linky, které tam staví – jde-li o jiné místo, patří to do overrides jako samostatná zastávka
+# (tak je řešená META VESEC: zaniklá, vlastní match, 17 m od dnešního Vesce U Střediska).
+STOP_NAME = {}
 
 _TODAY_POS = None
 
@@ -594,7 +610,8 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
     def ref(rowdict, short):
         key = rowdict["match"]
         if key not in stops:
-            name = tally[key].most_common(1)[0][0] if tally.get(key) else disp(rowdict["raw"])
+            name = STOP_NAME.get((str(rok), key)) \
+                or (tally[key].most_common(1)[0][0] if tally.get(key) else disp(rowdict["raw"]))
             stops[key] = {"id": len(order) + 1, "name": name, "lat": rowdict["lat"], "lon": rowdict["lon"], "routes": []}
             order.append(key)
         if short not in stops[key]["routes"]:
@@ -863,6 +880,9 @@ def extra_lines(rok):
 # na jinou zastávku téhož názvu v síti. 2011: linka 11 měla „Zelené Údolí", které
 # fyzicky odpovídá jablonecké zastávce (v síti byly 2 stejnojmenné).
 LINE_STOP_FIX = {
+    # „Garáže ČSAD" u linky 20 byla jinde než dnešní stejnojmenná zastávka (dnešní poloha
+    # platí pro 34/35), proto per-linkově – globální override je strhl s sebou.
+    ("2001", "20"): {"Garáže ČSAD": "Doubská"},
     ("2011", "11"): {"Zelené Údolí": "Jablonec n.N. Zelené Údolí"},
     ("2001", "12"): {"Polní": "Stračí"},   # „Polní" tehdy = dnešní Stračí (Polní neexistovala)
     ("1995", "12"): {"Polní": "Stračí"},
@@ -953,7 +973,8 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
 SNAP_META = {
     "2022": {"date": "2022-01-01"},
     "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
-    "2001": {"cat_override": {"301": "autobusy"}},                     # 301 dnes „mimo provoz" → tehdy bus
+    "2001": {"cat_override": {"301": "autobusy", "♿BUS": "autobusy",   # dnes „mimo provoz" → tehdy běžné
+                              "999": "nakupni"}},                      # 999 = komerční linka zdarma
     "1995": {"date": "1995-01-01", "cat_override": {"1": "tramvaje"}},   # 1 tehdy běžná tramvaj (dnes v DB historická)
 }
 
