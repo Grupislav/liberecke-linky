@@ -480,6 +480,14 @@ GEOM_VIA = {
 # (tak je řešená META VESEC: zaniklá, vlastní match, 17 m od dnešního Vesce U Střediska).
 STOP_NAME = {}
 
+# Zaniklá zastávka, která má vlastní polohu (marker + seznam), ale geometrie se přes ni sešívá
+# jako přes DNEŠNÍ zastávku – jinak by trasa u ní uhnula k jejímu starému místu a rozbila by
+# úseky, které dnešní síť zná (Sokolská most: 200 m od dnešní Sokolské, a přes ni vedou trasy
+# linek 13/24/26/28/32/39/51, které jsme kolem ní ladili). Klíč (rok, match) → dnešní zastávka.
+GEOM_AS = {
+    (rok, "Sokolská most"): "Sokolská" for rok in ("1995", "2001", "2011", "2022")
+}
+
 _TODAY_POS = None
 
 
@@ -627,7 +635,10 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
             st = ref(r, short)
             if ids and ids[-1] == st["id"]:          # slij sousední duplicitu (varianty zápisu téže zast.)
                 continue
-            ids.append(st["id"]); seq.append(st["name"]); geompts.append((r["match"], r["lon"], r["lat"]))
+            ids.append(st["id"]); seq.append(st["name"])
+            ga = GEOM_AS.get((str(rok), r["match"]))          # sešívej přes dnešní zastávku
+            gp = today_pos(ga) if ga else None
+            geompts.append((ga, gp[0], gp[1]) if gp else (r["match"], r["lon"], r["lat"]))
         return ids, seq, geompts
 
     stitch = load_gtfs_stitcher() if write_shapes else None
@@ -977,7 +988,8 @@ def build_year_folder(rok, meta_extra=None, write_shapes=False):
 SNAP_META = {
     "2022": {"date": "2022-01-01"},
     "2011": {"date": "2011-11-14", "cat_override": {"90": "nocni"}},   # 90 byla noční linka
-    "2001": {"cat_override": {"301": "autobusy", "♿BUS": "autobusy",   # dnes „mimo provoz" → tehdy běžné
+    "2001": {"date": "2001-01-01",
+             "cat_override": {"301": "autobusy", "♿BUS": "autobusy",   # dnes „mimo provoz" → tehdy běžné
                               "999": "nakupni"}},                      # 999 = komerční linka zdarma
     "1995": {"date": "1995-01-01", "cat_override": {"1": "tramvaje"}},   # 1 tehdy běžná tramvaj (dnes v DB historická)
 }
