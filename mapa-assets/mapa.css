@@ -6,6 +6,9 @@
   position: relative;
   display: flex;
   align-items: stretch;
+  /* css.css má na body text-align:center – mapa by ho dědila a zalomené názvy
+     (linky, zastávky) by se centrovaly. Sjednotit na doleva. */
+  text-align: left;
   height: calc(100vh - 220px);
   height: calc(100dvh - 220px);   /* in-app prohlížeče (FB/IG): dynamická výška viewportu */
   min-height: 460px;
