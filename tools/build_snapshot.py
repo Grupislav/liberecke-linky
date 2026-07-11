@@ -318,6 +318,61 @@ def load_gtfs_stitcher():
     return (lambda name: name2st.get(nrm(name))), shortest
 
 
+def load_street_router():
+    """Router po SKUTEČNÉ uliční geometrii: graf nad body všech GTFS shapes (ne jen skoky
+    mezi zastávkami jako load_gtfs_stitcher). Umí spojit i dvojici zastávek, mezi kterými
+    dnes žádná linka nejezdí – úseková sešívačka tam jinak udělá rovnou čáru, nebo (hůř)
+    velkou okliku přes zastávky jiné linky (2022/17: 3116 m místo 610 m vzdušně).
+    Vrací street((lat,lon),(lat,lon)) -> [[lon,lat],…] | None; nebo None když gtfs/ chybí."""
+    import csv, heapq, collections, math as _m
+    p = os.path.join(ROOT, "gtfs", "shapes.txt")
+    if not os.path.exists(p):
+        return None
+    d_m = lambda a, b: _m.hypot((a[0]-b[0]) * 111000 * _m.cos(_m.radians(a[1])), (a[1]-b[1]) * 111000)
+    key = lambda la, lo: (round(la, 4), round(lo, 4))      # mřížka ~10 m → sdílené ulice se slijí
+    shp = collections.defaultdict(list)
+    for r in csv.DictReader(open(p, encoding="utf-8-sig", newline="")):
+        shp[r["shape_id"]].append((int(r["shape_pt_sequence"]), float(r["shape_pt_lat"]), float(r["shape_pt_lon"])))
+    G = collections.defaultdict(dict); POS = {}
+    for pts in shp.values():
+        pts.sort()
+        for (_, la1, lo1), (_, la2, lo2) in zip(pts, pts[1:]):
+            k1, k2 = key(la1, lo1), key(la2, lo2)
+            POS[k1] = (la1, lo1); POS[k2] = (la2, lo2)
+            if k1 == k2:
+                continue
+            w = d_m((la1, lo1), (la2, lo2))
+            if w < G[k1].get(k2, 1e18):
+                G[k1][k2] = w; G[k2][k1] = w               # ulice obousměrně
+    if not G:
+        return None
+    nearest = lambda pt: min(POS, key=lambda k: d_m(POS[k], pt))
+
+    def street(a, b):
+        s, t = nearest(a), nearest(b)
+        if s == t:
+            return []
+        dist, prev, pq = {s: 0.0}, {}, [(0.0, s)]
+        while pq:
+            d, u = heapq.heappop(pq)
+            if u == t:
+                break
+            if d > dist.get(u, 1e18):
+                continue
+            for v, w in G[u].items():
+                nd = d + w
+                if nd < dist.get(v, 1e18):
+                    dist[v] = nd; prev[v] = u; heapq.heappush(pq, (nd, v))
+        if t not in dist:
+            return None
+        path = [t]
+        while path[-1] != s:
+            path.append(prev[path[-1]])
+        path.reverse()
+        return [[POS[k][1], POS[k][0]] for k in path]
+    return street
+
+
 def route_geometry(pts, stitch):
     """pts = [(match_name, lon, lat), …] → polyline; mezi GTFS zastávkami sešije
     po síti, jinak rovná čára. Vrací ([ [lon,lat],… ], počet_rovných_úseků)."""
