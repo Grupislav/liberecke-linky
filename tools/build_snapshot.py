@@ -423,6 +423,15 @@ def _max_dev(g, a, b):
     return best
 
 
+# Úseky, kde GTFS nabízí jen hrubou rovnou čáru po SPRÁVNÉ jednosměrce a obě alternativy
+# (opačný směr, uliční router) vedou po té DRUHÉ ulici. Rovnou čáru radši vůbec nekreslíme –
+# trasa se v tom místě přeruší. U obousměrně kreslených linek zůstane opačný směr, který je
+# zakreslený správně, takže koridor je na mapě vidět. Dvojice jsou (od, do) podle match názvů.
+GEOM_OMIT = {
+    ("Šaldovo náměstí", "Sokolská"),
+}
+
+
 def route_geometry(pts, stitch, street=None):
     """pts = [(match_name, lon, lat), …] → polyline. Priorita úseku mezi dvěma zastávkami:
       1) PŘÍMÝ úsek MHD (skutečná trasa, kterou dnes linka jezdí) – nejpřesnější,
@@ -430,14 +439,20 @@ def route_geometry(pts, stitch, street=None):
       3) ULIČNÍ ROUTER, když přímý úsek neexistuje (dnes tudy nic nejezdí),
       4) rovná čára (nouzově).
     Multi-hop Dijkstra po zastávkách se ZÁMĚRNĚ nepoužívá – objížděl to přes zastávky jiných
-    linek (2022/17: 3116 m místo 610 m vzdušně). Vrací ([ [lon,lat],… ], počet_rovných)."""
+    linek (2022/17: 3116 m místo 610 m vzdušně).
+    Vrací (SEZNAM polyline, počet_rovných) – trasa se může přerušit, viz GEOM_OMIT."""
     if not pts:
         return [], 0
+    polys = []
     poly = [[round(pts[0][1], 5), round(pts[0][2], 5)]]
     straights = 0
     resolve, _shortest, direct = stitch if stitch else (None, None, None)
     for i in range(len(pts) - 1):
         na, lo_a, la_a = pts[i]; nb, lo_b, la_b = pts[i + 1]
+        if (na, nb) in GEOM_OMIT:                  # jen hrubá rovná čára po jednosměrce →
+            if len(poly) > 1: polys.append(poly)   # nekreslit vůbec, trasu tu přerušit
+            poly = [[round(lo_b, 5), round(la_b, 5)]]
+            continue
         geom = None
         if stitch:
             sa, sb = resolve(na), resolve(nb)
@@ -485,7 +500,9 @@ def route_geometry(pts, stitch, street=None):
         else:
             p = [round(lo_b, 5), round(la_b, 5)]
             if poly[-1] != p: poly.append(p); straights += 1
-    return poly, straights
+    if len(poly) > 1:
+        polys.append(poly)
+    return polys, straights
 
 
 # ── zápis datových souborů snapshotu (mapa-assets/data/<rok>/) ───────────────
@@ -548,10 +565,9 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
             draw = outdirs if asym else outdirs[:1]
             lines_geo = []
             for _ids, _seq, _geo in draw:
-                coords, straights = route_geometry(_geo, stitch, street)
+                polys, straights = route_geometry(_geo, stitch, street)
                 straight_tot += straights
-                if len(coords) >= 2:
-                    lines_geo.append(coords)
+                lines_geo.extend(p for p in polys if len(p) >= 2)
             if lines_geo:
                 feats.append({"type": "Feature",
                               "properties": {"id": "r-" + short, "short_name": short, "color": col},
