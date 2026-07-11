@@ -438,11 +438,13 @@ def route_geometry(pts, stitch, street=None):
             bulge = _max_dev(sgeom, [lo_a, la_a], [lo_b, la_b])    # jak daleko se trasa vzdálí od spojnice
             if ga > 250 or gb > 250:
                 sgeom = None                   # zastávka mimo uliční síť → radši rovná čára
-            elif not geom and crow > 100 and bulge > 0.6 * crow:
-                sgeom = None                   # trasa se vydá pryč od cíle → router objíždí špatně,
-                                               # protože tu ulici dnes nikdo nejezdí. Rovná čára je
-                                               # poctivější. (2022/15 Šaldovo–Poliklinika: jde na sever,
-                                               # ačkoli Poliklinika je na jihu – 919 m na 417 m vzdušně.)
+            elif not geom and crow > 100 and (bulge > 0.6 * crow or _polylen(sgeom) > 1.9 * crow):
+                sgeom = None                   # Přímý úsek MHD neexistuje (tu ulici dnes nikdo nejezdí)
+                                               # a uliční trasa buď míří pryč od cíle (vyboulení), nebo
+                                               # je nesmyslně dlouhá → router objíždí po jiných ulicích.
+                                               # Rovná čára je poctivější aproximace.
+                                               #  2022/15 Šaldovo–Poliklinika: šlo na sever (417 m vzdušně)
+                                               #  2022/21 Poliklinika–Školní:  2886 m na 1395 m (2,1×)
             else:
                 sgeom = [[lo_a, la_a]] + list(sgeom) + [[lo_b, la_b]]
         if geom and sgeom and _polylen(geom) > 1.3 * _polylen(sgeom):
