@@ -64,7 +64,9 @@
   var stopIndexById = {};        // id stanice -> index ve `stops` (= index v timetable)
   var vehLayer = null;           // vrstva vozidel
   var vehOn = true;              // přepínač zobrazení vozidel
-  var colorLines = false;        // přepínač: obarvit provozní linky (jinak šedá síť)
+  var colorLines = SNAP;         // přepínač: obarvit provozní linky (jinak šedá síť).
+                                 // U snapshotu zapnuto: síť je celá dobová, není proti čemu
+                                 // ji zešedit, a barvy linek jsou tam hlavní informace.
   var vehTimer = null;
   var hoverTrip = null;          // spoj pod kurzorem (dočasné zvýraznění trasy)
   var focusedTrip = null;        // rozkliknutý spoj (jízdní řád v sidebaru)

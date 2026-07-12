@@ -84,14 +84,18 @@
   .nadpis-drop > summary, .nadpis-drop > ul a { font-size: 13px; }
 }
 
-/* badge historického snapshotu (přes mapou, nahoře uprostřed) */
+/* Badge historického snapshotu (nad mapou). Vpravo nahoře sedí zoom + přepínače, vlevo
+   pod hlavičkou se rozbaluje menu „Historie" – badge tedy patří mezi ně, doprava od středu. */
 .ms-snapbadge {
-  position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 10px; left: auto; right: 200px; transform: none;
   z-index: 1100; padding: 5px 12px; border-radius: 6px;
   background: #1f2a33; color: #fff; font-size: 13px; font-weight: 600;
   box-shadow: 0 1px 6px rgba(0, 0, 0, .3); white-space: nowrap;
 }
 .ms-snapbadge a { color: #7fc4ff; }
+@media (max-width: 900px) {          /* úzko: vpravo by přetekl → zpátky na střed */
+  .ms-snapbadge { left: 50%; right: auto; transform: translateX(-50%); }
+}
 
 #mapa {
   flex: 1 1 auto;
