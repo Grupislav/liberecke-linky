@@ -62,61 +62,72 @@ if (!$conn) {
 }
 mysqli_set_charset($conn, 'utf8');
 
-$sqlProv = "SELECT t.linka, tl.kod AS class
+$sqlAll = "SELECT t.linka, tl.kod AS class
     FROM texty t
-    INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id
-    WHERE tl.kod <> 'mimoprovoz'";
+    INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id";
 
-$sqlMimo = "SELECT t.linka, tl.kod AS class
-    FROM texty t
-    INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id
-    WHERE tl.kod = 'mimoprovoz'";
-
-$resProv = mysqli_query($conn, $sqlProv);
-$resMimo = mysqli_query($conn, $sqlMimo);
-if (!$resProv || !$resMimo) {
+$resAll = mysqli_query($conn, $sqlAll);
+if (!$resAll) {
     mysqli_close($conn);
     echo '<p>' . htmlspecialchars($lang['err_db_prepare'], ENT_QUOTES, 'UTF-8') . '</p>';
     return;
 }
-
-$provozni = [];
-while ($row = mysqli_fetch_assoc($resProv)) {
-    $provozni[] = $row;
+$allRows = [];
+while ($row = mysqli_fetch_assoc($resAll)) {
+    $allRows[] = $row;
 }
-mysqli_free_result($resProv);
-
-$mimo = [];
-while ($row = mysqli_fetch_assoc($resMimo)) {
-    $mimo[] = $row;
-}
-mysqli_free_result($resMimo);
+mysqli_free_result($resAll);
 mysqli_close($conn);
 
+// Stav linky se odvozuje z GTFS, ne jen z DB kategorie:
+//  • aktuálně provozovaná  = je v aktuálním feedu (routes.json)
+//  • aktuálně mimo provoz  = teď ve feedu není, ale běžně jezdí (má dobovou kategorii,
+//                            nebo je v archivu former-lines.json = viděli jsme ji v GTFS)
+//  • trvale mimo provoz    = zrušená (DB „mimoprovoz") a není v archivu
+$dataDir = __DIR__ . '/../mapa-assets/data/';
+$liveShorts = $archShorts = [];
+foreach (json_decode((string)@file_get_contents($dataDir . 'routes.json'), true) ?: [] as $r) {
+    if (isset($r['short_name'])) $liveShorts[(string)$r['short_name']] = true;
+}
+foreach ((array)json_decode((string)@file_get_contents($dataDir . 'former-lines.json'), true) as $s => $_) {
+    $archShorts[(string)$s] = true;
+}
+$catOverride = ['41' => 'nakupni'];   // skutečná kategorie linek, co ji v DB nemají (viz mapa.php)
+
+$provozni = $aktMimo = $trvaleMimo = [];
+foreach ($allRows as $row) {
+    $linka = (string)$row['linka'];
+    $row['class'] = $catOverride[$linka] ?? (string)$row['class'];
+    if (isset($liveShorts[$linka])) {
+        $provozni[] = $row;
+    } elseif ($row['class'] === 'mimoprovoz' && !isset($archShorts[$linka])) {
+        $trvaleMimo[] = $row;
+    } else {
+        $aktMimo[] = $row;
+    }
+}
+
 sortProvozniLinks($provozni);
-[$mimoLetters, $mimoNumbers] = sortMimoProvozLinks($mimo);
+sortProvozniLinks($aktMimo);
+[$trvaleLetters, $trvaleNumbers] = sortMimoProvozLinks($trvaleMimo);
 
-echo "<div class='hlavninadpis'><span class='font22 zelena'>"
-   . mb_strtoupper($lang['provoznilinky'], 'UTF-8')
-   . "</span></div><div>";
+$section = static function (string $nadpis, array $groups) use ($l): void {
+    echo "<div class='hlavninadpis'><span class='font22 zelena'>"
+       . mb_strtoupper($nadpis, 'UTF-8') . "</span></div>";
+    foreach ($groups as $rows) {
+        if (!$rows) continue;
+        echo '<div>';
+        foreach ($rows as $row) {
+            echo renderTile((string)$row['linka'], (string)$row['class'], $l);
+        }
+        echo '</div>';
+    }
+};
 
-foreach ($provozni as $row) {
-    echo renderTile((string)$row['linka'], (string)$row['class'], $l);
+$section($lang['provoznilinky'], [$provozni]);
+if ($aktMimo) {
+    echo '<br>';
+    $section($lang['linky_akt_mimo'] ?? 'Aktuálně mimo provoz', [$aktMimo]);
 }
-echo "</div>";
-
-echo "<div class='hlavninadpis'><br><span class='font22 zelena'>"
-   . mb_strtoupper($lang['neprovoznilinky'], 'UTF-8')
-   . "</span></div>";
-
-echo '<div>';
-foreach ($mimoLetters as $row) {
-    echo renderTile((string)$row['linka'], (string)$row['class'], $l);
-}
-echo '</div>';
-
-echo '<div>';
-foreach ($mimoNumbers as $row) {
-    echo renderTile((string)$row['linka'], (string)$row['class'], $l);
-}
-echo '</div>';
+echo '<br>';
+$section($lang['linky_trvale_mimo'] ?? $lang['neprovoznilinky'], [$trvaleLetters, $trvaleNumbers]);

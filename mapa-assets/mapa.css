@@ -320,6 +320,9 @@
   background: #fdf3e6; border: 1px solid #f0d9b5; color: #8a6d3b;
   padding: 6px 9px; border-radius: 4px; font-size: 12px; margin: 2px 0 10px;
 }
+#ms-detail .ms-state-note {
+  color: #6f7f92; font-size: 13px; font-weight: 600; margin: -6px 0 8px;
+}
 
 /* ── responsivita ────────────────────────────────────────────────── */
 @media (max-width: 760px) {

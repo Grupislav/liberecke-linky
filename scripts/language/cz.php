@@ -20,7 +20,9 @@ $lang['funkce']           = "Funkce linky";
 $lang['seznamzastavek']   = "Seznam zastávek";
 $lang['mapa']             = "Mapa";
 $lang['provoznilinky']    = "Aktuálně provozované linky";
+$lang['linky_akt_mimo']   = "Linky aktuálně mimo provoz";
 $lang['neprovoznilinky']  = "Linky trvale mimo provoz";
+$lang['linky_trvale_mimo'] = "Linky trvale mimo provoz";
 
 // nové: hlášky a úvody
 $lang['zalozkanedostupna']  = "Záložka bude teprve doplněna.";
@@ -82,6 +84,7 @@ $lang['mapa_nahled_alt']     = 'Náhled trasy linky %s';
 $lang['mapa_mimo_provoz_pozn'] = 'Trasa je přibližná.';
 $lang['mapa_mimo_nadpis']      = 'Linka %s (trvale mimo provoz)';
 $lang['mapa_hist_nadpis']      = 'Historická linka %s';
+$lang['mapa_akt_mimo']         = 'aktuálně mimo provoz';
 $lang['mapa_zanikla']          = 'zaniklá zastávka';
 $lang['mapa_smer']             = 'Směr %s';
 $lang['mapa_vozidla']          = 'Vozidla';

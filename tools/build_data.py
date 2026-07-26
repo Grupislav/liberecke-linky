@@ -552,6 +552,31 @@ def main():
         json.dump({"type": "FeatureCollection", "features": features},
                   fh, ensure_ascii=False, separators=(",", ":"))
 
+    # ---- former-lines.json (archiv posledního reálného tvaru KAŽDÉ linky) ----
+    # Sezónní linky (školní, komerční 41, historická 1/4…) se do GTFS vracejí jen
+    # část roku. Aby se daly i mimo sezónu vykreslit skutečnou trasou (ne aproximací),
+    # ukládáme tvar každé linky, když je zrovna ve feedu. Slučuje se – nikdy nemažeme,
+    # takže archiv drží poslední známou verzi i pro linky, co z feedu vypadly. Klient
+    # z něj kreslí linky „aktuálně mimo provoz" (jsou v archivu, ale ne v routes.json).
+    former_path = os.path.join(OUT, "former-lines.json")
+    former = {}
+    if os.path.exists(former_path):
+        try:
+            former = json.load(open(former_path, encoding="utf-8"))
+        except (ValueError, OSError):
+            former = {}
+    geom_by_rid = {f["properties"]["id"]: f["geometry"] for f in features}
+    last_seen = feed.get("feed_end_date", "")
+    for r in routes_out:
+        rec = {"type": r["type"], "long_name": r["long_name"], "stops": r["stops"],
+               "geometry": geom_by_rid.get(r["id"], {"type": "MultiLineString", "coordinates": []}),
+               "last_seen": last_seen}
+        if r.get("directions"):
+            rec["directions"] = r["directions"]
+        former[r["short_name"]] = rec
+    with open(former_path, "w", encoding="utf-8") as fh:
+        json.dump(former, fh, ensure_ascii=False, separators=(",", ":"))
+
     # ---- legacy-shapes.json (trasy linek mimo provoz sešité po ulicích) ----
     print("sešívám trasy linek mimo provoz:")
     legacy_shapes = build_legacy_shapes(trips, stop_times, shapes_raw, station_of, stations)

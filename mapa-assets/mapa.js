@@ -42,6 +42,8 @@
   var W_DIM = 1.8, W_BASE = 3, W_FOCUS = 6;
   var OP_DIM = 0.5, OP_BASE = 0.85;
   var DIM_COLOR = "#9aa7b0";   // výchozí trasování / ostatní linky – šedá (tmavší, ať obsluhované oblasti vyniknou)
+  var AKT_COLOR = "#6f7f92";   // aktuálně mimo provoz (sezónní, vrátí se) – tmavší šedá
+  var TRVALE_COLOR = "#b8bcc8"; // trvale mimo provoz (zrušená) – světlejší, vybledlá šedá
 
   // ── stav ─────────────────────────────────────────────────────────
   var map, baseLayer, routeLayer, stopLayer;
@@ -99,10 +101,11 @@
     getJSON("meta.json").catch(function () { return null; }),
     getJSON("legacy-routes.json").catch(function () { return []; }),
     getJSON("legacy-shapes.json").catch(function () { return {}; }),
-    getJSON("stops-history.json").catch(function () { return {}; })
+    getJSON("stops-history.json").catch(function () { return {}; }),
+    getJSON("former-lines.json").catch(function () { return {}; })
   ]).then(function (res) {
     routes = res[0]; stops = res[1];
-    init(res[2], res[3], res[4], res[5], res[6]);
+    init(res[2], res[3], res[4], res[5], res[6], res[7]);
   }).catch(function (e) {
     showMsg(T.noData || "Data nejsou k dispozici.");
     if (window.console) console.error(e);
@@ -116,7 +119,7 @@
   }
 
   // ── inicializace ─────────────────────────────────────────────────
-  function init(shapes, meta, legacy, legacyShapes, history) {
+  function init(shapes, meta, legacy, legacyShapes, history, former) {
     routes.forEach(function (r) { routeById[r.id] = r; routeByShort[r.short_name] = r; });
     stops.forEach(function (s, i) { stopById[s.id] = s; stopByName[norm(s.name)] = s; stopIndexById[s.id] = i; });
     processHistory(history);
@@ -132,7 +135,8 @@
 
     drawRoutes(shapes);
     drawStops();
-    addLegacyRoutes(legacy, legacyShapes);   // linky mimo provoz (geometrie z legacy-shapes.json)
+    addFormerRoutes(former);                  // linky aktuálně mimo provoz (reálný tvar z archivu)
+    addLegacyRoutes(legacy, legacyShapes);    // linky trvale mimo provoz (aproximace z legacy-shapes.json)
     applyZOrder();             // pořadí vrstev dle kategorie (tramvaje navrchu … mimo provoz dole)
     refreshRouteStyles();      // výchozí stav (šedá síť) hned po načtení, ne až při první akci
     buildRouteList();
@@ -598,13 +602,50 @@
     return null;
   }
 
-  // ── linky mimo provoz (legacy-routes.json) ───────────────────────
-  // Trasa se sestaví spojnicí zastávek (dle názvů → stops.json), kreslí se
-  // čárkovaně jako „přibližná". Nemají vlastní GTFS geometrii.
+  // ── linky AKTUÁLNĚ mimo provoz (archiv former-lines.json) ─────────
+  // Sezónní linky (školní, komerční 41, historická 1/4…), které zrovna nejsou v GTFS,
+  // ale máme jejich poslední reálný tvar z doby, kdy jezdily. Kreslí se čárkovaně tmavší
+  // šedou. Jakmile se vrátí do GTFS (routes.json), tahle verze se přeskočí a jedou barevně.
+  function addFormerRoutes(former) {
+    Object.keys(former || {}).forEach(function (short) {
+      if (routeByShort[short]) return;          // provozní (routes.json) → má přednost
+      var fr = former[short] || {};
+      var dirs = (fr.directions && fr.directions.length) ? fr.directions : [{ stops: fr.stops || [] }];
+      var union = [], seen = {};
+      dirs.forEach(function (d) { (d.stops || []).forEach(function (id) { if (!seen[id]) { seen[id] = 1; union.push(id); } }); });
+      if (union.length < 2) return;
+      var rid = "former-" + short;
+      var r = {
+        id: rid, short_name: short, long_name: fr.long_name || "",
+        type: fr.type === "tram" ? "tram" : "bus", color: AKT_COLOR,
+        category: "mimoprovoz", state: "akt", legacy: true,
+        stops: union, directions: (fr.directions && fr.directions.length >= 2) ? fr.directions : null
+      };
+      routes.push(r); routeById[rid] = r; routeByShort[short] = r;
+
+      var grp = L.layerGroup();
+      (fr.geometry && fr.geometry.coordinates || []).forEach(function (line) {
+        if (line && line.length >= 2) {
+          L.polyline(line.map(function (c) { return [c[1], c[0]]; }), {
+            color: AKT_COLOR, weight: W_BASE, opacity: OP_BASE,
+            dashArray: "6 7", lineJoin: "round", lineCap: "round"
+          }).on("click", function () { focusRoute(rid); }).addTo(grp);
+        }
+      });
+      routeLine[rid] = grp;   // do mapy se přidá až filtrem „Mimo provoz" / hover / focus
+    });
+  }
+
+  // ── linky TRVALE mimo provoz (legacy-routes.json) ────────────────
+  // Zrušené linky (nebo bez uložené geometrie). Trasa aproximovaná spojnicí zastávek
+  // (legacy-shapes.json), kreslí se čárkovaně vybledlou šedou.
   function addLegacyRoutes(legacy, legacyShapes) {
     legacyShapes = legacyShapes || {};
     (legacy || []).forEach(function (lr) {
       if (!lr || !lr.short_name) return;
+      // Přeskočit, když už linku máme jako provozní (routes.json) nebo jako „akt. mimo
+      // provoz" (archiv) – ty mají přednost, tahle je jen fallback bez uložené geometrie.
+      if (routeByShort[lr.short_name]) return;
       var ids = [], names = [], latlngs = [];
       (lr.stops || []).forEach(function (entry) {
         var name = (entry && typeof entry === "object") ? entry.name : entry;
@@ -620,11 +661,11 @@
 
       var rid = "legacy-" + lr.short_name;
       var category = lr.category === "historicke" ? "historicke" : "mimoprovoz";
-      var color = category === "historicke" ? "#991f00" : (lr.type === "tram" ? "#cc2900" : "#007db3");
+      var color = category === "historicke" ? "#991f00" : TRVALE_COLOR;
       var r = {
         id: rid, short_name: lr.short_name, long_name: lr.long_name || "",
         type: lr.type === "tram" ? "tram" : "bus", color: color, category: category,
-        approximate: !!lr.approximate, stops: ids, stopNames: names, legacy: true
+        state: "trvale", approximate: !!lr.approximate, stops: ids, stopNames: names, legacy: true
       };
       routes.push(r);
       routeById[rid] = r;
@@ -904,8 +945,8 @@
   function renderRouteDetail(r) {
     var col = routeColor(r);
     var stopsSection = "";
-    if (r.legacy) {
-      // legacy: seznam zastávek z DB (názvy v GTFS jsou klikací, ostatní ne)
+    if (r.legacy && r.state !== "akt") {
+      // trvale mimo provoz: seznam zastávek z DB (názvy v GTFS jsou klikací, ostatní ne)
       var lnames = LEGACY_STOPS[r.short_name] || [];
       if (lnames.length) {
         var lh = lnames.map(function (raw) {
@@ -950,9 +991,11 @@
     var detailUrl = BASE + "/?linka=" + encodeURIComponent(r.short_name) +
                     (JA ? "&ja=" + encodeURIComponent(JA) : "") + "#prehled";
 
-    // nadpis: legacy → "Linka XX (trvale mimo provoz)"; jinak "Kategorie [číslo v rámečku]"
+    // nadpis podle stavu: provozní „Kategorie [XX]"; akt. mimo provoz „Kategorie [XX]"
+    // + závorka „(aktuálně mimo provoz)"; trvale „Linka XX (trvale mimo provoz)";
+    // historická „Historická linka XX".
     var headerHtml;
-    if (r.legacy) {
+    if (r.legacy && r.state !== "akt") {
       var tpl = r.category === "historicke"
         ? (T.historicTitle || "Historická linka %s")
         : (T.legacyTitle || "Linka %s (trvale mimo provoz)");
@@ -961,6 +1004,9 @@
       var cat = TILE_CATS[r.short_name] || (r.type === "tram" ? (T.tram || "Tram") : (T.bus || "Bus"));
       headerHtml = "<h2>" + esc(cat) +
         ' <span class="ms-badge" style="background:' + col + '">' + esc(r.short_name) + "</span></h2>";
+      if (r.state === "akt") {
+        headerHtml += '<p class="ms-state-note">(' + esc(T.stateAkt || "aktuálně mimo provoz") + ")</p>";
+      }
     }
 
     elDetail.innerHTML =

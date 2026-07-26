@@ -61,21 +61,42 @@ mysqli_close($conn);
 // 4) Výstup
 // Nadpis linky dynamicky ve tvaru "Kategorie číslo: trasa" (kategorie z DB,
 // trasa z GTFS/legacy). Když některý díl chybí, padáme zpět na sloupec `trasa`.
-$kategorie = (string)($t['kategorie'] ?? '');
+// Stav linky podle aktuálního GTFS (stejná logika jako přehled/mapa):
+//  provozní = v routes.json; akt. mimo provoz = teď ve feedu není, ale běžně jezdí
+//  (dobová kategorie / archiv former-lines.json); trvale mimo provoz = zrušená.
+$__dd = __DIR__ . '/../../mapa-assets/data/';
+$liveShorts = $archShorts = [];
+foreach (json_decode((string)@file_get_contents($__dd . 'routes.json'), true) ?: [] as $r) {
+    if (isset($r['short_name'])) $liveShorts[(string)$r['short_name']] = true;
+}
+foreach ((array)json_decode((string)@file_get_contents($__dd . 'former-lines.json'), true) as $s => $_) {
+    $archShorts[(string)$s] = true;
+}
+$catOverride = ['41' => 'nakupni'];   // skutečná kategorie (viz mapa.php / vypislinek.php)
+
+$kategorie = $catOverride[$linka] ?? (string)($t['kategorie'] ?? '');
 $routeName = line_route_longname($linka);
 $katSg     = $lang['mapa_katsg_' . $kategorie] ?? '';
-if ($kategorie === 'mimoprovoz') {
+$dbTrasa   = (string)($t['trasa'] ?? '');
+$isLive    = isset($liveShorts[$linka]);
+$isTrvale  = !$isLive && $kategorie === 'mimoprovoz' && !isset($archShorts[$linka]);
+
+if ($isTrvale) {
     $titulekLinky = sprintf($lang['mapa_mimo_nadpis'] ?? 'Linka %s (trvale mimo provoz)', $linka);
     // trasová část za dvojtečkou bereme z DB (sloupec `trasa`), ne z GTFS
-    $dbTrasa = (string)($t['trasa'] ?? '');
     if (strpos($dbTrasa, ': ') !== false) {
         $rp = trim(explode(': ', $dbTrasa, 2)[1]);
         if ($rp !== '') $titulekLinky .= ': ' . $rp;
     }
-} elseif ($katSg !== '' && $routeName !== null && $routeName !== '') {
-    $titulekLinky = $katSg . ' ' . $linka . ': ' . $routeName;
 } else {
-    $titulekLinky = (string)($t['trasa'] ?? '');
+    if ($katSg !== '' && $routeName !== null && $routeName !== '') {
+        $titulekLinky = $katSg . ' ' . $linka . ': ' . $routeName;
+    } else {
+        $titulekLinky = $dbTrasa;
+    }
+    if (!$isLive) {   // akt. mimo provoz → jen závorka, kategorie/název zůstává
+        $titulekLinky .= ' (' . ($lang['mapa_akt_mimo'] ?? 'aktuálně mimo provoz') . ')';
+    }
 }
 $trasa = htmlspecialchars($titulekLinky, ENT_QUOTES, 'UTF-8');
 

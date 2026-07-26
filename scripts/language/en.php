@@ -20,7 +20,9 @@ $lang['funkce']           = "Route function";
 $lang['seznamzastavek']   = "List of stops";
 $lang['mapa']             = "Map";
 $lang['provoznilinky']    = "Currently operated routes";
+$lang['linky_akt_mimo']   = "Routes currently out of service";
 $lang['neprovoznilinky']  = "Routes permanently out of service";
+$lang['linky_trvale_mimo'] = "Routes permanently out of service";
 
 // messages & placeholders
 $lang['zalozkanedostupna'] = "This tab will be added later.";
@@ -82,6 +84,7 @@ $lang['mapa_nahled_alt']     = 'Route %s preview';
 $lang['mapa_mimo_provoz_pozn'] = 'Route is approximate.';
 $lang['mapa_mimo_nadpis']      = 'Line %s (permanently out of service)';
 $lang['mapa_hist_nadpis']      = 'Historical line %s';
+$lang['mapa_akt_mimo']         = 'currently out of service';
 $lang['mapa_zanikla']          = 'former stop';
 $lang['mapa_smer']             = 'To %s';
 $lang['mapa_vozidla']          = 'Vehicles';

@@ -60,6 +60,7 @@ $jsLang = [
     'legacyNote'  => $lang['mapa_mimo_provoz_pozn'] ?? 'Trasa je přibližná – linka je mimo provoz.',
     'legacyTitle' => $lang['mapa_mimo_nadpis']     ?? 'Linka %s (trvale mimo provoz)',
     'historicTitle' => $lang['mapa_hist_nadpis']   ?? 'Historická linka %s',
+    'stateAkt'    => $lang['mapa_akt_mimo']        ?? 'aktuálně mimo provoz',
     'formerStop'  => $lang['mapa_zanikla']         ?? 'zaniklá zastávka',
     'dirLabel'    => $lang['mapa_smer']            ?? 'Směr %s',
     'vehicles'    => $lang['mapa_vozidla']         ?? 'Vozidla',
@@ -119,12 +120,14 @@ $navHref = static function (string $path) use ($asset, $l): string {
 $catColors = line_category_colors();
 $catPrio   = line_category_priority();
 $tileColors = $tilePriority = $tileCats = [];
-foreach (fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null) as $short => $kod) {
+$lineKods = fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null);
+$applyCat = static function (string $short, string $kod) use (&$tileColors, &$tilePriority, &$tileCats, $catColors, $catPrio, $lang) {
     if (isset($catColors[$kod])) $tileColors[$short] = $catColors[$kod];
     if (isset($catPrio[$kod]))   $tilePriority[$short] = $catPrio[$kod];
     $lbl = $lang['mapa_katsg_' . $kod] ?? '';
     if ($lbl !== '') $tileCats[$short] = $lbl;
-}
+};
+foreach ($lineKods as $short => $kod) { $applyCat((string)$short, $kod); }
 // Snapshot: kategoriové výjimky z meta.json (cat_override). Historicky provozní linka,
 // která je dnes v DB „mimo provoz" (šedá), dostane svou dobovou kategorii – např.
 // noční linka 90 v roce 2011. Přebíjí DB kategorii.
@@ -148,11 +151,32 @@ if (!$isSnapshot) {
 // Legenda kategorií = kategorie, jejichž barvu má aspoň jedna linka aktuálního
 // pohledu (průnik DB ∩ routes.json živé mapy / snapshotu daného roku).
 $legend = [];
-$mapShorts = [];
+$mapShorts = $mapTypes = [];
 $routesJsonRaw = @file_get_contents(__DIR__ . '/' . $dataSub . 'routes.json');
 if ($routesJsonRaw) {
     foreach (json_decode($routesJsonRaw, true) ?: [] as $rj) {
-        if (isset($rj['short_name'])) $mapShorts[(string)$rj['short_name']] = true;
+        if (isset($rj['short_name'])) {
+            $mapShorts[(string)$rj['short_name']] = true;
+            $mapTypes[(string)$rj['short_name']] = $rj['type'] ?? 'bus';
+        }
+    }
+}
+// Skutečná kategorie linek, které ji v DB nemají (jsou vedené jako „mimo provoz", ale
+// když jezdí, mají svůj charakter). 41 = komerční (nakupni), jako 999. Platí v obou
+// stavech (provozní i akt. mimo provoz), ať má linka konzistentní identitu i v popisku.
+$catOverride = ['41' => 'nakupni'];
+foreach ($catOverride as $short => $kod) { $applyCat((string)$short, $kod); }
+// Provozní linka (v aktuálním GTFS) nesmí být šedá jako „mimo provoz": pokud jí v DB
+// zůstala kategorie mimoprovoz/historicke a nemá výše override, dostane barvu běžné linky
+// svého typu. Až z feedu vypadne, klient ji vykreslí jako mimo provoz z archivu/legacy.
+// (U snapshotu ne – tam kategorie řeší cat_override z meta.json.)
+if (!$isSnapshot) {
+    foreach (array_keys($mapShorts) as $short) {
+        $short = (string)$short;
+        $kod = $lineKods[$short] ?? '';
+        if (!isset($catOverride[$short]) && ($kod === 'mimoprovoz' || $kod === 'historicke')) {
+            $applyCat($short, ($mapTypes[$short] ?? 'bus') === 'tram' ? 'tramvaje' : 'autobusy');
+        }
     }
 }
 // Výlukové linky: číslo začínající na „X" (X2, X3, …) → kategorie „vylukova"
@@ -389,7 +413,8 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
     // jenže když se přegeneruje třeba jen shapes.json (a meta zůstane obsahově stejné), FTP
     // deploy meta nenahraje, čas se nezmění a prohlížeč servíruje starou geometrii z cache.
     $__v = 0;
-    foreach (['meta.json', 'routes.json', 'stops.json', 'shapes.json', 'timetable.json'] as $__f) {
+    foreach (['meta.json', 'routes.json', 'stops.json', 'shapes.json', 'timetable.json',
+              'legacy-routes.json', 'legacy-shapes.json', 'former-lines.json'] as $__f) {
         $__t = @filemtime(__DIR__ . '/' . $dataSub . $__f);
         if ($__t && $__t > $__v) $__v = $__t;
     }
