@@ -1,342 +1,354 @@
 [
-  {
-    "short_name": "A",
-    "stops": [
-      "Fügnerova",
-      "Nádraží",
-      "Karlinky",
-      "Ostašov",
-      "Karlov"
-    ],
-    "type": "bus",
-    "long_name": "GOTTWALDOVO NÁMĚSTÍ - Karlinky - OSTAŠOV - KARLOV",
-    "approximate": true
-  },
-  {
-    "short_name": "B",
-    "stops": [
-      "Fügnerova",
-      "Nádraží",
-      "Stráž nad Nisou",
-      "Machnín"
-    ],
-    "type": "bus",
-    "long_name": "GOTTWALDOVO NÁMĚSTÍ - STRÁŽ NAD NISOU - MACHNÍN",
-    "approximate": true
-  },
-  {
-    "short_name": "C",
-    "stops": [
-      "Fügnerova",
-      "Pavlovice křižovatka",
-      "Rudolfov"
-    ],
-    "type": "bus",
-    "long_name": "FÜGNEROVA - PAVLOVICE - KATEŘINKY - RUDOLFOV",
-    "approximate": true
-  },
-  {
-    "short_name": "D",
-    "stops": [
-      "Fügnerova",
-      "Ruprechtice nám."
-    ],
-    "type": "bus",
-    "long_name": "FÜGNEROVA - RUPRECHTICE",
-    "approximate": true
-  },
-  {
-    "short_name": "E",
-    "stops": [
-      "Fügnerova",
-      "Harcov kostel"
-    ],
-    "type": "bus",
-    "long_name": "FÜGNEROVA - STARÝ HARCOV",
-    "approximate": true
-  },
-  {
-    "short_name": "F",
-    "stops": [
-      "Fügnerova",
-      "Harcov Střelnice"
-    ],
-    "type": "bus",
-    "long_name": "FÜGNEROVA - HARCOV STŘELNICE",
-    "approximate": true
-  },
-  {
-    "short_name": "6",
-    "stops": [
-      "Nám.Dr.E.Beneše",
-      "Pavlovice křižovatka",
-      "Stráž nad Nisou",
-      "Růžodol I",
-      "Nám.Dr.E.Beneše"
-    ],
-    "type": "bus",
-    "long_name": "RADNICE - Pavlovice - Stráž nad Nisou - Růžodol I - RADNICE",
-    "approximate": true
-  },
-  {
-    "short_name": "8",
-    "stops": [
-      "Nám.Dr.E.Beneše",
-      "Františkov sídliště",
-      "Ostašov"
-    ],
-    "type": "bus",
-    "long_name": "RADNICE - Františkov - OSTAŠOV",
-    "approximate": true
-  },
-  {
-    "short_name": "201",
-    "stops": [
-      "Šimonovice",
-      "Minkovice žel. přejezd",
-      "Minkovice statek",
-      "Pilínkov",
-      "Pilínkov křižovatka",
-      "Doubí - UCT",
-      "Doubí obilná",
-      "Doubí pošta",
-      "Doubí mlýn",
-      "Doubská",
-      "Kamenická",
-      "Rochlice",
-      "Mostecká",
-      "Čechova",
-      "Melantrichova",
-      "Košická",
-      "Fügnerova",
-      "Šaldovo náměstí",
-      "Hostina obrů",
-      "Tržní náměstí",
-      "Ruprechtická",
-      "U Jelena",
-      "U Beránka",
-      "Hlávkova",
-      "Ruprechtice síd."
-    ],
-    "type": "bus",
-    "long_name": "RUPRECHTICE sídl. - FÜGNEROVA - PILÍNKOV - ŠIMONOVICE"
-  },
-  {
-    "short_name": "7",
-    "type": "bus",
-    "long_name": "RADNICE - Krásná Studánka - CHRASTAVA",
-    "stops": [
-      "Nám.Dr.E.Beneše",
-      "Krásná Studánka",
-      {
-        "name": "Chrastava",
-        "lat": 50.8166189,
-        "lon": 14.9650539
-      }
-    ],
-    "approximate": true
-  },
-  {
-    "short_name": "41",
-    "type": "bus",
-    "long_name": "RYBNÍČEK - Nádraží - AREÁL VESEC",
-    "stops": [
-      "Rybníček",
-      "Nádraží",
-      {
-        "name": "Areál Vesec",
-        "lat": 50.7300661,
-        "lon": 15.0700481
-      }
-    ]
-  },
-  {
-    "short_name": "81",
-    "type": "bus",
-    "long_name": "FÜGNEROVA - Nádraží - AREÁL VESEC",
-    "stops": [
-      "Fügnerova",
-      "Rybníček",
-      "Nádraží",
-      {
-        "name": "Areál Vesec",
-        "lat": 50.7300661,
-        "lon": 15.0700481
-      }
-    ]
-  },
-  {
-    "short_name": "44",
-    "type": "bus",
-    "long_name": "ZELENÉ ÚDOLÍ - SÍDLIŠTĚ NOVÉ VRATISLAVICE",
-    "stops": [
-      "Zelené Údolí",
-      {
-        "name": "Seniorů",
-        "lat": 50.7514567,
-        "lon": 15.0762064
-      },
-      "Sídliště Nové Vratislavice",
-      {
-        "name": "Krajní",
-        "lat": 50.7516025,
-        "lon": 15.0796608
-      },
-      {
-        "name": "Ořechová",
-        "lat": 50.7508625,
-        "lon": 15.0784539
-      },
-      "Zelené Údolí"
-    ]
-  },
-  {
-    "short_name": "71",
-    "type": "bus",
-    "long_name": "ZELENÉ ÚDOLÍ - SÍDLIŠTĚ NOVÉ VRATISLAVICE",
-    "stops": [
-      "Zelené Údolí",
-      {
-        "name": "Seniorů",
-        "lat": 50.7514567,
-        "lon": 15.0762064
-      },
-      "Sídliště Nové Vratislavice",
-      {
-        "name": "Krajní",
-        "lat": 50.7516025,
-        "lon": 15.0796608
-      },
-      {
-        "name": "Ořechová",
-        "lat": 50.7508625,
-        "lon": 15.0784539
-      },
-      "Zelené Údolí"
-    ]
-  },
-  {
-    "short_name": "90",
-    "type": "bus",
-    "long_name": "FÜGNEROVA – Zelené Údolí - Vesec samoobsluha - Rochlice - FÜGNEROVA",
-    "stops": [
-      "Fügnerova",
-      "Košická",
-      "U Močálu",
-      "Horní Kopečná",
-      "Dobiášova",
-      "Krejčího",
-      "Zelené Údolí",
-      "Rochlice",
-      "Slovanská",
-      "Na Srázu",
-      "Jeřmanická",
-      "Vesec samoobsluha",
-      "Vesec U Střediska",
-      "Mařanova",
-      "Doubí mlýn",
-      "Rochlice",
-      "Mostecká",
-      "Čechova",
-      "Melantrichova",
-      "Košická",
-      "Fügnerova"
-    ]
-  },
-  {
-    "short_name": "161",
-    "type": "bus",
-    "long_name": "FÜGNEROVA - OSTAŠOV - MACHNÍN ŽD - NOVINA - KŘIŽANSKÉ SEDLO",
-    "stops": [
-      "Fügnerova",
-      "Babylon",
-      "Nádraží",
-      "Viadukt",
-      "Františkov škola",
-      "Františkov sídliště",
-      "Karlinky",
-      "Slévárna",
-      "Kovošrot",
-      "Ostašov škola",
-      "Ostašov",
-      "Machnín",
-      "Machnín žel. zast.",
-      "Hamrštejn",
-      "Kryštofovo Údolí lom",
-      "Kryštofovo Údolí",
-      "Kryšt. Údolí ob. úřad",
-      "Novina",
-      "Křižanské sedlo"
-    ]
-  },
-  {
-    "short_name": "301",
-    "type": "bus",
-    "long_name": "FÜGNEROVA - STRÁŽ NAD NISOU",
-    "stops": [
-      "Fügnerova",
-      "Babylon",
-      "Nádraží",
-      "Žitavská",
-      "Růžodol I",
-      "Stráž n. Nis. elektrárna",
-      "Stráž n. Nis. Oblouková",
-      "Stráž n. Nis. Neumannova",
-      "Stráž nad Nisou"
-    ]
-  },
-  {
-    "short_name": "1",
-    "type": "tram",
-    "category": "historicke",
-    "long_name": "LIDOVÉ SADY - Fügnerova – RYBNÍČEK",
-    "stops": [
-      "Lidové sady - ZOO",
-      "Riegrova",
-      "Botanická zahrada",
-      "Muzeum - Galerie Lázně",
-      "Průmyslová škola",
-      "Ulice 5.května",
-      "Šaldovo náměstí",
-      "Fügnerova",
-      "Rybníček"
-    ]
-  },
-  {
-    "short_name": "50",
-    "type": "bus",
-    "long_name": "U VĚŽE - Růžodol I. - RŮŽODOL MLÝN - ZŠ JABLOŇOVÁ",
-    "stops": [
-      "U Věže",
-      "Dožínková",
-      "Růžodol I",
-      "Růžodol Mlýn",
-      "Stráž n. Nis. Neumannova",
-      "ZŠ Jabloňová"
-    ]
-  },
-  {
-    "short_name": "999",
-    "type": "bus",
-    "long_name": "FÜGNEROVA - BABYLON - RYBNÍČEK",
-    "stops": [
-      "Fügnerova",
-      "Babylon",
-      "Rybníček"
-    ]
-  },
-  {
-    "short_name": "♿BUS",
-    "type": "bus",
-    "long_name": "META VESEC - ZELENÉ ÚDOLÍ - Sokolská most - KOLOSEUM PAVLOVICE",
-    "stops": [
-      "Vesec U Střediska",
-      "Zelené Údolí",
-      "Krejčího",
-      "Fügnerova",
-      "Sokolská most",
-      "U Dvora",
-      "Koloseum"
-    ]
-  }
+ {
+  "short_name": "A",
+  "stops": [
+   "Fügnerova",
+   "Nádraží",
+   "Karlinky",
+   "Ostašov",
+   "Karlov"
+  ],
+  "type": "bus",
+  "long_name": "GOTTWALDOVO NÁMĚSTÍ - Karlinky - OSTAŠOV - KARLOV",
+  "approximate": true
+ },
+ {
+  "short_name": "B",
+  "stops": [
+   "Fügnerova",
+   "Nádraží",
+   "Stráž nad Nisou",
+   "Machnín"
+  ],
+  "type": "bus",
+  "long_name": "GOTTWALDOVO NÁMĚSTÍ - STRÁŽ NAD NISOU - MACHNÍN",
+  "approximate": true
+ },
+ {
+  "short_name": "C",
+  "stops": [
+   "Fügnerova",
+   "Pavlovice křižovatka",
+   "Rudolfov"
+  ],
+  "type": "bus",
+  "long_name": "FÜGNEROVA - PAVLOVICE - KATEŘINKY - RUDOLFOV",
+  "approximate": true
+ },
+ {
+  "short_name": "D",
+  "stops": [
+   "Fügnerova",
+   "Ruprechtice nám."
+  ],
+  "type": "bus",
+  "long_name": "FÜGNEROVA - RUPRECHTICE",
+  "approximate": true
+ },
+ {
+  "short_name": "E",
+  "stops": [
+   "Fügnerova",
+   "Harcov kostel"
+  ],
+  "type": "bus",
+  "long_name": "FÜGNEROVA - STARÝ HARCOV",
+  "approximate": true
+ },
+ {
+  "short_name": "F",
+  "stops": [
+   "Fügnerova",
+   "Harcov Střelnice"
+  ],
+  "type": "bus",
+  "long_name": "FÜGNEROVA - HARCOV STŘELNICE",
+  "approximate": true
+ },
+ {
+  "short_name": "6",
+  "stops": [
+   "Nám.Dr.E.Beneše",
+   "Pavlovice křižovatka",
+   "Stráž nad Nisou",
+   "Růžodol I",
+   "Nám.Dr.E.Beneše"
+  ],
+  "type": "bus",
+  "long_name": "RADNICE - Pavlovice - Stráž nad Nisou - Růžodol I - RADNICE",
+  "approximate": true
+ },
+ {
+  "short_name": "8",
+  "stops": [
+   "Nám.Dr.E.Beneše",
+   "Františkov sídliště",
+   "Ostašov"
+  ],
+  "type": "bus",
+  "long_name": "RADNICE - Františkov - OSTAŠOV",
+  "approximate": true
+ },
+ {
+  "short_name": "201",
+  "stops": [
+   "Šimonovice",
+   "Minkovice žel. přejezd",
+   "Minkovice statek",
+   "Pilínkov",
+   "Pilínkov křižovatka",
+   "Doubí - UCT",
+   "Doubí obilná",
+   "Doubí pošta",
+   "Doubí mlýn",
+   "Doubská",
+   "Kamenická",
+   "Rochlice",
+   "Mostecká",
+   "Čechova",
+   "Melantrichova",
+   "Košická",
+   "Fügnerova",
+   "Šaldovo náměstí",
+   "Hostina obrů",
+   "Tržní náměstí",
+   "Ruprechtická",
+   "U Jelena",
+   "U Beránka",
+   "Hlávkova",
+   "Ruprechtice síd."
+  ],
+  "type": "bus",
+  "long_name": "RUPRECHTICE sídl. - FÜGNEROVA - PILÍNKOV - ŠIMONOVICE"
+ },
+ {
+  "short_name": "7",
+  "type": "bus",
+  "long_name": "RADNICE - Krásná Studánka - CHRASTAVA",
+  "stops": [
+   "Nám.Dr.E.Beneše",
+   "Krásná Studánka",
+   {
+    "name": "Chrastava",
+    "lat": 50.8166189,
+    "lon": 14.9650539
+   }
+  ],
+  "approximate": true
+ },
+ {
+  "short_name": "41",
+  "type": "bus",
+  "long_name": "RYBNÍČEK - Nádraží - AREÁL VESEC",
+  "stops": [
+   "Rybníček",
+   "Nádraží",
+   {
+    "name": "Areál Vesec",
+    "lat": 50.7300661,
+    "lon": 15.0700481
+   }
+  ]
+ },
+ {
+  "short_name": "81",
+  "type": "bus",
+  "long_name": "FÜGNEROVA - Nádraží - AREÁL VESEC",
+  "stops": [
+   "Fügnerova",
+   "Rybníček",
+   "Nádraží",
+   {
+    "name": "Areál Vesec",
+    "lat": 50.7300661,
+    "lon": 15.0700481
+   }
+  ]
+ },
+ {
+  "short_name": "44",
+  "type": "bus",
+  "long_name": "ZELENÉ ÚDOLÍ - SÍDLIŠTĚ NOVÉ VRATISLAVICE",
+  "stops": [
+   "Zelené Údolí",
+   {
+    "name": "Seniorů",
+    "lat": 50.7514567,
+    "lon": 15.0762064
+   },
+   "Sídliště Nové Vratislavice",
+   {
+    "name": "Krajní",
+    "lat": 50.7516025,
+    "lon": 15.0796608
+   },
+   {
+    "name": "Ořechová",
+    "lat": 50.7508625,
+    "lon": 15.0784539
+   },
+   "Zelené Údolí"
+  ]
+ },
+ {
+  "short_name": "71",
+  "type": "bus",
+  "long_name": "ZELENÉ ÚDOLÍ - SÍDLIŠTĚ NOVÉ VRATISLAVICE",
+  "stops": [
+   "Zelené Údolí",
+   {
+    "name": "Seniorů",
+    "lat": 50.7514567,
+    "lon": 15.0762064
+   },
+   "Sídliště Nové Vratislavice",
+   {
+    "name": "Krajní",
+    "lat": 50.7516025,
+    "lon": 15.0796608
+   },
+   {
+    "name": "Ořechová",
+    "lat": 50.7508625,
+    "lon": 15.0784539
+   },
+   "Zelené Údolí"
+  ]
+ },
+ {
+  "short_name": "90",
+  "type": "bus",
+  "long_name": "FÜGNEROVA – Zelené Údolí - Vesec samoobsluha - Rochlice - FÜGNEROVA",
+  "stops": [
+   "Fügnerova",
+   "Košická",
+   "U Močálu",
+   "Horní Kopečná",
+   "Dobiášova",
+   "Krejčího",
+   "Zelené Údolí",
+   "Rochlice",
+   "Slovanská",
+   "Na Srázu",
+   "Jeřmanická",
+   "Vesec samoobsluha",
+   "Vesec U Střediska",
+   "Mařanova",
+   "Doubí mlýn",
+   "Rochlice",
+   "Mostecká",
+   "Čechova",
+   "Melantrichova",
+   "Košická",
+   "Fügnerova"
+  ]
+ },
+ {
+  "short_name": "161",
+  "type": "bus",
+  "long_name": "FÜGNEROVA - OSTAŠOV - MACHNÍN ŽD - NOVINA - KŘIŽANSKÉ SEDLO",
+  "stops": [
+   "Fügnerova",
+   "Babylon",
+   "Nádraží",
+   "Viadukt",
+   "Františkov škola",
+   "Františkov sídliště",
+   "Karlinky",
+   "Slévárna",
+   "Kovošrot",
+   "Ostašov škola",
+   "Ostašov",
+   "Machnín",
+   "Machnín žel. zast.",
+   "Hamrštejn",
+   "Kryštofovo Údolí lom",
+   "Kryštofovo Údolí",
+   "Kryšt. Údolí ob. úřad",
+   "Novina",
+   "Křižanské sedlo"
+  ]
+ },
+ {
+  "short_name": "301",
+  "type": "bus",
+  "long_name": "FÜGNEROVA - STRÁŽ NAD NISOU",
+  "stops": [
+   "Fügnerova",
+   "Babylon",
+   "Nádraží",
+   "Žitavská",
+   "Růžodol I",
+   "Stráž n. Nis. elektrárna",
+   "Stráž n. Nis. Oblouková",
+   "Stráž n. Nis. Neumannova",
+   "Stráž nad Nisou"
+  ]
+ },
+ {
+  "short_name": "1",
+  "type": "tram",
+  "category": "historicke",
+  "long_name": "LIDOVÉ SADY - Fügnerova – RYBNÍČEK",
+  "stops": [
+   "Lidové sady - ZOO",
+   "Riegrova",
+   "Botanická zahrada",
+   "Muzeum - Galerie Lázně",
+   "Průmyslová škola",
+   "Ulice 5.května",
+   "Šaldovo náměstí",
+   "Fügnerova",
+   "Rybníček"
+  ]
+ },
+ {
+  "short_name": "50",
+  "type": "bus",
+  "long_name": "U VĚŽE - Růžodol I. - RŮŽODOL MLÝN - ZŠ JABLOŇOVÁ",
+  "stops": [
+   "U Věže",
+   "Dožínková",
+   "Růžodol I",
+   "Růžodol Mlýn",
+   "Stráž n. Nis. Neumannova",
+   "ZŠ Jabloňová"
+  ]
+ },
+ {
+  "short_name": "999",
+  "type": "bus",
+  "long_name": "FÜGNEROVA - BABYLON - RYBNÍČEK",
+  "stops": [
+   "Fügnerova",
+   "Babylon",
+   "Rybníček"
+  ]
+ },
+ {
+  "short_name": "♿BUS",
+  "type": "bus",
+  "long_name": "META VESEC - ZELENÉ ÚDOLÍ - Sokolská most - KOLOSEUM PAVLOVICE",
+  "stops": [
+   "Vesec U Střediska",
+   "Zelené Údolí",
+   "Krejčího",
+   "Fügnerova",
+   "Sokolská most",
+   "U Dvora",
+   "Koloseum"
+  ]
+ },
+ {
+  "short_name": "46",
+  "stops": [
+   "Ostašov",
+   "Karlovská",
+   "Českolipská",
+   "Karlov"
+  ],
+  "type": "bus",
+  "long_name": "Ostašov - Karlov",
+  "_comment": "úsek dnešní linky 16 (Ostašov–Karlov), trvale mimo provoz"
+ }
 ]
