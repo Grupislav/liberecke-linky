@@ -93,17 +93,27 @@ foreach ((array)json_decode((string)@file_get_contents($dataDir . 'former-lines.
     $archShorts[(string)$s] = true;
 }
 $catOverride = ['41' => 'nakupni'];   // skutečná kategorie linek, co ji v DB nemají (viz mapa.php)
+$forceTrvale = ['46' => true];        // linky natvrdo „trvale mimo provoz" (bez ohledu na DB kategorii)
 
 $provozni = $aktMimo = $trvaleMimo = [];
 foreach ($allRows as $row) {
     $linka = (string)$row['linka'];
-    $row['class'] = $catOverride[$linka] ?? (string)$row['class'];
-    if (isset($liveShorts[$linka])) {
+    $kod = $catOverride[$linka] ?? (string)$row['class'];
+    $isLive = isset($liveShorts[$linka]);
+    $isArch = isset($archShorts[$linka]);
+    if ($isLive) {
+        $row['class'] = $kod;
         $provozni[] = $row;
-    } elseif ($row['class'] === 'mimoprovoz' && !isset($archShorts[$linka])) {
+    } elseif (isset($forceTrvale[$linka]) || ($kod === 'mimoprovoz' && !$isArch)) {
+        $row['class'] = 'mimoprovoz';               // trvale → šedá dlaždice
         $trvaleMimo[] = $row;
-    } else {
+    } elseif ($isArch) {
+        $row['class'] = $kod;                        // akt. mimo provoz – máme uložený tvar
         $aktMimo[] = $row;
+    } else {
+        // sezónní linka bez uloženého tvaru (zatím nebyla v GTFS) – ponech jako dřív
+        $row['class'] = $kod;
+        $provozni[] = $row;
     }
 }
 

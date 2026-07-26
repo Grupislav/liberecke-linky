@@ -73,13 +73,18 @@ foreach ((array)json_decode((string)@file_get_contents($__dd . 'former-lines.jso
     $archShorts[(string)$s] = true;
 }
 $catOverride = ['41' => 'nakupni'];   // skutečná kategorie (viz mapa.php / vypislinek.php)
+$forceTrvale = ['46' => true];        // natvrdo „trvale mimo provoz"
 
 $kategorie = $catOverride[$linka] ?? (string)($t['kategorie'] ?? '');
 $routeName = line_route_longname($linka);
 $katSg     = $lang['mapa_katsg_' . $kategorie] ?? '';
 $dbTrasa   = (string)($t['trasa'] ?? '');
 $isLive    = isset($liveShorts[$linka]);
-$isTrvale  = !$isLive && $kategorie === 'mimoprovoz' && !isset($archShorts[$linka]);
+$isArch    = isset($archShorts[$linka]);
+// trvale = zrušená (DB mimoprovoz bez archivu) nebo natvrdo; akt. mimo provoz jen když
+// máme uložený tvar (archiv) – jinak linku ponecháme jako provozní (nemáme co kreslit).
+$isTrvale  = !$isLive && (isset($forceTrvale[$linka]) || ($kategorie === 'mimoprovoz' && !$isArch));
+$isAkt     = !$isLive && !$isTrvale && $isArch;
 
 if ($isTrvale) {
     $titulekLinky = sprintf($lang['mapa_mimo_nadpis'] ?? 'Linka %s (trvale mimo provoz)', $linka);
@@ -94,7 +99,7 @@ if ($isTrvale) {
     } else {
         $titulekLinky = $dbTrasa;
     }
-    if (!$isLive) {   // akt. mimo provoz → jen závorka, kategorie/název zůstává
+    if ($isAkt) {   // akt. mimo provoz → jen závorka, kategorie/název zůstává
         $titulekLinky .= ' (' . ($lang['mapa_akt_mimo'] ?? 'aktuálně mimo provoz') . ')';
     }
 }
