@@ -140,25 +140,25 @@ function line_overrides(): array {
 function line_display(string $short, string $dbKod, string $type, bool $isLive, bool $isArch): array {
     $ov  = line_overrides();
     $kod = $ov['catOverride'][$short] ?? $dbKod;
+    // trvale = zrušená: DB „mimoprovoz" bez archivu, nebo natvrdo forceTrvale. Historické
+    // a ostatní kategorie mimo aktuální GTFS jsou „akt" (sezónní, vrátí se – např. linka 1).
     if ($isLive) {
         $state = 'operational';
-    } elseif (in_array($short, $ov['forceTrvale'], true)
-              || (($kod === 'mimoprovoz' || $kod === 'historicke') && !$isArch)) {
+    } elseif (in_array($short, $ov['forceTrvale'], true) || ($kod === 'mimoprovoz' && !$isArch)) {
         $state = 'trvale';
     } else {
         $state = 'akt';
     }
-    // provozní linka s nereálnou DB kategorií („mimoprovoz/historicke"/prázdná) → dle typu
-    if ($state === 'operational' && ($kod === 'mimoprovoz' || $kod === 'historicke' || $kod === '')) {
+    // provozní linka s nereálnou DB kategorií („mimoprovoz"/prázdná) → dle typu vozidla
+    if ($state === 'operational' && ($kod === 'mimoprovoz' || $kod === '')) {
         $kod = $type === 'tram' ? 'tramvaje' : 'autobusy';
     }
     $cc = line_category_colors();
-    if ($state === 'operational') {
-        $color = $cc[$kod] ?? ($type === 'tram' ? $cc['tramvaje'] : $cc['autobusy']);
+    if ($state === 'trvale') {
+        $color = $type === 'tram' ? '#b09a9a' : '#9aa4b0';   // trvale mimo provoz → šedá dle vozidla
     } else {
-        // Mimo provoz (akt i trvale, vč. historických) → šedá dle typu. Rozlišení stavu
-        // je jen v popisku, ne v barvě.
-        $color = $type === 'tram' ? '#b09a9a' : '#9aa4b0';
+        // provozní i akt. mimo provoz → barva kategorie (typu linky); akt se pozná popiskem
+        $color = $cc[$kod] ?? ($type === 'tram' ? $cc['tramvaje'] : $cc['autobusy']);
     }
     return ['state' => $state, 'kod' => $kod, 'color' => $color];
 }

@@ -119,7 +119,7 @@ $navHref = static function (string $path) use ($asset, $l): string {
 // pole prázdná → spadne se na barvy zapečené v routes.json.
 $catColors = line_category_colors();
 $catPrio   = line_category_priority();
-$tileColors = $tilePriority = $tileCats = [];
+$tileColors = $tilePriority = $tileCats = $tileStates = [];
 $lineKods = fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null);
 $applyCat = static function (string $short, string $kod) use (&$tileColors, &$tilePriority, &$tileCats, $catColors, $catPrio, $lang) {
     if (isset($catColors[$kod])) $tileColors[$short] = $catColors[$kod];
@@ -179,6 +179,7 @@ if (!$isSnapshot) {
         $type = $src['type'][$short] ?? ((string)$dbKod === 'tramvaje' ? 'tram' : 'bus');
         $d = line_display($short, (string)$dbKod, $type, isset($src['live'][$short]), isset($src['arch'][$short]));
         $tileColors[$short] = $d['color'];
+        $tileStates[$short] = $d['state'];
         if (isset($catPrio[$d['kod']])) $tilePriority[$short] = $catPrio[$d['kod']];
         $lbl = $lang['mapa_katsg_' . $d['kod']] ?? '';
         if ($lbl !== '') $tileCats[$short] = $lbl;
@@ -418,6 +419,7 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
     tileColors: <?= json_encode($tileColors, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tileCats: <?= json_encode($tileCats, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     tilePriority: <?= json_encode($tilePriority, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
+    tileStates: <?= json_encode($tileStates, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     legacyStops: <?= json_encode((object)$legacyStops, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
     aliases: <?= json_encode($lineAliases, JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>,
     lang: <?= json_encode($jsLang, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>

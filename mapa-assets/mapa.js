@@ -12,6 +12,7 @@
   var TILE_CATS = (window.MAPA && window.MAPA.tileCats) || {};   // linka -> název kategorie (z DB)
   var LEGACY_STOPS = (window.MAPA && window.MAPA.legacyStops) || {};  // linka mimo provoz -> [názvy z DB]
   var ZPRIO = (window.MAPA && window.MAPA.tilePriority) || {};
+  var TILE_STATE = (window.MAPA && window.MAPA.tileStates) || {};   // linka -> operational|akt|trvale
   var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
   var SNAP = (window.MAPA && window.MAPA.snapshot) || false;   // historický snapshot (bez JŘ)
   var DATA = (window.MAPA && window.MAPA.dataDir) || (BASE + "/mapa-assets/data/");
@@ -621,7 +622,7 @@
       var r = {
         id: rid, short_name: short, long_name: fr.long_name || "",
         type: type, color: color,
-        category: "mimoprovoz", state: "akt", legacy: true,
+        category: "mimoprovoz", state: TILE_STATE[short] || "akt", legacy: true,
         stops: union, directions: (fr.directions && fr.directions.length >= 2) ? fr.directions : null
       };
       routes.push(r); routeById[rid] = r; routeByShort[short] = r;
@@ -670,7 +671,8 @@
       var r = {
         id: rid, short_name: lr.short_name, long_name: lr.long_name || "",
         type: lr.type === "tram" ? "tram" : "bus", color: color, category: category,
-        state: "trvale", approximate: !!lr.approximate, stops: ids, stopNames: names, legacy: true
+        state: TILE_STATE[lr.short_name] || "trvale",
+        approximate: !!lr.approximate, stops: ids, stopNames: names, legacy: true
       };
       routes.push(r);
       routeById[rid] = r;
@@ -767,8 +769,20 @@
   // ── seznam linek v panelu ────────────────────────────────────────
   function buildRouteList() {
     elRoutes.innerHTML = "";
-    // výlukové úplně nahoře, zbytek v pořadí z routes.json (stabilní)
-    var ordered = routes.slice().sort(function (a, b) { return (isVyluka(b) ? 1 : 0) - (isVyluka(a) ? 1 : 0); });
+    // výlukové nahoře, pak provozní (pořadí z routes.json), pak mimo provoz seřazené
+    // dle čísla (písmena A–F první, pak čísla vzestupně)
+    var grpOf = function (r) { return isVyluka(r) ? 0 : (r.legacy ? 2 : 1); };
+    var ordered = routes.slice().sort(function (a, b) {
+      var ga = grpOf(a), gb = grpOf(b);
+      if (ga !== gb) return ga - gb;
+      if (ga === 2) {
+        var na = /^\d/.test(a.short_name), nb = /^\d/.test(b.short_name);
+        if (na !== nb) return na ? 1 : -1;
+        if (na) return parseInt(a.short_name, 10) - parseInt(b.short_name, 10);
+        return a.short_name < b.short_name ? -1 : (a.short_name > b.short_name ? 1 : 0);
+      }
+      return 0;
+    });
     ordered.forEach(function (r) {
       var li = document.createElement("li");
       li.dataset.id = r.id;

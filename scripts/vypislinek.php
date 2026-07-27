@@ -11,7 +11,9 @@ require_once __DIR__ . "/fce.php";
 function renderTile(string $label, string $color, string $l): string {
     $href = url_with_params(['linka' => $label, 'ja' => $l]) . '#prehled';
     $href = htmlspecialchars($href, ENT_QUOTES, 'UTF-8');
-    $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+    // Zobrazený text: „♿BUS" přetéká dlaždici → jen piktogram (odkaz drží plný název).
+    $display = $label === '♿BUS' ? '♿' : $label;
+    $labelEsc = htmlspecialchars($display, ENT_QUOTES, 'UTF-8');
     $colorEsc = htmlspecialchars($color, ENT_QUOTES, 'UTF-8');
 
     return <<<HTML
