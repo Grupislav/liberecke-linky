@@ -6,16 +6,17 @@ if (!isset($lang) || !isset($l)) {
 }
 require_once __DIR__ . "/fce.php";
 
-/** Vykreslí jednu dlaždici linky. */
-function renderTile(string $label, string $class, string $l): string {
+/** Vykreslí jednu dlaždici linky. Barva se předává jako hex (sdílená s mapou,
+ * viz line_display), ne přes CSS třídu – ať přehled a mapa vždy odpovídají. */
+function renderTile(string $label, string $color, string $l): string {
     $href = url_with_params(['linka' => $label, 'ja' => $l]) . '#prehled';
     $href = htmlspecialchars($href, ENT_QUOTES, 'UTF-8');
     $labelEsc = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
-    $classEsc = htmlspecialchars($class, ENT_QUOTES, 'UTF-8');
+    $colorEsc = htmlspecialchars($color, ENT_QUOTES, 'UTF-8');
 
     return <<<HTML
 <a href="{$href}">
-  <div class="barvaramecku {$classEsc}">
+  <div class="barvaramecku" style="background-color:{$colorEsc}">
     <span class="textlinek">{$labelEsc}</span>
   </div>
 </a>
@@ -79,42 +80,20 @@ while ($row = mysqli_fetch_assoc($resAll)) {
 mysqli_free_result($resAll);
 mysqli_close($conn);
 
-// Stav linky se odvozuje z GTFS, ne jen z DB kategorie:
-//  • aktuálně provozovaná  = je v aktuálním feedu (routes.json)
-//  • aktuálně mimo provoz  = teď ve feedu není, ale běžně jezdí (má dobovou kategorii,
-//                            nebo je v archivu former-lines.json = viděli jsme ji v GTFS)
-//  • trvale mimo provoz    = zrušená (DB „mimoprovoz") a není v archivu
-$dataDir = __DIR__ . '/../mapa-assets/data/';
-$liveShorts = $archShorts = [];
-foreach (json_decode((string)@file_get_contents($dataDir . 'routes.json'), true) ?: [] as $r) {
-    if (isset($r['short_name'])) $liveShorts[(string)$r['short_name']] = true;
-}
-foreach ((array)json_decode((string)@file_get_contents($dataDir . 'former-lines.json'), true) as $s => $_) {
-    $archShorts[(string)$s] = true;
-}
-$catOverride = ['41' => 'nakupni'];   // skutečná kategorie linek, co ji v DB nemají (viz mapa.php)
-$forceTrvale = ['46' => true];        // linky natvrdo „trvale mimo provoz" (bez ohledu na DB kategorii)
+// Stav i barva linky z JEDNÉ sdílené funkce (line_display) – ať přehled a mapa vždy
+// odpovídají. Provozní = v routes.json; akt. mimo provoz = teď ve feedu není, ale je to
+// běžná/sezónní linka; trvale = zrušená (DB „mimoprovoz" bez archivu) nebo natvrdo.
+$src = line_sources(__DIR__ . '/../mapa-assets/data/');
 
 $provozni = $aktMimo = $trvaleMimo = [];
 foreach ($allRows as $row) {
     $linka = (string)$row['linka'];
-    $kod = $catOverride[$linka] ?? (string)$row['class'];
-    $isLive = isset($liveShorts[$linka]);
-    $isArch = isset($archShorts[$linka]);
-    if ($isLive) {
-        $row['class'] = $kod;
-        $provozni[] = $row;
-    } elseif (isset($forceTrvale[$linka]) || ($kod === 'mimoprovoz' && !$isArch)) {
-        $row['class'] = 'mimoprovoz';               // trvale → šedá dlaždice
-        $trvaleMimo[] = $row;
-    } elseif ($isArch) {
-        $row['class'] = $kod;                        // akt. mimo provoz – máme uložený tvar
-        $aktMimo[] = $row;
-    } else {
-        // sezónní linka bez uloženého tvaru (zatím nebyla v GTFS) – ponech jako dřív
-        $row['class'] = $kod;
-        $provozni[] = $row;
-    }
+    $type  = $src['type'][$linka] ?? ((string)$row['class'] === 'tramvaje' ? 'tram' : 'bus');
+    $d = line_display($linka, (string)$row['class'], $type, isset($src['live'][$linka]), isset($src['arch'][$linka]));
+    $row['color'] = $d['color'];
+    if ($d['state'] === 'operational')   $provozni[]   = $row;
+    elseif ($d['state'] === 'trvale')    $trvaleMimo[] = $row;
+    else                                 $aktMimo[]    = $row;
 }
 
 sortProvozniLinks($provozni);
@@ -128,7 +107,7 @@ $section = static function (string $nadpis, array $groups) use ($l): void {
         if (!$rows) continue;
         echo '<div>';
         foreach ($rows as $row) {
-            echo renderTile((string)$row['linka'], (string)$row['class'], $l);
+            echo renderTile((string)$row['linka'], (string)$row['color'], $l);
         }
         echo '</div>';
     }
@@ -139,5 +118,7 @@ if ($aktMimo) {
     echo '<br>';
     $section($lang['linky_akt_mimo'] ?? 'Aktuálně mimo provoz', [$aktMimo]);
 }
-echo '<br>';
-$section($lang['linky_trvale_mimo'] ?? $lang['neprovoznilinky'], [$trvaleLetters, $trvaleNumbers]);
+if ($trvaleLetters || $trvaleNumbers) {
+    echo '<br>';
+    $section($lang['linky_trvale_mimo'] ?? $lang['neprovoznilinky'], [$trvaleLetters, $trvaleNumbers]);
+}

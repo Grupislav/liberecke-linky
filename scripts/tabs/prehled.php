@@ -64,27 +64,17 @@ mysqli_close($conn);
 // Stav linky podle aktuálního GTFS (stejná logika jako přehled/mapa):
 //  provozní = v routes.json; akt. mimo provoz = teď ve feedu není, ale běžně jezdí
 //  (dobová kategorie / archiv former-lines.json); trvale mimo provoz = zrušená.
+// Stav + efektivní kategorie ze sdílené funkce (stejně jako přehled/mapa).
 $__dd = __DIR__ . '/../../mapa-assets/data/';
-$liveShorts = $archShorts = [];
-foreach (json_decode((string)@file_get_contents($__dd . 'routes.json'), true) ?: [] as $r) {
-    if (isset($r['short_name'])) $liveShorts[(string)$r['short_name']] = true;
-}
-foreach ((array)json_decode((string)@file_get_contents($__dd . 'former-lines.json'), true) as $s => $_) {
-    $archShorts[(string)$s] = true;
-}
-$catOverride = ['41' => 'nakupni'];   // skutečná kategorie (viz mapa.php / vypislinek.php)
-$forceTrvale = ['46' => true];        // natvrdo „trvale mimo provoz"
-
-$kategorie = $catOverride[$linka] ?? (string)($t['kategorie'] ?? '');
+$src = line_sources($__dd);
+$__type = $src['type'][$linka] ?? ((string)($t['kategorie'] ?? '') === 'tramvaje' ? 'tram' : 'bus');
+$d = line_display($linka, (string)($t['kategorie'] ?? ''), $__type, isset($src['live'][$linka]), isset($src['arch'][$linka]));
+$kategorie = $d['kod'];
 $routeName = line_route_longname($linka);
 $katSg     = $lang['mapa_katsg_' . $kategorie] ?? '';
 $dbTrasa   = (string)($t['trasa'] ?? '');
-$isLive    = isset($liveShorts[$linka]);
-$isArch    = isset($archShorts[$linka]);
-// trvale = zrušená (DB mimoprovoz bez archivu) nebo natvrdo; akt. mimo provoz jen když
-// máme uložený tvar (archiv) – jinak linku ponecháme jako provozní (nemáme co kreslit).
-$isTrvale  = !$isLive && (isset($forceTrvale[$linka]) || ($kategorie === 'mimoprovoz' && !$isArch));
-$isAkt     = !$isLive && !$isTrvale && $isArch;
+$isTrvale  = $d['state'] === 'trvale';
+$isAkt     = $d['state'] === 'akt';
 
 if ($isTrvale) {
     $titulekLinky = sprintf($lang['mapa_mimo_nadpis'] ?? 'Linka %s (trvale mimo provoz)', $linka);

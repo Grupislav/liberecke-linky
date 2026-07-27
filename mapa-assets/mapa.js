@@ -42,8 +42,9 @@
   var W_DIM = 1.8, W_BASE = 3, W_FOCUS = 6;
   var OP_DIM = 0.5, OP_BASE = 0.85;
   var DIM_COLOR = "#9aa7b0";   // výchozí trasování / ostatní linky – šedá (tmavší, ať obsluhované oblasti vyniknou)
-  var AKT_COLOR = "#6f7f92";   // aktuálně mimo provoz (sezónní, vrátí se) – tmavší šedá
-  var TRVALE_COLOR = "#b8bcc8"; // trvale mimo provoz (zrušená) – světlejší, vybledlá šedá
+  // Fallback barvy pro linky mimo provoz (když není TILE_COLORS z DB) – šedá dle typu,
+  // musí odpovídat line_display() v fce.php: bus #9aa4b0, tram #b09a9a.
+  var AKT_COLOR = "#9aa4b0", AKT_COLOR_TRAM = "#b09a9a";
 
   // ── stav ─────────────────────────────────────────────────────────
   var map, baseLayer, routeLayer, stopLayer;
@@ -615,9 +616,11 @@
       dirs.forEach(function (d) { (d.stops || []).forEach(function (id) { if (!seen[id]) { seen[id] = 1; union.push(id); } }); });
       if (union.length < 2) return;
       var rid = "former-" + short;
+      var type = fr.type === "tram" ? "tram" : "bus";
+      var color = rcolor(short, type === "tram" ? AKT_COLOR_TRAM : AKT_COLOR);  // sdíleno s přehledem
       var r = {
         id: rid, short_name: short, long_name: fr.long_name || "",
-        type: fr.type === "tram" ? "tram" : "bus", color: AKT_COLOR,
+        type: type, color: color,
         category: "mimoprovoz", state: "akt", legacy: true,
         stops: union, directions: (fr.directions && fr.directions.length >= 2) ? fr.directions : null
       };
@@ -627,7 +630,7 @@
       (fr.geometry && fr.geometry.coordinates || []).forEach(function (line) {
         if (line && line.length >= 2) {
           L.polyline(line.map(function (c) { return [c[1], c[0]]; }), {
-            color: AKT_COLOR, weight: W_BASE, opacity: OP_BASE,
+            color: color, weight: W_BASE, opacity: OP_BASE,
             dashArray: "6 7", lineJoin: "round", lineCap: "round"
           }).on("click", function () { focusRoute(rid); }).addTo(grp);
         }
@@ -661,7 +664,9 @@
 
       var rid = "legacy-" + lr.short_name;
       var category = lr.category === "historicke" ? "historicke" : "mimoprovoz";
-      var color = category === "historicke" ? "#991f00" : TRVALE_COLOR;
+      var typ = lr.type === "tram" ? "tram" : "bus";
+      var color = rcolor(lr.short_name, category === "historicke" ? "#991f00"    // sdíleno s přehledem
+                         : (typ === "tram" ? AKT_COLOR_TRAM : AKT_COLOR));
       var r = {
         id: rid, short_name: lr.short_name, long_name: lr.long_name || "",
         type: lr.type === "tram" ? "tram" : "bus", color: color, category: category,

@@ -122,6 +122,70 @@ function line_category_priority(): array {
 }
 
 /**
+ * Stav a barva linky – JEDNO místo pro mapu i přehled (aby seděly).
+ * Vstup: číslo linky, kategorie z DB, typ (tram/bus) a příznaky z GTFS/archivu.
+ * Výstup: ['state','kod','color'] kde
+ *   state = 'operational' (je v aktuálním GTFS) | 'akt' (teď ne, ale sezónní – vrátí se)
+ *           | 'trvale' (zrušená / DB „mimoprovoz" bez archivu, nebo natvrdo forceTrvale)
+ *   kod   = efektivní kategorie pro barvu/popisek (provozní linka s DB „mimoprovoz/
+ *           historicke" dostane kategorii dle typu – např. sezónní tramvaj 4)
+ *   color = provozní → barva kategorie; mimo provoz → šedá s nádechem typu
+ * catOverride: linky, jejichž skutečnou kategorii DB nemá (41 = komerční).
+ * forceTrvale: linky natvrdo „trvale mimo provoz" (46 = úsek zrušené trasy).
+ */
+function line_overrides(): array {
+    return ['catOverride' => ['41' => 'nakupni'], 'forceTrvale' => ['46']];
+}
+
+function line_display(string $short, string $dbKod, string $type, bool $isLive, bool $isArch): array {
+    $ov  = line_overrides();
+    $kod = $ov['catOverride'][$short] ?? $dbKod;
+    if ($isLive) {
+        $state = 'operational';
+    } elseif (in_array($short, $ov['forceTrvale'], true)
+              || (($kod === 'mimoprovoz' || $kod === 'historicke') && !$isArch)) {
+        $state = 'trvale';
+    } else {
+        $state = 'akt';
+    }
+    // provozní linka s nereálnou DB kategorií („mimoprovoz/historicke"/prázdná) → dle typu
+    if ($state === 'operational' && ($kod === 'mimoprovoz' || $kod === 'historicke' || $kod === '')) {
+        $kod = $type === 'tram' ? 'tramvaje' : 'autobusy';
+    }
+    $cc = line_category_colors();
+    if ($state === 'operational') {
+        $color = $cc[$kod] ?? ($type === 'tram' ? $cc['tramvaje'] : $cc['autobusy']);
+    } elseif ($kod === 'historicke') {
+        $color = $cc['historicke'];                          // historické zůstávají červené
+    } else {
+        $color = $type === 'tram' ? '#b09a9a' : '#9aa4b0';   // mimo provoz – šedá dle typu
+    }
+    return ['state' => $state, 'kod' => $kod, 'color' => $color];
+}
+
+/**
+ * Přítomnost linek ve zdrojích (pro line_display): které jsou v GTFS (live), v archivu
+ * (arch = viděné dřív v GTFS), v legacy, a jejich typ. Čte z mapa-assets/data/.
+ */
+function line_sources(string $dataDir): array {
+    $live = $arch = $type = $legacy = [];
+    foreach (json_decode((string)@file_get_contents($dataDir . 'routes.json'), true) ?: [] as $r) {
+        if (!isset($r['short_name'])) continue;
+        $s = (string)$r['short_name']; $live[$s] = true; $type[$s] = $r['type'] ?? 'bus';
+    }
+    foreach ((array)json_decode((string)@file_get_contents($dataDir . 'former-lines.json'), true) as $s => $fr) {
+        $s = (string)$s; $arch[$s] = true;
+        if (!isset($type[$s])) $type[$s] = (is_array($fr) ? ($fr['type'] ?? 'bus') : 'bus');
+    }
+    foreach (json_decode((string)@file_get_contents($dataDir . 'legacy-routes.json'), true) ?: [] as $r) {
+        if (!isset($r['short_name'])) continue;
+        $s = (string)$r['short_name']; $legacy[$s] = true;
+        if (!isset($type[$s])) $type[$s] = $r['type'] ?? 'bus';
+    }
+    return ['live' => $live, 'arch' => $arch, 'type' => $type, 'legacy' => $legacy];
+}
+
+/**
  * Mapování linka (short_name) -> kód kategorie z DB. Stejný dotaz, jaký
  * obarvuje dlaždice (vypislinek.php), jen vytažený do sdílené funkce.
  * Z kódu se pak odvodí barva (line_category_colors) i pořadí (line_category_priority).

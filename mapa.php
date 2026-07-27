@@ -161,22 +161,27 @@ if ($routesJsonRaw) {
         }
     }
 }
-// Skutečná kategorie linek, které ji v DB nemají (jsou vedené jako „mimo provoz", ale
-// když jezdí, mají svůj charakter). 41 = komerční (nakupni), jako 999. Platí v obou
-// stavech (provozní i akt. mimo provoz), ať má linka konzistentní identitu i v popisku.
-$catOverride = ['41' => 'nakupni'];
-foreach ($catOverride as $short => $kod) { $applyCat((string)$short, $kod); }
-// Provozní linka (v aktuálním GTFS) nesmí být šedá jako „mimo provoz": pokud jí v DB
-// zůstala kategorie mimoprovoz/historicke a nemá výše override, dostane barvu běžné linky
-// svého typu. Až z feedu vypadne, klient ji vykreslí jako mimo provoz z archivu/legacy.
-// (U snapshotu ne – tam kategorie řeší cat_override z meta.json.)
+// Barvu, kategorii a stav řeší JEDNA sdílená funkce (line_display) společně s přehledem –
+// ať mapa a přehled vždy odpovídají. Projdeme sjednocení všech známých linek (DB ∪ GTFS ∪
+// archiv ∪ legacy): provozní dostanou barvu kategorie (sezónní tramvaj 4 s DB „mimoprovoz"
+// → tramvajová), mimo provoz šedou dle typu (historické zůstávají červené). U snapshotu ne –
+// tam kategorie řeší cat_override z meta.json.
 if (!$isSnapshot) {
-    foreach (array_keys($mapShorts) as $short) {
+    $src = line_sources(__DIR__ . '/' . $dataSub);
+    $universe = $lineKods;
+    // legacy ZÁMĚRNĚ ne: barvu legacy linek (vč. červené u historických) řeší klientský
+    // addLegacyRoutes dle legacy-routes.json; line_display bez DB kategorie je nezná.
+    foreach (['live', 'arch'] as $g) {
+        foreach ($src[$g] as $s => $_) { if (!isset($universe[$s])) $universe[$s] = ''; }
+    }
+    foreach ($universe as $short => $dbKod) {
         $short = (string)$short;
-        $kod = $lineKods[$short] ?? '';
-        if (!isset($catOverride[$short]) && ($kod === 'mimoprovoz' || $kod === 'historicke')) {
-            $applyCat($short, ($mapTypes[$short] ?? 'bus') === 'tram' ? 'tramvaje' : 'autobusy');
-        }
+        $type = $src['type'][$short] ?? ((string)$dbKod === 'tramvaje' ? 'tram' : 'bus');
+        $d = line_display($short, (string)$dbKod, $type, isset($src['live'][$short]), isset($src['arch'][$short]));
+        $tileColors[$short] = $d['color'];
+        if (isset($catPrio[$d['kod']])) $tilePriority[$short] = $catPrio[$d['kod']];
+        $lbl = $lang['mapa_katsg_' . $d['kod']] ?? '';
+        if ($lbl !== '') $tileCats[$short] = $lbl;
     }
 }
 // Výlukové linky: číslo začínající na „X" (X2, X3, …) → kategorie „vylukova"
