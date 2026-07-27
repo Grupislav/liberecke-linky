@@ -155,10 +155,10 @@ function line_display(string $short, string $dbKod, string $type, bool $isLive, 
     $cc = line_category_colors();
     if ($state === 'operational') {
         $color = $cc[$kod] ?? ($type === 'tram' ? $cc['tramvaje'] : $cc['autobusy']);
-    } elseif ($kod === 'historicke') {
-        $color = $cc['historicke'];                          // historické zůstávají červené
     } else {
-        $color = $type === 'tram' ? '#b09a9a' : '#9aa4b0';   // mimo provoz – šedá dle typu
+        // Mimo provoz (akt i trvale, vč. historických) → šedá dle typu. Rozlišení stavu
+        // je jen v popisku, ne v barvě.
+        $color = $type === 'tram' ? '#b09a9a' : '#9aa4b0';
     }
     return ['state' => $state, 'kod' => $kod, 'color' => $color];
 }

@@ -201,25 +201,14 @@ foreach ($tileColors as $short => $hex) {
     if (isset($mapShorts[$short])) $presentHex[$hex] = true;
 }
 foreach ($catColors as $kod => $hex) {
-    if ($kod === 'mimoprovoz') continue;
+    // mimo provoz i historické se v legendě neuvádí (kreslí se šedě dle typu, rozlišení
+    // je jen v popisku/filtru, ne barvou)
+    if ($kod === 'mimoprovoz' || $kod === 'historicke') continue;
     if (isset($presentHex[$hex])) {
         $legend[] = ['color' => $hex, 'label' => $lang['mapa_kat_' . $kod] ?? $kod];
     }
 }
-// historické legacy linky (z legacy-routes.json) – vlastní položka; jen živá mapa
-$hasHistoric = false;
-if (!$isSnapshot) {
-    $legacyRaw = @file_get_contents(__DIR__ . '/mapa-assets/data/legacy-routes.json');
-    if ($legacyRaw) {
-        foreach (json_decode($legacyRaw, true) ?: [] as $lr) {
-            if (($lr['category'] ?? '') === 'historicke') { $hasHistoric = true; break; }
-        }
-    }
-    if ($hasHistoric) {
-        $legend[] = ['color' => $catColors['historicke'] ?? '#991f00', 'label' => $lang['mapa_kat_historicke'] ?? 'Historické'];
-    }
-}
-// deduplikace legendy (kategorie historické může přijít z DB i z legacy-routes)
+// deduplikace legendy
 $seenLeg = [];
 $legend = array_values(array_filter($legend, static function ($it) use (&$seenLeg) {
     $k = $it['color'] . '|' . $it['label'];

@@ -665,8 +665,8 @@
       var rid = "legacy-" + lr.short_name;
       var category = lr.category === "historicke" ? "historicke" : "mimoprovoz";
       var typ = lr.type === "tram" ? "tram" : "bus";
-      var color = rcolor(lr.short_name, category === "historicke" ? "#991f00"    // sdíleno s přehledem
-                         : (typ === "tram" ? AKT_COLOR_TRAM : AKT_COLOR));
+      // mimo provoz (vč. historických) = šedá dle typu; rozlišení jen v popisku
+      var color = rcolor(lr.short_name, typ === "tram" ? AKT_COLOR_TRAM : AKT_COLOR);
       var r = {
         id: rid, short_name: lr.short_name, long_name: lr.long_name || "",
         type: lr.type === "tram" ? "tram" : "bus", color: color, category: category,
