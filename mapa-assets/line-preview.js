@@ -58,10 +58,11 @@
     getJSON("stops.json", null),
     getJSON("legacy-routes.json", []),
     previews.length ? getJSON("legacy-shapes.json", {}) : Promise.resolve({}),
-    stopLists.length ? getJSON("stops-history.json", {}) : Promise.resolve({})
+    stopLists.length ? getJSON("stops-history.json", {}) : Promise.resolve({}),
+    previews.length ? getJSON("former-lines.json", {}) : Promise.resolve({})
   ]).then(function (res) {
     var shapesGeo = res[0], routes = res[1], stops = res[2], legacy = res[3] || [],
-        legacyShapes = res[4] || {}, history = res[5] || {};
+        legacyShapes = res[4] || {}, history = res[5] || {}, former = res[6] || {};
 
     var stopById = {}, stopByName = {};
     (stops || []).forEach(function (s) { stopById[s.id] = s; stopByName[norm(s.name)] = s; });
@@ -83,12 +84,12 @@
       return null;
     }
 
-    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById, resolveTarget);
+    if (previews.length) renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById, resolveTarget, former);
     if (stopLists.length) renderStopLists(routes, stopById, resolveTarget);
   });
 
   // ── náhledy trasy ──────────────────────────────────────────────────
-  function renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById, resolveTarget) {
+  function renderPreviews(shapesGeo, stopByName, legacyByShort, legacyShapes, routes, stopById, resolveTarget, former) {
     var feats = ((shapesGeo && shapesGeo.features) || []).filter(function (f) {
       return f.geometry && f.geometry.coordinates && f.geometry.coordinates.length;
     });
@@ -119,6 +120,16 @@
         return null;
       }).filter(Boolean);
     }
+    // zastávky linky „aktuálně mimo provoz" (archiv former-lines.json → ID do stops.json)
+    function formerStops(fr) {
+      var seen = {}, out = [];
+      (fr.stops || []).forEach(function (id) {
+        if (seen[id]) return; seen[id] = 1;
+        var s = stopById && stopById[id];
+        if (s) out.push({ c: [s.lon, s.lat], name: s.name });
+      });
+      return out;
+    }
 
     var bb = bbox(feats);
     var kx = Math.cos(((bb.minY + bb.maxY) / 2) * Math.PI / 180);
@@ -135,6 +146,15 @@
       var sel = alias(a.getAttribute("data-linka"));
       if (feats.some(function (f) { return f.properties.short_name === sel; })) {
         renderSvg(a, feats, proj, { kind: "shape", sel: sel, stops: shapeStops(sel) });
+        return;
+      }
+      // linka „aktuálně mimo provoz" (není v živém GTFS, ale máme její poslední reálný
+      // tvar v archivu) → kreslíme z archivu, stejně jako velká mapa. Má přednost před
+      // legacy (přibližnou) trasou, aby náhled a mapa seděly.
+      var fr = former[sel] || former[a.getAttribute("data-linka")];
+      if (fr && fr.geometry && fr.geometry.coordinates && fr.geometry.coordinates.length) {
+        var fcol = TILE_COLORS[sel] || (fr.type === "tram" ? "#b09a9a" : "#9aa4b0");
+        renderSvg(a, feats, proj, { kind: "former", lines: fr.geometry.coordinates, color: fcol, stops: formerStops(fr) });
         return;
       }
       var lr = legacyByShort[sel] || legacyByShort[a.getAttribute("data-linka")];
@@ -310,6 +330,12 @@
           var pl = polyline(ln, proj, lineColor, 3.5, 1);
           if (pl) svg.appendChild(pl);
         });
+      });
+    } else if (hi.kind === "former") { // akt. mimo provoz – reálný tvar z archivu, čárkovaně
+      lineColor = hi.color;
+      (hi.lines || []).forEach(function (ln) {
+        var pl = polyline(ln, proj, hi.color, 3.5, 1, "7 6");
+        if (pl) svg.appendChild(pl);
       });
     } else { // legacy – čárkovaná spojnice zastávek
       lineColor = hi.color;
