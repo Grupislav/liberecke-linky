@@ -825,7 +825,7 @@
       li.dataset.legacy = r.legacy ? "1" : "0";
       li.dataset.category = r.category || "";
       li.dataset.search = (r.short_name + " " + r.long_name).toLowerCase();
-      if (r.legacy) li.classList.add("ms-legacy");
+      if (r.legacy && r.state !== "akt") li.classList.add("ms-legacy");
 
       var b = document.createElement("span");
       b.className = "ms-badge";
@@ -972,11 +972,19 @@
       // rozkliknutý spoj: běžnou čáru linky skryjeme – kreslí ji overlay
       // (projetá část čárkovaně, zbývající plně)
       if (!r.legacy && focusedTripRouteId === r.id) style = { opacity: 0, weight: 0 };
-      var front = emph || (r.legacy && filter === "legacy");
+      // ve filtru „Mimo provoz" se všechny legacy čáry zvednou nad podklad; zvýrazněnou
+      // (emph) řešíme až po smyčce, ať ji ostatní nepřekryjí
+      var front = r.legacy && filter === "legacy";
       grp.eachLayer(function (ln) {
         ln.setStyle(style);
         if (front && ln.bringToFront) ln.bringToFront();
       });
+    });
+    // hover/focus úplně navrch – AŽ po všech filtr-front voláních výše (jinak ji ve filtru
+    // „Mimo provoz" ostatní legacy čáry překryjí a na hover se linka nevykreslí nahoře)
+    [focusedRouteId, hoveredRouteId].forEach(function (rid) {
+      var g = rid && routeLine[rid];
+      if (g && routeLayer.hasLayer(g)) g.eachLayer(function (ln) { if (ln.bringToFront) ln.bringToFront(); });
     });
   }
 
