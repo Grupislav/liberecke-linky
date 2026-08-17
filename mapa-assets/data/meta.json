@@ -6,7 +6,7 @@
   "source": "http://www.dpmlj.cz/gtfs.zip",
   "counts": {
     "routes": 42,
-    "stops": 211,
+    "stops": 212,
     "shapes_features": 42,
     "trips": 2280
   }

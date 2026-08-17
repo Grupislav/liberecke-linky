@@ -28,6 +28,13 @@ OUT = os.path.join(ROOT, "mapa-assets", "data")
 COORD_DP_TOLERANCE = 0.00004   # ~4 m, Douglas-Peucker simplification
 COORD_DECIMALS = 5             # ~1.1 m precision
 
+# Natvrdo zadané souřadnice stanic, které obsluhuje jen linka „aktuálně mimo provoz"
+# (z archivu former-lines.json) a mohou zmizet i z GTFS stops.txt, než linka zase pojede.
+# Klíč = GTFS stop_id (parent station). 26611 = Areál Vesec (jezdí sem jen 41, ~1× za rok).
+FORMER_STOP_FALLBACK = {
+    "26611": {"name": "Areál Vesec", "lat": 50.7300661, "lon": 15.0700481},
+}
+
 
 def read(name):
     with open(os.path.join(GTFS, name), encoding="utf-8-sig", newline="") as fh:
@@ -506,6 +513,39 @@ def main():
             "wheelchair": s.get("wheelchair_boarding", ""),
             "routes": served,
         })
+
+    # Stanice, které dnes obsluhuje jen linka „aktuálně mimo provoz" z archivu
+    # (former-lines.json) – v aktuálním feedu je nikdo nejezdí, takže by z stops.json
+    # vypadly a akt linka (odkazuje na ně přes ID) by je nedohledala (mj. Areál Vesec u
+    # linky 41, která vyjede jen 1× za rok). Přidáme je zpět: souřadnice z GTFS stops.txt,
+    # a když stanice zmizí i odtud, z natvrdo zadaných FORMER_STOP_FALLBACK.
+    former_routes = {}
+    _fp = os.path.join(OUT, "former-lines.json")
+    if os.path.exists(_fp):
+        try:
+            for _short, _rec in json.load(open(_fp, encoding="utf-8")).items():
+                _sids = set(str(i) for i in (_rec.get("stops") or []))
+                for _d in (_rec.get("directions") or []):
+                    _sids.update(str(i) for i in (_d.get("stops") or []))
+                for _i in _sids:
+                    former_routes.setdefault(_i, []).append(_short)
+        except (ValueError, OSError):
+            pass
+    _have = {x["id"] for x in stops_out}
+    for sid in sorted(set(former_routes) - _have):
+        st = stations.get(sid)
+        fb = FORMER_STOP_FALLBACK.get(sid)
+        rt = sorted(former_routes[sid], key=sn_key)
+        if st:
+            stops_out.append({"id": sid, "code": st.get("stop_code", ""), "name": st["stop_name"],
+                              "lat": rnd(st["stop_lat"]), "lon": rnd(st["stop_lon"]),
+                              "zone": st.get("zone_id", ""), "wheelchair": st.get("wheelchair_boarding", ""),
+                              "routes": rt})
+        elif fb:
+            stops_out.append({"id": sid, "code": "", "name": fb["name"],
+                              "lat": rnd(fb["lat"]), "lon": rnd(fb["lon"]),
+                              "zone": "", "wheelchair": "", "routes": rt})
+
     stops_out.sort(key=lambda x: x["name"])
     with open(os.path.join(OUT, "stops.json"), "w", encoding="utf-8") as fh:
         json.dump(stops_out, fh, ensure_ascii=False, separators=(",", ":"))
