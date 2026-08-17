@@ -142,14 +142,19 @@ function line_overrides(): array {
 function line_display(string $short, string $dbKod, string $type, bool $isLive, bool $isArch): array {
     $ov  = line_overrides();
     $kod = $ov['catOverride'][$short] ?? $dbKod;
-    // trvale = zrušená: DB „mimoprovoz" bez archivu, nebo natvrdo forceTrvale. Historické
-    // a ostatní kategorie mimo aktuální GTFS jsou „akt" (sezónní, vrátí se – např. linka 1).
+    // Stav: „akt" (sezónní, vrátí se) jen když linka vypadla z GTFS a máme její archiv
+    // (41, zimní linky), NEBO je to historická linka (DB „historicke" – jezdí sezónně,
+    // např. linka 1). Vše ostatní mimo GTFS = „trvale" (permanentně zrušené: 999, staré
+    // legacy linky A–F, 6–8, 44, 50, 71, 90, 161, 201, 301…). forceTrvale má přednost i
+    // před archivem (81 = klon trasy 41, ale je zrušená).
     if ($isLive) {
         $state = 'operational';
-    } elseif (in_array($short, $ov['forceTrvale'], true) || ($kod === 'mimoprovoz' && !$isArch)) {
+    } elseif (in_array($short, $ov['forceTrvale'], true)) {
         $state = 'trvale';
-    } else {
+    } elseif ($isArch || $kod === 'historicke') {
         $state = 'akt';
+    } else {
+        $state = 'trvale';
     }
     // efektivní kategorie pro barvu čáry: „mimoprovoz"/prázdná → dle typu vozidla (autobus/
     // tramvaj), ať i linka mimo provoz má kategorickou barvu (ne šedou). Historické zůstávají.
@@ -269,8 +274,11 @@ function line_has_en_db($server, $user, $pass, $db, string $linka): bool {
 }
 
 /**
- * Seznam zastávek linek mimo provoz z DB (sloupec `zastavky`, HTML <li>).
- * Vrací linka -> [názvy zastávek]. Pro detail na mapě, kde DB není po ruce.
+ * Seznam zastávek linek z DB (sloupec `zastavky`, HTML <li>). Vrací linka -> [názvy zastávek].
+ * Bereme všechny linky – mapa z toho čte jen zastávky linek mimo provoz (LEGACY_STOPS[short]);
+ * u živých se seznam bere z GTFS, takže přebytečné řádky nevadí. (Dřív se filtrovalo na
+ * kategorii `mimoprovoz`/`historicke`, ta ale v DB zanikla – linky mimo provoz mají teď
+ * reálné typy.)
  */
 function fetch_legacy_stop_lists_db($server, $user, $pass, $db): array {
     if ($server === null || $user === null || $db === null) return [];
@@ -278,12 +286,7 @@ function fetch_legacy_stop_lists_db($server, $user, $pass, $db): array {
     if (!$conn) return [];
     mysqli_set_charset($conn, 'utf8');
     $out = [];
-    $res = mysqli_query(
-        $conn,
-        "SELECT t.linka, t.zastavky FROM texty t
-         INNER JOIN typy_linek tl ON tl.id = t.typ_linky_id
-         WHERE tl.kod IN ('mimoprovoz', 'historicke')"
-    );
+    $res = mysqli_query($conn, "SELECT t.linka, t.zastavky FROM texty t");
     if ($res) {
         while ($row = mysqli_fetch_assoc($res)) {
             $names = [];
