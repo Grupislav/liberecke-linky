@@ -333,7 +333,7 @@ foreach (['meta.json', 'routes.json', 'stops.json', 'shapes.json', 'legacy-route
     if ($__pt && $__pt > $__previewV) $__previewV = $__pt;
 }
 ?>
-<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, v: <?= json_encode($__previewV) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(fetch_line_tile_colors_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, dir: <?= json_encode($lang['mapa_smer'] ?? 'Směr %s', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?> };</script>
+<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, v: <?= json_encode($__previewV) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(array_map(static fn($x) => $x['color'], $__ld ??= line_display_map(__DIR__ . '/mapa-assets/data/', fetch_line_kods_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null))), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileStates: <?= json_encode(array_map(static fn($x) => $x['state'], $__ld), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, dir: <?= json_encode($lang['mapa_smer'] ?? 'Směr %s', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?> };</script>
 <script src="mapa-assets/line-preview.js<?= av('mapa-assets/line-preview.js') ?>" defer></script>
 
 </body>

@@ -32,6 +32,7 @@
   var JA = (window.MAPA && window.MAPA.ja) || "";
   var ALIASES = (window.MAPA && window.MAPA.aliases) || {};
   var TILE_COLORS = (window.MAPA && window.MAPA.tileColors) || {};   // barvy linek dle dlaždic (shoda s velkou mapou)
+  var TILE_STATE = (window.MAPA && window.MAPA.tileStates) || {};    // stav linky (trvale → čárkovaně)
   var DIRLABEL = (window.MAPA && window.MAPA.dir) || "Směr %s";       // šablona popisku směru
   var SVG_NS = "http://www.w3.org/2000/svg";
   var W = 500, H = 333, PAD = 14;
@@ -154,7 +155,9 @@
       var fr = former[sel] || former[a.getAttribute("data-linka")];
       if (fr && fr.geometry && fr.geometry.coordinates && fr.geometry.coordinates.length) {
         var fcol = TILE_COLORS[sel] || (fr.type === "tram" ? "#b09a9a" : "#9aa4b0");
-        renderSvg(a, feats, proj, { kind: "former", lines: fr.geometry.coordinates, color: fcol, stops: formerStops(fr) });
+        // trvale mimo provoz čárkovaně i s reálným tvarem z archivu (81); akt plnou
+        var fdash = TILE_STATE[sel] === "trvale" ? "7 6" : null;
+        renderSvg(a, feats, proj, { kind: "former", lines: fr.geometry.coordinates, color: fcol, dash: fdash, stops: formerStops(fr) });
         return;
       }
       var lr = legacyByShort[sel] || legacyByShort[a.getAttribute("data-linka")];
@@ -331,10 +334,10 @@
           if (pl) svg.appendChild(pl);
         });
       });
-    } else if (hi.kind === "former") { // akt. mimo provoz – reálný tvar z archivu, plná čára
+    } else if (hi.kind === "former") { // reálný tvar z archivu; plná (akt) / čárkovaná (trvale)
       lineColor = hi.color;
       (hi.lines || []).forEach(function (ln) {
-        var pl = polyline(ln, proj, hi.color, 3.5, 1);
+        var pl = polyline(ln, proj, hi.color, 3.5, 1, hi.dash);
         if (pl) svg.appendChild(pl);
       });
     } else { // legacy – čárkovaná spojnice zastávek

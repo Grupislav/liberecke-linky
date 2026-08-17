@@ -134,7 +134,9 @@ function line_category_priority(): array {
  * forceTrvale: linky natvrdo „trvale mimo provoz" (46 = úsek zrušené trasy).
  */
 function line_overrides(): array {
-    return ['catOverride' => ['41' => 'nakupni'], 'forceTrvale' => ['46']];
+    // 41 = komerční festivalová linka. 81 = starý název 41; zůstává trvale mimo provoz,
+    // jen bere trasu z archivu (klon 41 bez Mařanovy). 46 = natvrdo trvale.
+    return ['catOverride' => ['41' => 'nakupni'], 'forceTrvale' => ['46', '81']];
 }
 
 function line_display(string $short, string $dbKod, string $type, bool $isLive, bool $isArch): array {
@@ -183,6 +185,27 @@ function line_sources(string $dataDir): array {
         if (!isset($type[$s])) $type[$s] = $r['type'] ?? 'bus';
     }
     return ['live' => $live, 'arch' => $arch, 'type' => $type, 'legacy' => $legacy];
+}
+
+/**
+ * Barvy linek (short → hex) přes line_display – provozní dle kategorie, mimo provoz šedě.
+ * Jednotné pro velkou mapu i náhled v přehledu (jinak náhled bral jen DB kategorii bez
+ * override, takže 41 vycházela šedě místo komerční). $lineKods = DB kategorie (fetch_line_kods).
+ */
+function line_display_map(string $dataDir, array $lineKods): array {
+    $src = line_sources($dataDir);
+    $universe = $lineKods;
+    foreach (['live', 'arch'] as $g) {
+        foreach ($src[$g] as $s => $_) { if (!isset($universe[$s])) $universe[$s] = ''; }
+    }
+    $out = [];
+    foreach ($universe as $short => $dbKod) {
+        $short = (string)$short;
+        $type = $src['type'][$short] ?? ((string)$dbKod === 'tramvaje' ? 'tram' : 'bus');
+        $d = line_display($short, (string)$dbKod, $type, isset($src['live'][$short]), isset($src['arch'][$short]));
+        $out[$short] = ['color' => $d['color'], 'state' => $d['state']];
+    }
+    return $out;
 }
 
 /**

@@ -151,21 +151,6 @@
   ]
  },
  {
-  "short_name": "81",
-  "type": "bus",
-  "long_name": "FÜGNEROVA - Nádraží - AREÁL VESEC",
-  "stops": [
-   "Fügnerova",
-   "Rybníček",
-   "Nádraží",
-   {
-    "name": "Areál Vesec",
-    "lat": 50.7300661,
-    "lon": 15.0700481
-   }
-  ]
- },
- {
   "short_name": "44",
   "type": "bus",
   "long_name": "ZELENÉ ÚDOLÍ - SÍDLIŠTĚ NOVÉ VRATISLAVICE",

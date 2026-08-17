@@ -35,6 +35,12 @@ FORMER_STOP_FALLBACK = {
     "26611": {"name": "Areál Vesec", "lat": 50.7300661, "lon": 15.0700481},
 }
 
+# Linky mimo provoz, které natvrdo přebírají trasu jiné linky z archivu (nemají vlastní
+# GTFS tvar). 81 = starý název festivalové linky (dnes 41) → trasa 41 bez zastávky Mařanova.
+FORMER_LINE_CLONE = {
+    "81": {"from": "41", "drop_stops": ["Mařanova"]},
+}
+
 
 def read(name):
     with open(os.path.join(GTFS, name), encoding="utf-8-sig", newline="") as fh:
@@ -614,6 +620,21 @@ def main():
         if r.get("directions"):
             rec["directions"] = r["directions"]
         former[r["short_name"]] = rec
+    # natvrdo klonované linky (přebírají trasu jiné linky bez vybraných zastávek)
+    _name_by_sid = {str(sid): s.get("stop_name", "") for sid, s in stations.items()}
+    for _short, _spec in FORMER_LINE_CLONE.items():
+        _base = former.get(_spec["from"])
+        if not _base:
+            continue
+        _drop = set(_spec.get("drop_stops", []))
+        _keep = lambda ids: [i for i in ids if _name_by_sid.get(str(i), "") not in _drop]
+        _clone = {"type": _base["type"], "long_name": _spec.get("long_name", _base["long_name"]),
+                  "stops": _keep(_base.get("stops", [])), "geometry": _base["geometry"],
+                  "last_seen": _base.get("last_seen", "")}
+        if _base.get("directions"):
+            _clone["directions"] = [{"headsign": _d.get("headsign", ""), "stops": _keep(_d.get("stops", []))}
+                                    for _d in _base["directions"]]
+        former[_short] = _clone
     with open(former_path, "w", encoding="utf-8") as fh:
         json.dump(former, fh, ensure_ascii=False, separators=(",", ":"))
 

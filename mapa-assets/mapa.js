@@ -628,12 +628,14 @@
       routes.push(r); routeById[rid] = r; routeByShort[short] = r;
 
       var grp = L.layerGroup();
+      // čárkování dle STAVU, ne dle zdroje geometrie: trvale mimo provoz = čárkovaně
+      // (i když má reálný tvar z archivu, jako 81 = klon 41), akt. mimo provoz = plná čára
+      var fdash = r.state === "trvale" ? "6 7" : null;
       (fr.geometry && fr.geometry.coordinates || []).forEach(function (line) {
         if (line && line.length >= 2) {
-          // akt. mimo provoz = plná čára (má reálný archivní tvar); čárkovaně jen trvale
           L.polyline(line.map(function (c) { return [c[1], c[0]]; }), {
             color: color, weight: W_BASE, opacity: OP_BASE,
-            lineJoin: "round", lineCap: "round"
+            dashArray: fdash, lineJoin: "round", lineCap: "round"
           }).on("click", function () { focusRoute(rid); }).addTo(grp);
         }
       });
