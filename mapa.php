@@ -362,9 +362,8 @@ $legend = array_values(array_filter($legend, static function ($it) use (&$seenLe
         <button type="button" data-filter="all" class="ms-chip is-on"><?= $esc($jsLang['all']) ?></button>
         <button type="button" data-filter="tram" class="ms-chip"><?= $esc($jsLang['tram']) ?></button>
         <button type="button" data-filter="bus" class="ms-chip"><?= $esc($jsLang['bus']) ?></button>
-        <?php if (!$isSnapshot): // mimo provoz / historické nemají v ročním snímku smysl ?>
+        <?php if (!$isSnapshot): // mimo provoz nemá v ročním snímku smysl ?>
         <button type="button" data-filter="legacy" class="ms-chip"><?= $esc($jsLang['legacy']) ?></button>
-        <button type="button" data-filter="historicke" class="ms-chip"><?= $esc($jsLang['historic']) ?></button>
         <?php endif; ?>
       </div>
       <ul id="ms-routes" class="ms-routes"></ul>

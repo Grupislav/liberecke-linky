@@ -315,7 +315,7 @@
 
 /* nadpis skupiny v seznamu linek (provozní / akt. / trvale mimo provoz) */
 .ms-routes li.ms-group {
-  list-style: none; padding: 9px 4px 3px; margin: 0;
+  list-style: none; padding: 9px 4px 3px; margin: 0; text-align: center;
   font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
   color: #00a186; border-bottom: 1px solid #e2e8ec; cursor: default;
 }

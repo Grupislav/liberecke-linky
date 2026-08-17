@@ -134,9 +134,9 @@ function line_category_priority(): array {
  * forceTrvale: linky natvrdo „trvale mimo provoz" (46 = úsek zrušené trasy).
  */
 function line_overrides(): array {
-    // 41 i 81 = komerční festivalová linka (81 je starý název 41, trvale mimo provoz –
-    // bere trasu z archivu jako klon 41 bez Mařanovy). 46 = natvrdo trvale.
-    return ['catOverride' => ['41' => 'nakupni', '81' => 'nakupni'], 'forceTrvale' => ['46', '81']];
+    // Kategorie se bere z DB (nepřebíjíme natvrdo). forceTrvale = linky natvrdo „trvale
+    // mimo provoz": 46 (úsek zrušené trasy) a 81 (starý název 41, bere trasu z archivu).
+    return ['catOverride' => [], 'forceTrvale' => ['46', '81']];
 }
 
 function line_display(string $short, string $dbKod, string $type, bool $isLive, bool $isArch): array {

@@ -628,13 +628,16 @@ def main():
             continue
         _drop = set(_spec.get("drop_stops", []))
         _keep = lambda ids: [i for i in ids if _name_by_sid.get(str(i), "") not in _drop]
-        _clone = {"type": _base["type"], "long_name": _spec.get("long_name", _base["long_name"]),
-                  "stops": _keep(_base.get("stops", [])), "geometry": _base["geometry"],
-                  "last_seen": _base.get("last_seen", "")}
-        if _base.get("directions"):
-            _clone["directions"] = [{"headsign": _d.get("headsign", ""), "stops": _keep(_d.get("stops", []))}
-                                    for _d in _base["directions"]]
-        former[_short] = _clone
+        # jen JEDEN směr – u čárkované linky (trvale) by se čáry obou směrů překrývaly a
+        # čárky by splynuly do plné čáry. Vezmeme první směr trasy i zastávek.
+        _coords = _base.get("geometry", {}).get("coordinates", [])
+        _dir0 = (_base.get("directions") or [None])[0]
+        _stops0 = _keep(_dir0["stops"]) if _dir0 else _keep(_base.get("stops", []))
+        former[_short] = {
+            "type": _base["type"], "long_name": _spec.get("long_name", _base["long_name"]),
+            "stops": _stops0, "last_seen": _base.get("last_seen", ""),
+            "geometry": {"type": "MultiLineString", "coordinates": _coords[:1]},
+        }
     with open(former_path, "w", encoding="utf-8") as fh:
         json.dump(former, fh, ensure_ascii=False, separators=(",", ":"))
 

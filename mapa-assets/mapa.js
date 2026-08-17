@@ -777,6 +777,14 @@
     return r.state === "akt" ? "akt" : "trvale";
   }
 
+  // filtr (Vše / Tram / Bus / Mimo provoz) – typové filtry berou VŠECHNY stavy (i mimo
+  // provoz), rozliší je nadpisy skupin. „legacy" = všechny linky mimo provoz.
+  function matchesFilter(r) {
+    if (filter === "all") return true;
+    if (filter === "legacy") return !!r.legacy;
+    return r.type === filter;   // tram / bus
+  }
+
   // ── seznam linek v panelu ────────────────────────────────────────
   function buildRouteList() {
     elRoutes.innerHTML = "";
@@ -797,10 +805,13 @@
       akt: T.grpAkt || "Aktuálně mimo provoz",
       trvale: T.grpTrvale || "Trvale mimo provoz"
     };
+    // nadpisy jen když je skupin víc než jedna (snapshoty mají jen provozní → bez nadpisu)
+    var multiGroup = false, firstG = null;
+    ordered.forEach(function (r) { var g = lineGroup(r); if (firstG === null) firstG = g; else if (g !== firstG) multiGroup = true; });
     var lastGroup = null;
     ordered.forEach(function (r) {
       var g = lineGroup(r);
-      if (g !== lastGroup) {
+      if (multiGroup && g !== lastGroup) {
         lastGroup = g;
         var h = document.createElement("li");
         h.className = "ms-group";
@@ -845,9 +856,9 @@
       }
       var isLeg = li.dataset.legacy === "1";
       var okType;
-      if (filter === "legacy") okType = isLeg && li.dataset.category !== "historicke";
-      else if (filter === "historicke") okType = isLeg && li.dataset.category === "historicke";
-      else okType = !isLeg && (filter === "all" || li.dataset.type === filter);
+      if (filter === "all") okType = true;
+      else if (filter === "legacy") okType = isLeg;               // Mimo provoz = akt + trvale
+      else okType = li.dataset.type === filter;                    // tram / bus – všechny stavy
       var okQ = !query || li.dataset.search.indexOf(query) !== -1;
       var show = okType && okQ;
       li.classList.toggle("is-hidden", !show);
@@ -931,8 +942,9 @@
       var emph = focusedRouteId === r.id || hoveredRouteId === r.id;
 
       if (r.legacy) {
-        // legacy se kreslí jen ve svém filtru (Mimo provoz / Historické) nebo když je zvýrazněná
-        var show = filter === legacyGroup(r) || emph;
+        // legacy (mimo provoz) se kreslí pod filtrem svého TYPU (tram/bus) i pod „Mimo
+        // provoz", ne pod „Vše" (ať výchozí síť není zahlcená), nebo když je zvýrazněná
+        var show = (filter !== "all" && matchesFilter(r)) || emph;
         var has = routeLayer.hasLayer(grp);
         if (show && !has) grp.addTo(routeLayer);
         else if (!show && has) routeLayer.removeLayer(grp);
@@ -949,8 +961,8 @@
       var dim;
       if (emph) dim = false;
       else if (someFocus) dim = true;
-      else if (r.legacy) dim = filter !== legacyGroup(r);
-      else dim = !(colorLines && (filter === "all" || filter === r.type));
+      else if (r.legacy) dim = false;   // zobrazená legacy (přes filtr) = barevně, čárkovaně
+      else dim = !(colorLines && matchesFilter(r));
 
       var style = {
         color: dim ? DIM_COLOR : routeColor(r),
