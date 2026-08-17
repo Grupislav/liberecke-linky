@@ -134,9 +134,9 @@ function line_category_priority(): array {
  * forceTrvale: linky natvrdo „trvale mimo provoz" (46 = úsek zrušené trasy).
  */
 function line_overrides(): array {
-    // 41 = komerční festivalová linka. 81 = starý název 41; zůstává trvale mimo provoz,
-    // jen bere trasu z archivu (klon 41 bez Mařanovy). 46 = natvrdo trvale.
-    return ['catOverride' => ['41' => 'nakupni'], 'forceTrvale' => ['46', '81']];
+    // 41 i 81 = komerční festivalová linka (81 je starý název 41, trvale mimo provoz –
+    // bere trasu z archivu jako klon 41 bez Mařanovy). 46 = natvrdo trvale.
+    return ['catOverride' => ['41' => 'nakupni', '81' => 'nakupni'], 'forceTrvale' => ['46', '81']];
 }
 
 function line_display(string $short, string $dbKod, string $type, bool $isLive, bool $isArch): array {
@@ -151,18 +151,18 @@ function line_display(string $short, string $dbKod, string $type, bool $isLive, 
     } else {
         $state = 'akt';
     }
-    // provozní linka s nereálnou DB kategorií („mimoprovoz"/prázdná) → dle typu vozidla
-    if ($state === 'operational' && ($kod === 'mimoprovoz' || $kod === '')) {
+    // efektivní kategorie pro barvu čáry: „mimoprovoz"/prázdná → dle typu vozidla (autobus/
+    // tramvaj), ať i linka mimo provoz má kategorickou barvu (ne šedou). Historické zůstávají.
+    if ($kod === 'mimoprovoz' || $kod === '') {
         $kod = $type === 'tram' ? 'tramvaje' : 'autobusy';
     }
     $cc = line_category_colors();
-    if ($state === 'trvale') {
-        $color = $type === 'tram' ? '#b09a9a' : '#9aa4b0';   // trvale mimo provoz → šedá dle vozidla
-    } else {
-        // provozní i akt. mimo provoz → barva kategorie (typu linky); akt se pozná popiskem
-        $color = $cc[$kod] ?? ($type === 'tram' ? $cc['tramvaje'] : $cc['autobusy']);
-    }
-    return ['state' => $state, 'kod' => $kod, 'color' => $color];
+    // color = barva ČÁRY na mapě (dle kategorie ve všech stavech); tilecolor = barva DLAŽDICE
+    // v přehledu (trvale mimo provoz šedě, jinak dle kategorie). Rozdíl stavu je jinak jen
+    // v čárkování (trvale) a popisku.
+    $color = $cc[$kod] ?? ($type === 'tram' ? $cc['tramvaje'] : $cc['autobusy']);
+    $tilecolor = ($state === 'trvale') ? ($type === 'tram' ? '#b09a9a' : '#9aa4b0') : $color;
+    return ['state' => $state, 'kod' => $kod, 'color' => $color, 'tilecolor' => $tilecolor];
 }
 
 /**

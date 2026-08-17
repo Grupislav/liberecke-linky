@@ -174,8 +174,11 @@
           }).filter(Boolean);
         }
         if (coords && coords.length >= 2) {
-          var color = lr.type === "tram" ? "#cc2900" : "#007db3";
-          renderSvg(a, feats, proj, { kind: "legacy", coords: coords, color: color, stops: legacyStops(lr) });
+          // barva dle kategorie (shoda s velkou mapou), čárkování dle stavu: trvale
+          // čárkovaně, akt. plnou (např. historická linka 1, co má jen legacy trasu)
+          var color = TILE_COLORS[sel] || (lr.type === "tram" ? "#cc2900" : "#007db3");
+          var ldash = TILE_STATE[sel] === "trvale" ? "7 6" : null;
+          renderSvg(a, feats, proj, { kind: "legacy", coords: coords, color: color, dash: ldash, stops: legacyStops(lr) });
         }
       }
     });
@@ -340,9 +343,9 @@
         var pl = polyline(ln, proj, hi.color, 3.5, 1, hi.dash);
         if (pl) svg.appendChild(pl);
       });
-    } else { // legacy – čárkovaná spojnice zastávek
+    } else { // legacy – trasa dle stavu (trvale čárkovaně, akt plná)
       lineColor = hi.color;
-      var pl = polyline(hi.coords, proj, hi.color, 3.5, 1, "7 6");
+      var pl = polyline(hi.coords, proj, hi.color, 3.5, 1, hi.dash);
       if (pl) svg.appendChild(pl);
     }
 

@@ -92,7 +92,7 @@ foreach ($allRows as $row) {
     $linka = (string)$row['linka'];
     $type  = $src['type'][$linka] ?? ((string)$row['class'] === 'tramvaje' ? 'tram' : 'bus');
     $d = line_display($linka, (string)$row['class'], $type, isset($src['live'][$linka]), isset($src['arch'][$linka]));
-    $row['color'] = $d['color'];
+    $row['color'] = $d['tilecolor'];   // dlaždice: trvale mimo provoz šedě, jinak dle kategorie
     if ($d['state'] === 'operational')   $provozni[]   = $row;
     elseif ($d['state'] === 'trvale')    $trvaleMimo[] = $row;
     else                                 $aktMimo[]    = $row;

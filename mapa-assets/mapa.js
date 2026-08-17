@@ -688,9 +688,11 @@
         : latlngs;
 
       var grp = L.layerGroup();
+      // čárkování dle STAVU: trvale mimo provoz čárkovaně, akt. mimo provoz plnou čarou
+      // (i když má jen přibližnou legacy trasu, jako historická linka 1)
       L.polyline(drawLatlngs, {
         color: color, weight: W_BASE, opacity: OP_BASE,
-        dashArray: "6 7", lineJoin: "round", lineCap: "round"
+        dashArray: r.state === "trvale" ? "6 7" : null, lineJoin: "round", lineCap: "round"
       }).on("click", function () { focusRoute(rid); }).addTo(grp);
       routeLine[rid] = grp;
       // legacy linky se do mapy NEpřidávají automaticky – zobrazí je až
