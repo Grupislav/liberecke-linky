@@ -630,9 +630,10 @@
       var grp = L.layerGroup();
       (fr.geometry && fr.geometry.coordinates || []).forEach(function (line) {
         if (line && line.length >= 2) {
+          // akt. mimo provoz = plná čára (má reálný archivní tvar); čárkovaně jen trvale
           L.polyline(line.map(function (c) { return [c[1], c[0]]; }), {
             color: color, weight: W_BASE, opacity: OP_BASE,
-            dashArray: "6 7", lineJoin: "round", lineCap: "round"
+            lineJoin: "round", lineCap: "round"
           }).on("click", function () { focusRoute(rid); }).addTo(grp);
         }
       });

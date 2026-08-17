@@ -331,10 +331,10 @@
           if (pl) svg.appendChild(pl);
         });
       });
-    } else if (hi.kind === "former") { // akt. mimo provoz – reálný tvar z archivu, čárkovaně
+    } else if (hi.kind === "former") { // akt. mimo provoz – reálný tvar z archivu, plná čára
       lineColor = hi.color;
       (hi.lines || []).forEach(function (ln) {
-        var pl = polyline(ln, proj, hi.color, 3.5, 1, "7 6");
+        var pl = polyline(ln, proj, hi.color, 3.5, 1);
         if (pl) svg.appendChild(pl);
       });
     } else { // legacy – čárkovaná spojnice zastávek
