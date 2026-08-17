@@ -771,24 +771,43 @@
     return s === "X" || s === "x";
   }
 
+  // stav linky pro seskupení v seznamu: provozní / akt. mimo provoz / trvale mimo provoz
+  function lineGroup(r) {
+    if (!r.legacy) return "operational";
+    return r.state === "akt" ? "akt" : "trvale";
+  }
+
   // ── seznam linek v panelu ────────────────────────────────────────
   function buildRouteList() {
     elRoutes.innerHTML = "";
-    // výlukové nahoře, pak provozní (pořadí z routes.json), pak mimo provoz seřazené
-    // dle čísla (písmena A–F první, pak čísla vzestupně)
-    var grpOf = function (r) { return isVyluka(r) ? 0 : (r.legacy ? 2 : 1); };
+    // seskupeno dle stavu (jako přehled): provozní → akt. mimo provoz → trvale mimo provoz;
+    // uvnitř výlukové nahoře / provozní v pořadí z routes.json / mimo provoz dle čísla
+    var grpRank = { operational: 0, akt: 1, trvale: 2 };
     var ordered = routes.slice().sort(function (a, b) {
-      var ga = grpOf(a), gb = grpOf(b);
+      var ga = grpRank[lineGroup(a)], gb = grpRank[lineGroup(b)];
       if (ga !== gb) return ga - gb;
-      if (ga === 2) {
-        var na = /^\d/.test(a.short_name), nb = /^\d/.test(b.short_name);
-        if (na !== nb) return na ? 1 : -1;
-        if (na) return parseInt(a.short_name, 10) - parseInt(b.short_name, 10);
-        return a.short_name < b.short_name ? -1 : (a.short_name > b.short_name ? 1 : 0);
-      }
-      return 0;
+      if (ga === 0) return (isVyluka(b) ? 1 : 0) - (isVyluka(a) ? 1 : 0);   // výlukové nahoře
+      var na = /^\d/.test(a.short_name), nb = /^\d/.test(b.short_name);
+      if (na !== nb) return na ? 1 : -1;
+      if (na) return parseInt(a.short_name, 10) - parseInt(b.short_name, 10);
+      return a.short_name < b.short_name ? -1 : (a.short_name > b.short_name ? 1 : 0);
     });
+    var groupLabel = {
+      operational: T.grpOper || "Provozované linky",
+      akt: T.grpAkt || "Aktuálně mimo provoz",
+      trvale: T.grpTrvale || "Trvale mimo provoz"
+    };
+    var lastGroup = null;
     ordered.forEach(function (r) {
+      var g = lineGroup(r);
+      if (g !== lastGroup) {
+        lastGroup = g;
+        var h = document.createElement("li");
+        h.className = "ms-group";
+        h.dataset.group = g;
+        h.textContent = groupLabel[g];
+        elRoutes.appendChild(h);
+      }
       var li = document.createElement("li");
       li.dataset.id = r.id;
       li.dataset.type = r.type;
@@ -817,15 +836,24 @@
 
   function applyListFilter() {
     var items = elRoutes.querySelectorAll("li");
+    var curHead = null, curVisible = 0;
     Array.prototype.forEach.call(items, function (li) {
+      if (li.classList.contains("ms-group")) {            // nadpis skupiny
+        if (curHead) curHead.classList.toggle("is-hidden", curVisible === 0);
+        curHead = li; curVisible = 0;
+        return;
+      }
       var isLeg = li.dataset.legacy === "1";
       var okType;
       if (filter === "legacy") okType = isLeg && li.dataset.category !== "historicke";
       else if (filter === "historicke") okType = isLeg && li.dataset.category === "historicke";
       else okType = !isLeg && (filter === "all" || li.dataset.type === filter);
       var okQ = !query || li.dataset.search.indexOf(query) !== -1;
-      li.classList.toggle("is-hidden", !(okType && okQ));
+      var show = okType && okQ;
+      li.classList.toggle("is-hidden", !show);
+      if (show) curVisible++;
     });
+    if (curHead) curHead.classList.toggle("is-hidden", curVisible === 0);
   }
 
   // ── seznam zastávek v panelu (režim „Zastávky") ──────────────────
