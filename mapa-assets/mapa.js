@@ -1009,8 +1009,10 @@
   function renderRouteDetail(r) {
     var col = routeColor(r);
     var stopsSection = "";
-    if (r.legacy && r.state !== "akt") {
-      // trvale mimo provoz: seznam zastávek z DB (názvy v GTFS jsou klikací, ostatní ne)
+    if (r.legacy) {
+      // linka mimo provoz bez GTFS/archivu (legacy) → seznam zastávek z DB (názvy v GTFS
+      // klikací, ostatní ne). Jedno pravidlo pro mapu i přehled: legacy → DB, jinak r.stops
+      // (provozní z GTFS, „akt" z archivu). Linka 1 je jediná „akt"+legacy – bere DB seznam.
       var lnames = LEGACY_STOPS[r.short_name] || [];
       if (lnames.length) {
         var lh = lnames.map(function (raw) {
