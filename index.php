@@ -321,7 +321,19 @@ if ($selLinka !== null) {
 </script>
 
 <!-- Náhled trasy linky v záložce Přehled (inline SVG z GTFS dat) -->
-<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, v: <?= json_encode(@filemtime(__DIR__ . '/mapa-assets/data/meta.json') ?: 0) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(fetch_line_tile_colors_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, dir: <?= json_encode($lang['mapa_smer'] ?? 'Směr %s', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?> };</script>
+<?php
+// Cache-buster náhledu: nejnovější čas ZE VŠECH datových souborů (ne jen meta.json).
+// Jinak náhled servíruje starý shapes.json z cache – když přibude linka do GTFS (např.
+// 41), náhled ji nenajde a spadne na přibližnou legacy trasu, zatímco velká mapa (která
+// tenhle fix má) ukazuje čerstvý GTFS tvar. Stejná logika jako v mapa.php.
+$__previewV = 0;
+foreach (['meta.json', 'routes.json', 'stops.json', 'shapes.json', 'legacy-routes.json',
+          'legacy-shapes.json', 'stops-history.json', 'former-lines.json'] as $__pf) {
+    $__pt = @filemtime(__DIR__ . '/mapa-assets/data/' . $__pf);
+    if ($__pt && $__pt > $__previewV) $__previewV = $__pt;
+}
+?>
+<script>window.MAPA = { base: <?= json_encode($__appBase, JSON_UNESCAPED_SLASHES) ?>, v: <?= json_encode($__previewV) ?>, ja: <?= json_encode($l, JSON_UNESCAPED_SLASHES) ?>, aliases: <?= json_encode(line_map_aliases(), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, tileColors: <?= json_encode(fetch_line_tile_colors_db($dbServer ?? null, $dbUzivatel ?? null, $dbHeslo ?? null, $dbDb ?? null), JSON_UNESCAPED_SLASHES | JSON_FORCE_OBJECT) ?>, dir: <?= json_encode($lang['mapa_smer'] ?? 'Směr %s', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?> };</script>
 <script src="mapa-assets/line-preview.js<?= av('mapa-assets/line-preview.js') ?>" defer></script>
 
 </body>
