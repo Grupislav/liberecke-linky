@@ -26,6 +26,7 @@ jobs:
           server-dir: ${{ secrets.FTP_SERVER_DIR }}
           exclude: |
             **/.git*
+            **/.git*/**
             **/.github/**
             config.example.php
             CLAUDE.md
