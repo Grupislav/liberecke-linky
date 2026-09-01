@@ -17,7 +17,11 @@ if (!empty($gtfsProxyToken)) {
     }
 }
 
-$SRC  = 'http://www.dpmlj.cz/gtfs.zip';
+// Cache-buster v URL + no-cache hlavičky: bot přes tuhle proxy dostával zaseklou
+// (stale) kopii feedu – cache v cestě z produkčního serveru na DPMLJ vracela starý
+// gtfs.zip, i když DPMLJ už servíruje nový. Query param změní klíč cache, hlavičky
+// vynutí revalidaci.
+$SRC  = 'http://www.dpmlj.cz/gtfs.zip?_=' . time();
 $data = false; $code = 0; $err = '';
 
 if (function_exists('curl_init')) {                     // preferuj php-curl
@@ -27,13 +31,16 @@ if (function_exists('curl_init')) {                     // preferuj php-curl
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_CONNECTTIMEOUT => 30,
         CURLOPT_TIMEOUT        => 180,
+        CURLOPT_FRESH_CONNECT  => true,
+        CURLOPT_HTTPHEADER     => ['Cache-Control: no-cache', 'Pragma: no-cache'],
     ]);
     $data = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err  = curl_error($ch);
     curl_close($ch);
 } elseif (ini_get('allow_url_fopen')) {                  // fallback bez php-curl
-    $ctx = stream_context_create(['http' => ['timeout' => 180, 'follow_location' => 1]]);
+    $ctx = stream_context_create(['http' => ['timeout' => 180, 'follow_location' => 1,
+        'header' => "Cache-Control: no-cache\r\nPragma: no-cache\r\n"]]);
     $data = @file_get_contents($SRC, false, $ctx);
     $code = $data !== false ? 200 : 0;
     if ($data === false) $err = 'file_get_contents selhal';
