@@ -631,16 +631,22 @@ def emit_snapshot_data(linky, rok, write_shapes=True, meta_extra=None):
 
     def dir_ids(rows, short):
         ids, seq, geompts = [], [], []
+        prev = None
         for r in rows:
             if r["lat"] is None:
                 continue
             st = ref(r, short)
-            if ids and ids[-1] == st["id"]:          # slij sousední duplicitu (varianty zápisu téže zast.)
+            if prev == st["id"]:                     # slij sousední duplicitu (varianty zápisu téže zast.)
                 continue
-            ids.append(st["id"]); seq.append(st["name"])
+            prev = st["id"]
             ga = GEOM_AS.get((str(rok), r["match"]))          # sešívej přes dnešní zastávku
             gp = today_pos(ga) if ga else None
             geompts.append((ga, gp[0], gp[1]) if gp else (r["match"], r["lon"], r["lat"]))
+            # návrat z ostruhy (A,B,A) → v SEZNAMU jen A,B (Růžodol I 1×); geometrie ostruhu
+            # drží geompts výše (kreslí se tam-zpět), takže větev na mapě zůstane.
+            if len(ids) >= 2 and ids[-2] == st["id"]:
+                continue
+            ids.append(st["id"]); seq.append(st["name"])
         return ids, seq, geompts
 
     stitch = load_gtfs_stitcher() if write_shapes else None
@@ -786,7 +792,8 @@ def build_2001(meta_extra=None, write_shapes=True):
     if os.path.exists(man):
         src = json.load(open(man, encoding="utf-8"))
         for ln, d in src["lines"].items():
-            lines_raw[ln] = {"type": d["type"], "src": d.get("src", man), "dirs": d["dirs"]}
+            lines_raw[ln] = {"type": d["type"], "src": d.get("src", man), "dirs": d["dirs"],
+                             "long_name": d.get("long_name")}
     finalize("2001", lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
@@ -801,7 +808,8 @@ def build_scanned(rok, meta_extra=None, write_shapes=True):
     for ln in order:
         info = lines[ln]
         lines_raw[ln] = {"type": info.get("type") or ("tram" if ln in trams else "bus"),
-                         "src": info.get("src", "jr/%s (sken)" % rok), "dirs": info["dirs"]}
+                         "src": info.get("src", "jr/%s (sken)" % rok), "dirs": info["dirs"],
+                         "long_name": info.get("long_name")}
     finalize(str(rok), lines_raw, write_shapes=write_shapes, meta_extra=meta_extra)
 
 
